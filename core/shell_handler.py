@@ -1,7 +1,15 @@
 # core/shell_handler.py
 import subprocess
 import shlex
-import os # Added import
+import os
+import platform
+from core.utils import get_platform_name
+try:
+    from core.platform_commands import get_platform_command
+except ImportError:
+    # Define a placeholder if the module is not available
+    def get_platform_command(platform, command_type, subtype=None):
+        return None
 
 # Basic list of commands that are generally safe. This should be expanded.
 # For a more robust solution, consider external configuration or more sophisticated checks.
@@ -28,14 +36,32 @@ class ShellHandler:
         """
         self.safe_mode = safe_mode
         self.enable_dangerous_command_check = enable_dangerous_command_check
+        # Get platform information
+        self.system_platform = platform.system().lower()
+        self.platform_name = get_platform_name()
         print(f"ShellHandler initialized. Safe mode: {self.safe_mode}, Dangerous command check: {self.enable_dangerous_command_check}")
 
+    # Add platform-specific commands to the safe list
+    def _update_safe_commands_for_platform(self):
+        """Update safe commands list with platform-specific commands"""
+        # Add platform-specific safe commands
+        if self.system_platform == "darwin":  # macOS
+            # Add macOS-specific commands to whitelist
+            SAFE_COMMAND_WHITELIST.extend(['open', 'afplay', 'say', 'pbcopy', 'pbpaste', 'softwareupdate'])
+        elif self.system_platform == "linux":  # Linux/Ubuntu/Jetson
+            # Add Linux-specific commands to whitelist
+            SAFE_COMMAND_WHITELIST.extend(['xdg-open', 'paplay', 'arecord', 'nautilus', 'gnome-terminal', 
+                                          'google-chrome', 'firefox', 'chromium-browser'])
+            
     def _is_command_safe(self, command_parts):
         """Checks if the command is on the whitelist or considered generally safe."""
         if not command_parts:
             return False
         command_name = command_parts[0]
 
+        # Add platform-specific commands to the safe list
+        self._update_safe_commands_for_platform()
+        
         if command_name in SAFE_COMMAND_WHITELIST:
             return True
         
@@ -70,6 +96,9 @@ class ShellHandler:
         """
         if not command_string.strip():
             return "Error: No command provided."
+
+        # Check for and fix platform-specific commands
+        command_string = self._fix_platform_command(command_string)
 
         print(f"Attempting to execute: {command_string}")
 
@@ -196,6 +225,143 @@ class ShellHandler:
             return 'NOT_IN_WHITELIST'
             
         return 'SAFE'
+
+    def _fix_platform_command(self, command_string):
+        """
+        Checks and fixes platform-specific commands.
+        Translates common cross-platform commands to the appropriate format
+        for the current operating system.
+        
+        Args:
+            command_string (str): The original command string
+            
+        Returns:
+            str: A possibly modified command string appropriate for the current platform
+        """
+        # Parse the command into parts
+        try:
+            parts = shlex.split(command_string)
+            if not parts:
+                return command_string
+        except ValueError:
+            # If we can't parse it, return it unchanged
+            return command_string
+            
+        command_name = parts[0]
+        
+        # Fix common platform-specific issues
+        if self.system_platform == "darwin":  # macOS
+            # Fix Linux commands on macOS
+            if command_name == "xdg-open" and len(parts) > 1:
+                return f"open {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                
+            # Fix browser commands
+            if command_name in ["google-chrome", "chromium-browser"] and len(parts) >= 1:
+                if len(parts) > 1:
+                    # Handle Google searches specially
+                    if any(p.startswith(('http://www.google.com/search?q=', 'https://www.google.com/search?q=')) for p in parts[1:]):
+                        search_part = next((p for p in parts[1:] if p.startswith(('http://www.google.com/search?q=', 
+                                                                                'https://www.google.com/search?q='))), None)
+                        if search_part:
+                            return f"open -a 'Google Chrome' {shlex.quote(search_part)}"
+                    return f"open -a 'Google Chrome' {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                else:
+                    return "open -a 'Google Chrome'"
+                    
+            if command_name == "firefox" and len(parts) >= 1:
+                if len(parts) > 1:
+                    return f"open -a Firefox {' '.join(parts[1:])}"
+                else:
+                    return "open -a Firefox"
+                    
+            if command_name == "nautilus" and len(parts) >= 1:
+                if len(parts) > 1:
+                    return f"open {' '.join(parts[1:])}"
+                else:
+                    return "open ."
+                    
+            # Fix audio commands
+            if command_name == "paplay" and len(parts) > 1:
+                return f"afplay {' '.join(parts[1:])}"
+                
+        elif self.system_platform == "linux":  # Linux/Ubuntu/Jetson
+            # Fix macOS commands on Linux
+            if command_name == "open":
+                if len(parts) == 1:
+                    return "xdg-open ."
+                elif len(parts) > 2 and parts[1] == "-a":
+                    # Handle "open -a 'App Name' [URL]"
+                    app_name = parts[2].lower().replace("'", "").replace('"', '')
+                    if "chrome" in app_name:
+                        if len(parts) > 3:
+                            return f"google-chrome {' '.join(parts[3:])}"
+                        else:
+                            return "google-chrome"
+                    elif "firefox" in app_name:
+                        if len(parts) > 3:
+                            return f"firefox {' '.join(parts[3:])}"
+                        else:
+                            return "firefox"
+                    elif "safari" in app_name:
+                        if len(parts) > 3:
+                            return f"xdg-open {' '.join(parts[3:])}"
+                        else:
+                            return "xdg-open"
+                else:
+                    # Handle "open URL" or "open file"
+                    return f"xdg-open {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                    
+            # Fix audio commands
+            if command_name == "afplay" and len(parts) > 1:
+                return f"paplay {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                
+        # If we have the platform_commands module, try to use it 
+        # for more comprehensive translations
+        if get_platform_command:
+            # Try to identify the command type and get its platform-specific version
+            if self.platform_name in ["mac", "ubuntu", "jetson"]:
+                # Check for common command patterns and translate them
+                # Browser commands
+                if command_name in ["google-chrome", "firefox", "chromium-browser", "safari"]:
+                    browser_type = None
+                    if "chrome" in command_name:
+                        browser_type = "chrome"
+                    elif command_name == "firefox":
+                        browser_type = "firefox"
+                    elif command_name == "safari":
+                        browser_type = "safari"
+                        
+                    if browser_type:
+                        platform_cmd = get_platform_command(self.platform_name, "browser", browser_type)
+                        if platform_cmd:
+                            if len(parts) > 1:
+                                # If there's a URL argument
+                                return f"{platform_cmd} {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                            else:
+                                return platform_cmd
+                
+                # URL opening 
+                if command_name in ["xdg-open", "open"] and len(parts) > 1:
+                    # Check if it looks like a URL
+                    if parts[1].startswith("http") or parts[1].startswith("www."):
+                        platform_cmd = get_platform_command(self.platform_name, "open_url")
+                        if platform_cmd:
+                            return platform_cmd.format(url=parts[1])
+                            
+                # File browser
+                if command_name in ["nautilus", "open"] and (len(parts) == 1 or parts[-1] == "."):
+                    platform_cmd = get_platform_command(self.platform_name, "file_browser")
+                    if platform_cmd:
+                        return platform_cmd
+                        
+                # Audio playback
+                if command_name in ["afplay", "paplay"] and len(parts) > 1:
+                    platform_cmd = get_platform_command(self.platform_name, "play_audio")
+                    if platform_cmd:
+                        return platform_cmd.format(file=parts[1])
+                
+        # If no fixes were applied, return the original command
+        return command_string
 
 # Example usage (for testing - remove or comment out for production):
 # if __name__ == '__main__':

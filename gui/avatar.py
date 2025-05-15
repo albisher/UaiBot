@@ -12,7 +12,14 @@ class AvatarWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(200, 200)
-        self.setSizePolicy(QWidget.Policy.Expanding, QWidget.Policy.Minimum)
+        # Use cross-version compatible size policy
+        try:
+            # For newer PyQt versions
+            self.setSizePolicy(QWidget.Policy.Expanding, QWidget.Policy.Minimum)
+        except AttributeError:
+            # For older PyQt versions
+            import PyQt5.QtWidgets as QtWidgets
+            self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         
         self.current_emotion = "neutral"
         self.emotions = {

@@ -22,7 +22,7 @@ from PyQt5.QtGui import QFont, QPixmap, QIcon, QPalette, QColor
 from core.utils import load_config, save_config, get_project_root
 from core.ai_handler import AIHandler
 from core.shell_handler import ShellHandler
-from platform.platform_manager import PlatformManager
+from platform_uai.platform_manager import PlatformManager
 from gui.avatar import AvatarWidget
 
 class MainWindow(QMainWindow):
@@ -234,10 +234,46 @@ class MainWindow(QMainWindow):
         self.output_text.append(f"\n<b>You:</b> {user_input}")
         
         # Query AI
+        import platform as sys_platform
+        system_platform = sys_platform.system().lower()
+        platform_name = self.platform_manager.platform_name
+        
+        # Platform-specific command examples
+        platform_examples = ""
+        if platform_name == "mac":
+            platform_examples = """
+            Examples of correct macOS commands:
+            - To open Chrome: open -a 'Google Chrome'
+            - To open Chrome with a URL: open -a 'Google Chrome' 'https://www.google.com'
+            - To open a URL in default browser: open 'https://www.google.com'
+            - To open a file: open filename.txt
+            - To play audio: afplay audiofile.mp3
+            - To open file browser: open .
+            - To search Google: open -a 'Google Chrome' 'https://www.google.com/search?q=search+term'
+            
+            IMPORTANT: When opening applications with a URL, use format: open -a 'App Name' 'URL'
+            DO NOT use complex chains like '&&' or '||' - they don't work directly on macOS
+            """
+        elif platform_name in ["ubuntu", "jetson"]:
+            platform_examples = """
+            Examples of correct Linux commands:
+            - To open Chrome: google-chrome or chromium-browser
+            - To open Chrome with a URL: google-chrome 'https://www.google.com'
+            - To open a URL in default browser: xdg-open 'https://www.google.com'
+            - To open a file: xdg-open filename.txt
+            - To play audio: paplay audiofile.wav
+            - To open file browser: nautilus .
+            - To search Google: google-chrome 'https://www.google.com/search?q=search+term'
+            """
+        
         prompt = (
             f"User request: '{user_input}'. "
-            "Based on this request, suggest a single, common, and safe Linux shell command. "
+            f"You are running on {system_platform} ({platform_name}). "
+            f"Based on this request, suggest a single, common, and safe command specifically for {system_platform}. "
             "Avoid generating complex command chains unless explicitly requested. "
+            f"For macOS, use macOS-specific commands (like 'open -a' for applications). "
+            f"For Linux, use Linux-specific commands. "
+            f"{platform_examples}\n"
             "If the request is ambiguous or potentially unsafe, respond with 'Error: Cannot fulfill request safely.'"
         )
         

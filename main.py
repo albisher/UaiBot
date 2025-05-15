@@ -5,7 +5,7 @@ import sys
 from core.ai_handler import AIHandler
 from core.shell_handler import ShellHandler
 from core.utils import load_config, get_project_root
-from platform.platform_manager import PlatformManager
+from platform_uai.platform_manager import PlatformManager
 
 def process_command(user_input, ai_handler, shell_handler): # Added function to handle single command
     """Processes a single user command."""
@@ -13,11 +13,49 @@ def process_command(user_input, ai_handler, shell_handler): # Added function to 
         print("Please enter a command.")
         return
 
+    # Determine the current platform
+    import platform
+    from core.utils import get_platform_name
+    system_platform = platform.system().lower()
+    platform_name = get_platform_name()
+    
+    # Platform-specific command examples
+    platform_examples = ""
+    if platform_name == "mac":
+        platform_examples = """
+        Examples of correct macOS commands:
+        - To open Chrome: open -a 'Google Chrome'
+        - To open Chrome with a URL: open -a 'Google Chrome' 'https://www.google.com'
+        - To open a URL in default browser: open 'https://www.google.com'
+        - To open a file: open filename.txt
+        - To play audio: afplay audiofile.mp3
+        - To open file browser: open .
+        - To search Google: open -a 'Google Chrome' 'https://www.google.com/search?q=search+term'
+        
+        IMPORTANT: When opening applications with a URL, use format: open -a 'App Name' 'URL'
+        DO NOT use complex chains like '&&' or '||' - they don't work directly on macOS
+        """
+    elif platform_name in ["ubuntu", "jetson"]:
+        platform_examples = """
+        Examples of correct Linux commands:
+        - To open Chrome: google-chrome or chromium-browser
+        - To open Chrome with a URL: google-chrome 'https://www.google.com'
+        - To open a URL in default browser: xdg-open 'https://www.google.com'
+        - To open a file: xdg-open filename.txt
+        - To play audio: paplay audiofile.wav
+        - To open file browser: nautilus .
+        - To search Google: google-chrome 'https://www.google.com/search?q=search+term'
+        """
+    
     prompt_for_ai = (
         f"User request: '{user_input}'. "
-        "Based on this request, suggest a single, common, and safe Linux shell command. "
+        f"You are running on {system_platform} ({platform_name}). "
+        f"Based on this request, suggest a single, common, and safe command specifically for {system_platform}. "
         "Avoid generating complex command chains (e.g., using ';', '&&', '||') unless the user's request explicitly implies it and it's a very common pattern. "
         "Do not provide explanations, only the command itself. "
+        f"For macOS, use macOS-specific commands (like 'open -a' for applications). "
+        f"For Linux, use Linux-specific commands. "
+        f"{platform_examples}\n"
         "If the request is ambiguous or potentially unsafe to translate into a shell command, respond with 'Error: Cannot fulfill request safely.'"
     )
 

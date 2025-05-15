@@ -62,7 +62,7 @@ def install_dependencies():
     run_command(f"{brew_path} update", check=False)
     
     # Install necessary packages
-    packages = ["python", "portaudio", "ollama"]
+    packages = ["python", "portaudio", "ollama", "libusb"]
     for package in packages:
         print(f"Installing {package}...")
         result = run_command(f"{brew_path} install {package}")
@@ -71,7 +71,7 @@ def install_dependencies():
     
     # Install Python packages
     print("\nInstalling Python packages...")
-    requirements_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "requirements.txt")
+    requirements_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "requirements.txt")
     run_command(f"pip3 install -r {requirements_file}")
 
 def setup_ollama():
@@ -98,7 +98,7 @@ def setup_ollama():
     
     # Get configuration
     import json
-    config_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "settings.json")
+    config_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "config", "settings.json")
     try:
         with open(config_file, 'r') as f:
             config = json.load(f)
@@ -129,7 +129,7 @@ def setup_platform_specific():
     # Run platform test script
     print("\nTesting platform-specific components...")
     platform_test_script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                     "platform", "test_platform_components.py")
+                                     "test_platform_components.py")
     
     if os.path.exists(platform_test_script):
         print("Running platform test...")

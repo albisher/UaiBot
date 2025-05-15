@@ -32,7 +32,7 @@ class PlatformManager:
             
         # Import platform utils
         try:
-            from platform.platform_utils import get_audio_handler, get_usb_handler
+            from platform_uai.platform_utils import get_audio_handler, get_usb_handler
             
             # Initialize audio handler
             self.audio_handler = get_audio_handler()

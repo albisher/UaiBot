@@ -48,7 +48,7 @@ def load_platform_handler(module_name):
         return None
     
     # Build the path to the platform-specific module
-    module_path = f"platform.{platform_dir}.{module_name}"
+    module_path = f"platform_uai.{platform_dir}.{module_name}"
     
     try:
         # Try to import the module

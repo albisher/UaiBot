@@ -16,8 +16,16 @@ class MacUSBHandler:
     
     def refresh_devices(self):
         """Refresh the list of connected USB devices"""
-        # Use PyUSB to get the list of USB devices
-        self.devices = list(usb.core.find(find_all=True))
+        try:
+            # Use PyUSB to get the list of USB devices
+            self.devices = list(usb.core.find(find_all=True))
+        except usb.core.NoBackendError:
+            print("WARNING: USB backend not available. Install libusb with 'brew install libusb'")
+            print("USB device detection will be limited.")
+            self.devices = []
+        except Exception as e:
+            print(f"Error refreshing USB devices: {e}")
+            self.devices = []
         return self.get_device_list()
     
     def get_device_list(self):
