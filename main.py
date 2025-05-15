@@ -24,16 +24,65 @@ def process_command(user_input, ai_handler, shell_handler): # Added function to 
     if platform_name == "mac":
         platform_examples = """
         Examples of correct macOS commands:
-        - To open Chrome: open -a 'Google Chrome'
-        - To open Chrome with a URL: open -a 'Google Chrome' 'https://www.google.com'
-        - To open a URL in default browser: open 'https://www.google.com'
-        - To open a file: open filename.txt
-        - To play audio: afplay audiofile.mp3
-        - To open file browser: open .
-        - To search Google: open -a 'Google Chrome' 'https://www.google.com/search?q=search+term'
         
-        IMPORTANT: When opening applications with a URL, use format: open -a 'App Name' 'URL'
-        DO NOT use complex chains like '&&' or '||' - they don't work directly on macOS
+        File Operations:
+        - List files: ls -la
+        - List files sorted by size: ls -S
+        - Create empty file: touch filename.txt
+        - Show file content: cat filename.txt
+        - View file page by page: less filename.txt
+        - Copy file: cp file1.txt file2.txt
+        - Copy directory with contents: cp -r dir1 dir2
+        - Move/rename file: mv old_name.txt new_name.txt
+        - Delete file: rm filename.txt
+        - Create directory: mkdir dirname
+        - Remove directory: rm -r dirname
+        - Show current directory: pwd
+        
+        Applications & URLs:
+        - Open Chrome: open -a 'Google Chrome'
+        - Open Chrome with URL: open -a 'Google Chrome' 'https://www.google.com'
+        - Open URL in default browser: open 'https://www.google.com'
+        - Open file with default app: open filename.txt
+        - Open a text file for editing: open -t filename.txt
+        - Search Google: open -a 'Google Chrome' 'https://www.google.com/search?q=search+term'
+        - Open current directory in Finder: open .
+        
+        Media & System:
+        - Play audio file: afplay audiofile.mp3
+        - Text to speech: say "Hello world"
+        - Check system processes: top
+        - List all processes: ps aux
+        - Kill a process: kill <pid>
+        - Show disk usage: df -h
+        - Show directory size: du -sh directory
+        - Show date and time: date
+        - Show calendar: cal
+        - Show system uptime: uptime
+        
+        System Management:
+        - Check for updates: softwareupdate -l
+        - Install updates: sudo softwareupdate -i -a
+        - Prevent system sleep: caffeinate
+        - Search files by name: mdfind "filename"
+        - Reset the Dock: killall Dock
+        - Restart system: sudo shutdown -r now
+        - Shutdown system: sudo shutdown -h now
+        
+        Networking:
+        - Show network interfaces: ifconfig
+        - Show routing table: netstat -r
+        - DNS lookup: nslookup example.com
+        - Check host connectivity: ping example.com
+        - Show network path: traceroute example.com
+        - Show Wi-Fi info: networksetup -getinfo Wi-Fi
+        - Scan Wi-Fi networks: airport -s
+        - Show open network ports: lsof -i -P | grep LISTEN
+        
+        IMPORTANT TIPS:
+        - When opening applications with URLs, use format: open -a 'App Name' 'URL'
+        - Use single quotes around paths with spaces
+        - Avoid complex chains like '&&' or '||' unless you're sure they work on macOS
         """
     elif platform_name in ["ubuntu", "jetson"]:
         platform_examples = """

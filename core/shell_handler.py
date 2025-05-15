@@ -46,8 +46,29 @@ class ShellHandler:
         """Update safe commands list with platform-specific commands"""
         # Add platform-specific safe commands
         if self.system_platform == "darwin":  # macOS
-            # Add macOS-specific commands to whitelist
-            SAFE_COMMAND_WHITELIST.extend(['open', 'afplay', 'say', 'pbcopy', 'pbpaste', 'softwareupdate'])
+            # Add macOS-specific commands to whitelist based on enhancements2.txt
+            SAFE_COMMAND_WHITELIST.extend([
+                # File & Directory operations
+                'open', 'touch', 'ditto',
+                # Media and output
+                'afplay', 'say', 'pbcopy', 'pbpaste', 
+                # System commands
+                'softwareupdate', 'caffeinate', 'mdfind', 'diskutil',
+                # Network commands
+                'networksetup', 'airport', 'scutil', 'ping', 'curl', 'ssh', 'scp',
+                'ifconfig', 'netstat', 'nslookup', 'traceroute', 'nettop',
+                # Text processing and viewing
+                'less', 'more', 'nano', 'vi', 'grep', 'awk', 'sed',
+                # System information
+                'system_profiler', 'sw_vers', 'top', 'ps', 'uptime', 'cal', 'date',
+                'sysctl', 'pmset', 'launchctl',
+                # AppleScript execution
+                'osascript',
+                # macOS special commands
+                'defaults', 'plutil', 'hdiutil', 'screencapture', 'security',
+                'xcode-select', 'xcodebuild', 'xcrun', 'codesign', 'spctl',
+                'ioreg', 'pkgutil', 'automator'
+            ])
         elif self.system_platform == "linux":  # Linux/Ubuntu/Jetson
             # Add Linux-specific commands to whitelist
             SAFE_COMMAND_WHITELIST.extend(['xdg-open', 'paplay', 'arecord', 'nautilus', 'gnome-terminal', 
@@ -252,10 +273,24 @@ class ShellHandler:
         # Fix common platform-specific issues
         if self.system_platform == "darwin":  # macOS
             # Fix Linux commands on macOS
-            if command_name == "xdg-open" and len(parts) > 1:
-                return f"open {' '.join([shlex.quote(p) for p in parts[1:]])}"
-                
-            # Fix browser commands
+            if command_name == "xdg-open" and len(parts) >= 1:
+                if len(parts) > 1:
+                    # Handle home directory paths
+                    if parts[1] == "~" or parts[1] == "$HOME":
+                        return "open ~"
+                    # Handle common paths
+                    path = parts[1]
+                    if path.startswith("/home/"):
+                        # Convert Linux home paths to macOS format
+                        path_parts = path.split("/")
+                        if len(path_parts) > 2:  # /home/username/...
+                            username = path_parts[2] 
+                            return f"open /Users/{username}/{'/'.join(path_parts[3:])}"
+                    return f"open {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                else:
+                    return "open ."
+            
+            # Fix Linux browser commands on macOS
             if command_name in ["google-chrome", "chromium-browser"] and len(parts) >= 1:
                 if len(parts) > 1:
                     # Handle Google searches specially
@@ -270,19 +305,31 @@ class ShellHandler:
                     
             if command_name == "firefox" and len(parts) >= 1:
                 if len(parts) > 1:
-                    return f"open -a Firefox {' '.join(parts[1:])}"
+                    return f"open -a Firefox {' '.join([shlex.quote(p) for p in parts[1:]])}"
                 else:
                     return "open -a Firefox"
                     
             if command_name == "nautilus" and len(parts) >= 1:
                 if len(parts) > 1:
-                    return f"open {' '.join(parts[1:])}"
+                    return f"open {' '.join([shlex.quote(p) for p in parts[1:]])}"
                 else:
                     return "open ."
                     
-            # Fix audio commands
+            # Fix Linux directory commands on macOS
+            if command_name == "gnome-terminal" and len(parts) >= 1:
+                if len(parts) > 1:
+                    # Not a direct equivalent, open Terminal in current directory
+                    return "open -a Terminal ."
+                else:
+                    return "open -a Terminal"
+                    
+            # Fix Linux audio commands on macOS  
             if command_name == "paplay" and len(parts) > 1:
-                return f"afplay {' '.join(parts[1:])}"
+                return f"afplay {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                
+            # Fix Linux text editing commands if needed
+            if command_name == "gedit" and len(parts) > 1:
+                return f"open -t {' '.join([shlex.quote(p) for p in parts[1:]])}"
                 
         elif self.system_platform == "linux":  # Linux/Ubuntu/Jetson
             # Fix macOS commands on Linux
@@ -294,26 +341,48 @@ class ShellHandler:
                     app_name = parts[2].lower().replace("'", "").replace('"', '')
                     if "chrome" in app_name:
                         if len(parts) > 3:
-                            return f"google-chrome {' '.join(parts[3:])}"
+                            return f"google-chrome {' '.join([shlex.quote(p) for p in parts[3:]])}"
                         else:
                             return "google-chrome"
                     elif "firefox" in app_name:
                         if len(parts) > 3:
-                            return f"firefox {' '.join(parts[3:])}"
+                            return f"firefox {' '.join([shlex.quote(p) for p in parts[3:]])}"
                         else:
                             return "firefox"
                     elif "safari" in app_name:
                         if len(parts) > 3:
-                            return f"xdg-open {' '.join(parts[3:])}"
+                            return f"xdg-open {' '.join([shlex.quote(p) for p in parts[3:]])}"
                         else:
                             return "xdg-open"
+                    elif "terminal" in app_name:
+                        return "gnome-terminal"
+                elif len(parts) > 2 and parts[1] == "-t":
+                    # Handle "open -t file.txt" (open for text editing)
+                    return f"gedit {' '.join([shlex.quote(p) for p in parts[2:]])}"
                 else:
                     # Handle "open URL" or "open file"
                     return f"xdg-open {' '.join([shlex.quote(p) for p in parts[1:]])}"
                     
-            # Fix audio commands
+            # Fix macOS audio commands on Linux
             if command_name == "afplay" and len(parts) > 1:
                 return f"paplay {' '.join([shlex.quote(p) for p in parts[1:]])}"
+                
+            # Fix macOS text-to-speech command on Linux
+            if command_name == "say" and len(parts) > 1:
+                text = ' '.join(parts[1:])
+                # Linux doesn't have a direct equivalent, but could use espeak if installed
+                return f"echo {shlex.quote(text)} | espeak"
+                
+            # Fix macOS clipboard commands
+            if command_name == "pbcopy":
+                return "xclip -selection clipboard"
+                
+            if command_name == "pbpaste":
+                return "xclip -selection clipboard -o"
+                
+            # Fix macOS Finder commands
+            if command_name == "mdfind":
+                return f"locate {' '.join([shlex.quote(p) for p in parts[1:]])}"
                 
         # If we have the platform_commands module, try to use it 
         # for more comprehensive translations

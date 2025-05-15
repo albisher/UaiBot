@@ -20,12 +20,85 @@ PLATFORM_COMMANDS = {
             "default": "open -t",
             "vscode": "open -a 'Visual Studio Code'",
             "sublime": "open -a 'Sublime Text'",
-            "textedit": "open -a TextEdit"
+            "textedit": "open -a TextEdit",
+            "nano": "nano",
+            "vi": "vi"
         },
         "terminal": "open -a Terminal",
         "open_url": "open '{url}'",
         "play_audio": "afplay '{file}'",
-        "record_audio": "say -o '{file}.aiff' '{text}'"
+        "record_audio": "say -o '{file}.aiff' '{text}'",
+        
+        # New macOS-specific command categories based on enhancements2.txt
+        "file_operations": {
+            "list_files": "ls -la",
+            "create_file": "touch {filename}",
+            "copy_file": "cp {source} {destination}",
+            "copy_directory": "cp -r {source} {destination}",
+            "move_file": "mv {source} {destination}",
+            "delete_file": "rm {filename}",
+            "delete_directory": "rm -r {directory}",
+            "make_directory": "mkdir {directory}",
+            "remove_directory": "rmdir {directory}",
+            "show_file_content": "cat {filename}"
+        },
+        "system_info": {
+            "disk_usage": "df -h",
+            "directory_size": "du -sh {directory}",
+            "processes": "ps aux",
+            "top_processes": "top",
+            "system_version": "sw_vers",
+            "uptime": "uptime",
+            "date": "date",
+            "calendar": "cal"
+        },
+        "network": {
+            "ping": "ping {host}",
+            "download": "curl -O {url}",
+            "ssh_connect": "ssh {user}@{host}",
+            "copy_to_remote": "scp {file} {user}@{host}:{path}",
+            "copy_from_remote": "scp {user}@{host}:{path} {local_path}",
+            "show_network_info": "ifconfig",
+            "show_routing_table": "netstat -r",
+            "dns_lookup": "nslookup {domain}",
+            "traceroute": "traceroute {host}",
+            "wifi_info": "networksetup -getinfo Wi-Fi",
+            "wifi_scan": "airport -s",
+            "show_ports": "lsof -i -P | grep LISTEN",
+            "show_network_usage": "nettop -P"
+        },
+        "system_management": {
+            "update_check": "softwareupdate -l",
+            "update_install": "softwareupdate -i -a",
+            "prevent_sleep": "caffeinate",
+            "flush_dns": "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder",
+            "restart": "sudo shutdown -r now",
+            "shutdown": "sudo shutdown -h now",
+            "reset_dock": "killall Dock",
+            "show_hidden_files": "defaults write com.apple.finder AppleShowAllFiles YES; killall Finder",
+            "hide_hidden_files": "defaults write com.apple.finder AppleShowAllFiles NO; killall Finder"
+        },
+        "automation": {
+            "run_applescript": "osascript -e '{script}'",
+            "schedule_task": "crontab -e",
+            "text_to_speech": "say '{text}'",
+            "copy_to_clipboard": "echo '{text}' | pbcopy",
+            "paste_from_clipboard": "pbpaste"
+        },
+        "text_processing": {
+            "search_in_file": "grep '{pattern}' {filename}",
+            "find_files": "find {directory} -name '{pattern}'",
+            "search_files": "mdfind '{query}'",
+            "count_words": "wc -w {filename}",
+            "count_lines": "wc -l {filename}",
+            "sort_file": "sort {filename}",
+            "unique_lines": "uniq {filename}"
+        },
+        "permission_management": {
+            "change_permissions": "chmod {mode} {filename}",
+            "change_owner": "chown {user} {filename}",
+            "change_group": "chgrp {group} {filename}"
+        }
     },
     "ubuntu": {
         "browser": {
