@@ -1,13 +1,30 @@
-openai
-google-generativeai
-ollama
-httpx
-pyusb
-pyserial
-sounddevice
-PyAudio
-SpeechRecognition
-PyQt5
-pyttsx3
-gTTS
-vosk
+# filepath: /Users/amac/Documents/code/UaiBot/requirements.txt
+
+# AI and API dependencies
+openai                # OpenAI API for AI integration
+google-generativeai   # Google's Generative AI API
+ollama                # Ollama client for local AI models
+httpx                 # HTTP client library
+
+# Hardware interface
+pyusb                 # USB device access
+pyserial              # Serial port interface
+plistlib              # For parsing plist data on macOS
+
+# Audio interface
+sounddevice           # Audio playback and recording
+PyAudio               # Audio I/O
+SpeechRecognition     # Speech recognition
+pyttsx3               # Text-to-speech (offline)
+gTTS                  # Google Text-to-Speech
+vosk                  # Offline speech recognition
+
+# GUI
+PyQt5                 # Qt GUI framework
+
+# Platform-specific dependencies
+# Mac requirements are fully covered above
+
+# Ubuntu/Jetson additional requirements (commented out, uncomment if needed)
+# pyudev              # Linux device management
+# python3-gi          # GObject Introspection for PulseAudio/PipeWire

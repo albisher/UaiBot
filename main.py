@@ -1,19 +1,11 @@
 import json
-import argparse # Added import
-import os # Added import for environment variables
+import argparse
+import os
+import sys
 from core.ai_handler import AIHandler
 from core.shell_handler import ShellHandler
-
-def load_config():
-    try:
-        with open('config/settings.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print("Error: config/settings.json not found. Please create it.")
-        return None
-    except json.JSONDecodeError:
-        print("Error: Could not decode config/settings.json. Please check its format.")
-        return None
+from core.utils import load_config, get_project_root
+from platform.platform_manager import PlatformManager
 
 def process_command(user_input, ai_handler, shell_handler): # Added function to handle single command
     """Processes a single user command."""

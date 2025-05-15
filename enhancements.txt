@@ -83,4 +83,16 @@ This document outlines areas for further thought and planning based on the `idea
       - Consider if any parental controls or logging features might be appropriate (e.g., reviewing commands run by the child, setting limits on AI interaction).
       - Emphasize educational content and ensure AI responses are age-appropriate. This might involve careful prompt engineering and potentially filtering AI output.
 
+**12. Platform Support - Apple Silicon (M4 Macs) & Jetson Nano Ubuntu**
+   - **Context:** The application should run on both Apple Silicon (M4 Macs) and Jetson Nano Ubuntu.
+   - **Suggestion:**
+     - Ensure all dependencies and libraries are compatible with both ARM64 (Apple Silicon, Jetson Nano) and x86_64 architectures.
+     - Provide clear installation instructions for both platforms, including any platform-specific dependencies or quirks (e.g., Homebrew for Mac, apt for Ubuntu).
+     - Test the application on both platforms to verify functionality, especially for hardware access (USB/audio).
+     - For hardware-specific code (e.g., device drivers, optimizations), organize the codebase with dedicated folders:
+       - Place Mac-specific code in `platform/mac/`
+       - Place Jetson Nano/Ubuntu-specific code in `platform/jetson/` or `platform/ubuntu/`
+       - Use runtime detection or configuration to load the appropriate modules.
+     - Document any known limitations or required workarounds for each platform.
+
 By addressing these points during your planning and development, you can build a more robust, secure, and user-friendly UaiBot that truly delights and educates its target audience.
