@@ -1,0 +1,13 @@
+openai
+google-generativeai
+ollama
+httpx
+pyusb
+pyserial
+sounddevice
+PyAudio
+SpeechRecognition
+PyQt5
+pyttsx3
+gTTS
+vosk

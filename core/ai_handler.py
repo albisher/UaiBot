@@ -14,26 +14,41 @@ except ImportError:
     ollama = None
 
 class AIHandler:
-    def __init__(self, model_type="local", api_key=None, ollama_base_url="http://localhost:11434", google_model_name=None):
+    def __init__(self, model_type="local", api_key=None, ollama_base_url="http://localhost:11434", google_model_name="gemini-pro"):
         self.model_type = model_type
+        self.api_key = api_key
         self.ollama_base_url = ollama_base_url
         self.google_model_name = google_model_name
-        self.ollama_model_name = None  # Will be set later via set_ollama_model
+        self.ollama_model_name = "llama2" # Default Ollama model, can be configured
 
         if self.model_type == "google":
             if not genai:
                 raise ImportError("Google Generative AI SDK not installed.")
-            
-            # api_key is expected to be provided by the caller (e.g., main.py)
-            # after being loaded from config.
-            if not api_key:
-                raise ValueError("Google API Key not provided to AIHandler. Ensure it is loaded from config and passed correctly.")
-            
-            # google_model_name is also expected to be provided by the caller.
-            if not self.google_model_name:
-                raise ValueError("Google model name not provided to AIHandler. Ensure it is loaded from config and passed correctly.")
+            if not self.api_key:
+                # Try to get API key from environment variable
+                self.api_key = os.getenv("GOOGLE_API_KEY")
+            if not self.api_key:
+                # Try to get API key from config file
+                try:
+                    # Try current directory first
+                    if os.path.exists("config/settings.json"):
+                        with open("config/settings.json", 'r') as f:
+                            config = json.load(f)
+                            self.api_key = config.get("google_api_key")
+                    # Try relative path from core directory
+                    elif os.path.exists("../config/settings.json"):
+                        with open("../config/settings.json", 'r') as f:
+                            config = json.load(f)
+                            self.api_key = config.get("google_api_key")
+                    else:
+                        print("Warning: config/settings.json not found in current or parent directory.")
+                except FileNotFoundError:
+                    print("Warning: config/settings.json not found.")
+                except json.JSONDecodeError:
+                    print("Warning: Could not decode config/settings.json.")
 
-            self.api_key = api_key # Store the provided API key
+            if not self.api_key:
+                raise ValueError("Google API Key not provided or found. Please set GOOGLE_API_KEY environment variable or add 'google_api_key' to config/settings.json.")
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(self.google_model_name)
             print(f"Google AI Handler initialized with model: {self.google_model_name}")

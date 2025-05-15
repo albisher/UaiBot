@@ -1,4 +1,60 @@
 /.goose
 /.venv
+/.secret
 /config
+
 /sudo.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*build/
+*dist/
+*egg-info/
+*.egg
+venv/
+env/
+.env
+*.env.*
+
+# IDE specific
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Configuration - uncomment the line below if your settings.json contains sensitive information
+# or is intended to be user-specific and not versioned.
+# config/settings.json
+
+# Test outputs
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
