@@ -7,75 +7,9 @@ import subprocess
 from core.ai_handler import AIHandler
 from core.shell_handler import ShellHandler
 from core.utils import load_config, get_project_root
-from core.command_help import CommandHelp
+from core import command_help
 from platform_uai.platform_manager import PlatformManager
 
-def is_natural_language_query(query_lower):
-    """
-    Detects if a user input is likely a natural language query rather than a direct command.
-    Returns True if it looks like natural language that should go to the AI.
-    """
-    # System information query patterns
-    system_info_patterns = [
-        r'(how|show|tell|what|display).*?(system|uptime|disk|space|storage|memory|cpu)',
-        r'(how long|uptime|running time|system uptime|been up|been running)',
-        r'(disk|space|storage|memory|cpu|processor).*(usage|free|available)',
-        r'(show|display|list|get).*(system|process|network|running|active)',
-        r'(what|how).*(file|directory|folder|path)',
-    ]
-    
-    # If it matches any of the patterns, it's likely a natural language query
-    if any(re.search(pattern, query_lower) for pattern in system_info_patterns):
-        return True
-        
-    # If it starts with question words or action verbs not typically used in commands
-    question_starters = ['how', 'what', 'when', 'why', 'where', 'who', 'can', 'could', 'please', 'would']
-    if any(query_lower.startswith(word) for word in question_starters):
-        return True
-        
-    # If it's a full English sentence (rough heuristic)
-    if len(query_lower.split()) > 3 and not query_lower.startswith(('ls', 'cd', 'rm', 'cp', 'mv', 'sudo')):
-        return True
-        
-    return False
-
-# Create a special function to handle natural language screen file commands
-def extract_screen_command(query):
-    """
-    Helper function to extract the appropriate command for common screen-related natural language queries
-    """
-    query_lower = query.lower()
-    
-    # File operations
-    if any(term in query_lower for term in ["show me files", "list files", "list the files", "show the files", "show files", "what files"]):
-        return "ls -la"
-    elif any(term in query_lower for term in ["disk usage", "disk space", "storage space", "available space"]):
-        return "df -h"
-    elif any(term in query_lower for term in ["current directory", "where am i", "which directory", "what directory", "what folder"]):
-        return "pwd"
-    
-    # Process monitoring
-    elif any(term in query_lower for term in ["process", "running process", "what's running", "running tasks", "show processes"]):
-        return "ps aux | head -20"
-    
-    # System information
-    elif any(term in query_lower for term in ["system info", "system information", "os version", "operating system"]):
-        return "uname -a && cat /etc/*release 2>/dev/null || sw_vers"
-    elif any(term in query_lower for term in ["uptime", "how long", "system uptime", "been up", "been running"]):
-        return "uptime"
-    
-    # USB/Serial specific
-    elif any(term in query_lower for term in ["usb devices", "connected devices", "list devices", "show devices"]):
-        return "ls -l /dev/cu.* /dev/tty.* 2>/dev/null || ls -l /dev/tty* 2>/dev/null"
-    elif any(term in query_lower for term in ["serial port", "port info", "connected ports"]):
-        return "ls -l /dev/cu.* /dev/tty.* 2>/dev/null || ls -l /dev/tty* 2>/dev/null"
-    
-    # Network information
-    elif any(term in query_lower for term in ["network", "ip address", "show ip", "my ip"]):
-        return "ifconfig | grep 'inet ' | grep -v 127.0.0.1"
-    
-    return None
-        
 def process_command(user_input, ai_handler, shell_handler):
     """
     Processes a single user command, determining whether it should be executed
@@ -84,47 +18,10 @@ def process_command(user_input, ai_handler, shell_handler):
     """
     if not user_input.strip():
         print("Please enter a command.")
+        return
+    
     query_lower = user_input.lower()
     user_input_orig = user_input  # Save original input with proper case
-    
-    # ==========================================
-    # STEP 0: First check if this is a help request - these should ALWAYS be processed locally
-    # ==========================================
-    help_keywords = ['help', 'how to', 'usage', 'manual', 'man', 'info', 'examples', 'explain']
-    if any(keyword in query_lower for keyword in help_keywords) and not query_lower.startswith(('send', 'run')):
-        is_help_request = True
-        
-        import re
-        # Check if any known command is mentioned
-        for command in CommandHelp.list_available_commands():
-            # Look for the command as a standalone word
-            pattern = rf'\b{re.escape(command)}\b'
-            if re.search(pattern, query_lower):
-                # Found a command help request
-                help_info = CommandHelp.get_command_help(command)
-                if help_info:
-                    print(f"\n======= Help: {command} =======")
-                    print(f"Description: {help_info['description']}")
-                    print(f"Syntax: {help_info['syntax']}")
-                    print("\nExamples:")
-                    for example in help_info['examples']:
-                        print(f"  {example}")
-                    print(f"Categories: {', '.join(help_info['categories'])}")
-                    print("=============================\n")
-                    return
-        
-        # If they asked for help with a category
-        for category in ['file', 'directory', 'system', 'network', 'text', 'editor', 'automation']:
-            if category in query_lower:
-                commands = CommandHelp.get_command_category(category)
-                if commands:
-                    print(f"\n======= Commands in '{category}' category =======")
-                    for cmd in commands:
-                        help_info = CommandHelp.get_command_help(cmd)
-                        print(f"- {cmd}: {help_info['description']}")
-                    print("\nFor detailed help on a specific command, type 'help [command]'")
-                    print("=========================================\n")
-                    return
     
     # Check if there's a current screen context
     # This function sets a context flag to help decide where commands should go by default
@@ -143,9 +40,7 @@ def process_command(user_input, ai_handler, shell_handler):
     screen_session_indicators = [
         "screen session", "serial port", "usb terminal", "in screen", "on screen", 
         "to screen", "through screen", "via screen", "in the screen", "on the screen",
-        "in terminal session", "in the terminal session", "over serial", "usb screen",
-        "connected screen", "usb connected", "serial screen", "connected usb", "connected serial",
-        "device screen", "connected device"
+        "in terminal session", "in the terminal session", "over serial"
     ]
     
     explicitly_screen = any(indicator in query_lower for indicator in screen_session_indicators)
@@ -164,24 +59,9 @@ def process_command(user_input, ai_handler, shell_handler):
     # ==========================================
     if any(query_lower.startswith(prefix) for prefix in ["send ", "run ", "execute ", "type "]):
         # Direct command passing through "send" or similar patterns
-        import re
         for prefix in ["send ", "run ", "execute ", "type "]:
             if query_lower.startswith(prefix):
-                remaining_cmd = user_input_orig.split(" ", 1)[1].strip()
-                
-                # Check for patterns like "send ls to screen" or "send command ls to screen"
-                screen_pattern = re.search(r'^(.*?)\s+(?:to|on|in)\s+(?:the\s+)?(?:screen|terminal|session|serial)$', remaining_cmd, re.IGNORECASE)
-                command_pattern = re.search(r'^command\s+[\'"]?(.*?)[\'"]?$', remaining_cmd, re.IGNORECASE)
-                
-                # Extract the actual command to send
-                direct_cmd = remaining_cmd
-                if screen_pattern:
-                    direct_cmd = screen_pattern.group(1).strip()
-                    # If it starts with "command" and possibly has quotes, extract the actual command
-                    command_match = re.search(r'^command\s+[\'"]?(.*?)[\'"]?$', direct_cmd, re.IGNORECASE)
-                    if command_match:
-                        direct_cmd = command_match.group(1).strip()
-                
+                direct_cmd = user_input_orig.split(" ", 1)[1].strip()
                 if direct_cmd:
                     if any(term in query_lower for term in ["screen", "terminal", "session", "serial"]):
                         # Explicit target is screen
@@ -243,17 +123,9 @@ def process_command(user_input, ai_handler, shell_handler):
         
         # If the command has arguments or it's an interactive command
         if ' ' in query_lower or is_interactive:
-            if explicitly_screen or any(term in query_lower for term in ["usb", "serial", "connected", "device"]):
-                # User explicitly mentioned screen/usb/serial/connected device
-                device_desc = "screen session"
-                if "usb" in query_lower:
-                    device_desc = "USB device"
-                elif "serial" in query_lower:
-                    device_desc = "serial connection"
-                elif "connected" in query_lower or "device" in query_lower:
-                    device_desc = "connected device"
-                    
-                print(f"Sending command '{user_input_orig}' to active {device_desc}...")
+            if explicitly_screen:
+                # User explicitly mentioned screen
+                print(f"Sending command '{user_input_orig}' to active screen session...")
                 result = shell_handler.send_to_screen_session(user_input_orig)
                 print(result)
                 return
@@ -316,33 +188,12 @@ def process_command(user_input, ai_handler, shell_handler):
     import re
     command_match = None
     
-    # Special handling for common natural language screen commands
-    if screen_exists and any(term in query_lower for term in ["screen", "usb", "serial", "device", "connected"]):
-        # Try to extract natural language command
-        extracted_cmd = extract_screen_command(user_input_orig)
-        if extracted_cmd:
-            print(f"Sending command '{extracted_cmd}' to active screen session...")
-            result = shell_handler.send_to_screen_session(extracted_cmd)
-            print(result)
-            return
-        
     # If it's a phrase like "make it do ls" or "make screen do ls" or other variants
-    explicit_screen_patterns = ['make it', 'tell it', 'have it', 'make screen', 'tell screen', 'tell the screen', 
-                              'on screen', 'in screen', 'screen to', 'to the screen', 'via screen', 'through screen',
-                              'usb screen', 'connected screen', 'usb connected', 'connected usb', 'serial screen', 
-                              'device screen', 'connected device', 'on the usb', 'on the serial', 'on the connected']
-    if any(pattern in query_lower for pattern in explicit_screen_patterns):
-        # Let's handle the special case first for "tell the screen to show me the files"
-        # or similar natural language patterns
-        if "show me the files" in query_lower or "list the files" in query_lower:
-            command_match = "ls -la"
-        
+    if any(pattern in query_lower for pattern in ['make it', 'tell it', 'have it', 'make screen', 'tell screen']):
         patterns = [
-            r'(?:make|tell|have)\s+(?:it|the\s+)?(?:screen|terminal|session)\s+(?:do|run|execute|type)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]?',  # make it do X
-            r'(?:in|on|at)\s+(?:the\s+)?(?:screen|terminal|session).*?(?:do|run|execute|type)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]',  # on screen do X
-            r'(?:send|run|do|execute|type)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]?\s+(?:to|in|on|at)\s+(?:the\s+)?(?:screen|terminal|session)',  # send X to screen
-            r'(?:tell|ask)\s+(?:the\s+)?(?:screen|terminal|session)\s+to\s+(?:do|run|execute|type|show|list|display)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]?',  # tell screen to do X
-            r'(?:screen|terminal|session).*?(?:should|must|please)?\s+(?:show|list|display|run)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]?',  # screen show X
+            r'(?:make|tell|have)\s+(?:it|screen|terminal|session)\s+(?:do|run|execute|type)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]?',  # make it do X
+            r'(?:in|on|at)\s+(?:the\s+)?(?:screen|terminal|session).*?(?:do|run|execute|type)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]',  # on screen do X
+            r'(?:send|run|do|execute|type)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]?\s+(?:to|in|on|at)\s+(?:the\s+)?(?:screen|terminal|session)',  # send X to screen
         ]
         
         for pattern in patterns:
@@ -369,13 +220,11 @@ def process_command(user_input, ai_handler, shell_handler):
     # STEP 6: Check for other screen-related patterns
     # ==========================================
     
-    # Handle other phrasings related to screen/terminal/session/usb
-    if ('screen' in query_lower and any(term in query_lower for term in ['send', 'run', 'do', 'execute', 'type', 'command', 'show', 'list', 'display'])) or \
-       ('terminal' in query_lower and any(term in query_lower for term in ['screen', 'session', 'send', 'command', 'connected'])) or \
-       ('serial' in query_lower and any(term in query_lower for term in ['command', 'send', 'type', 'list', 'show', 'connected'])) or \
-       ('usb' in query_lower and any(term in query_lower for term in ['command', 'terminal', 'screen', 'connected', 'device'])) or \
-       ('connected' in query_lower and any(term in query_lower for term in ['device', 'screen', 'serial', 'usb', 'port'])) or \
-       ('device' in query_lower and any(term in query_lower for term in ['screen', 'connected', 'serial', 'usb', 'port'])):
+    # Handle other phrasings related to screen/terminal/session
+    if ('screen' in query_lower and any(term in query_lower for term in ['send', 'run', 'do', 'execute', 'type', 'command'])) or \
+       ('terminal' in query_lower and any(term in query_lower for term in ['screen', 'session', 'send', 'command'])) or \
+       ('serial' in query_lower and any(term in query_lower for term in ['command', 'send', 'type'])) or \
+       ('usb' in query_lower and any(term in query_lower for term in ['command', 'terminal', 'screen'])):
         
         # Try to extract the command using various patterns
         patterns = [
@@ -456,12 +305,11 @@ def process_command(user_input, ai_handler, shell_handler):
     # ==========================================
     
     # Check for USB device mentions without explicit screen command patterns
-    if any(term in query_lower for term in ['usb', 'serial', 'tty', 'dev/cu', 'dev/tty', 'connected device', 'port', 'usb screen', 'connected screen']):
+    if any(term in query_lower for term in ['usb', 'serial', 'tty', 'dev/cu', 'dev/tty']):
         # This is likely a USB device operation, try to extract a command
         device_command_patterns = [
-            r'(?:on|to|with|in|at|via|through)\s+(?:the\s+)?(?:usb|serial|device|port|connection).*?(?:do|run|execute|type|send|show|list|display)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]',  # on usb do X
-            r'(?:do|run|execute|type|send|show|list|display)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"].*?(?:on|to|with|in|at|via|through)\s+(?:the\s+)?(?:usb|serial|device|port|connection)',  # do X on usb
-            r'(?:usb|serial|device|port|connection).*?(?:should|could|must|please)?\s+(?:do|run|execute|type|send|show|list|display)\s+[\'"]?([\w\s\-\.\/\*\>\<\|\&]+)[\'"]',  # usb show X
+            r'(?:on|to|with)\s+(?:the\s+)?(?:usb|serial|device).*?(?:do|run|execute|type|send)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]',  # on usb do X
+            r'(?:do|run|execute|type|send)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"].*?(?:on|to|with)\s+(?:the\s+)?(?:usb|serial|device)',  # do X on usb
         ]
         
         for pattern in device_command_patterns:
@@ -473,44 +321,26 @@ def process_command(user_input, ai_handler, shell_handler):
                 print(result)
                 return
         
-        # Special handling for USB device detection commands
-        if any(term in query_lower for term in ["list devices", "show devices", "connected usb", "check usb", "find usb",
-                                              "list usb", "detect usb", "show connected", "what usb", "usb devices",
-                                              "serial devices"]):
-            print("📱 Checking for connected USB and serial devices...")
-            usb_devices = shell_handler.get_usb_devices()
-            
-            if not usb_devices or "No USB devices found" in usb_devices:
-                print("No USB devices detected. Would you like to see all potential TTY/CU devices? (y/n)")
-                response = input().strip().lower()
-                if response == 'y' or response == 'yes':
-                    print("Listing all potential TTY/CU devices:")
-                    cmd = shell_handler.execute_command("ls -l /dev/cu.* /dev/tty.* 2>/dev/null || ls -l /dev/tty* 2>/dev/null")
-                    print(cmd)
+        # If no clear command match but USB mentioned, run a command to list USB devices
+        if screen_exists:
+            print("No specific command identified but USB device mentioned.")
+            print("Checking for connected USB devices...")
+            if system_platform == 'darwin':
+                cmd = shell_handler.execute_command("ls /dev/cu.*")
             else:
-                print(usb_devices)
+                cmd = shell_handler.execute_command("ls /dev/tty*")
+            print(cmd)
             return
-        
-        # If no clear command match but USB mentioned, use enhanced USB device detection
-        print("Checking for connected USB devices...")
-        usb_devices = shell_handler.get_usb_devices()
-        print(usb_devices)
-        return
     
     # ==========================================
     # STEP 9: Check if this is a direct command with no context
     # ==========================================
     
-    # Check if this looks like a natural language query that should go to AI
-    if is_natural_language_query(query_lower):
-        # Skip to AI processing (STEP 10)
-        command_pattern = None  # Initialize variable to avoid reference error
-    else:
-        # If we reach here, this might be a direct command without context
-        # Check if it looks like a standard shell command that's not in our common list
-        
-        # Attempt to detect command pattern without relying on our whitelist
-        command_pattern = re.search(r'^([\w\-\.\/]+)(?:\s+.*)?$', user_input_orig)
+    # If we reach here, this might be a direct command without context
+    # Check if it looks like a standard shell command that's not in our common list
+    
+    # Attempt to detect command pattern without relying on our whitelist
+    command_pattern = re.search(r'^([\w\-\.\/]+)(?:\s+.*)?$', user_input_orig)
     
     if command_pattern:
         potential_command = command_pattern.group(1)
@@ -531,112 +361,84 @@ def process_command(user_input, ai_handler, shell_handler):
                 return
     
     # ==========================================
-    # STEP 10: Default to AI for command suggestion
+    # STEP 10: Check if this is a help request for a command
+    # ==========================================
+    
+    help_keywords = ['help', 'how to', 'usage', 'manual', 'man', 'info', 'examples', 'explain']
+    is_help_request = any(keyword in query_lower for keyword in help_keywords)
+    
+    # Look for command mentions in a help request context
+    if is_help_request:
+        # Check if any known command is mentioned
+        for command in CommandHelp.list_available_commands():
+            # Look for the command as a standalone word
+            pattern = rf'\b{re.escape(command)}\b'
+            if re.search(pattern, query_lower):
+                # Found a command help request
+                help_info = CommandHelp.get_command_help(command)
+                if help_info:
+                    print(f"\n======= Help: {command} =======")
+                    print(f"Description: {help_info['description']}")
+                    print(f"Syntax: {help_info['syntax']}")
+                    print("\nExamples:")
+                    for example in help_info['examples']:
+                        print(f"  {example}")
+                    print(f"Categories: {', '.join(help_info['categories'])}")
+                    print("=============================\n")
+                    return
+        
+        # If they asked for help with a category
+        for category in ['file', 'directory', 'system', 'network', 'text', 'editor', 'automation']:
+            if category in query_lower:
+                commands = CommandHelp.get_command_category(category)
+                if commands:
+                    print(f"\n======= Commands in '{category}' category =======")
+                    for cmd in commands:
+                        help_info = CommandHelp.get_command_help(cmd)
+                        print(f"- {cmd}: {help_info['description']}")
+                    print("\nFor detailed help on a specific command, type 'help [command]'")
+                    print("=========================================\n")
+                    return
+    
+    # ==========================================
+    # STEP 11: Default to AI for command suggestion
     # ==========================================
             
     # Directly handle Wi-Fi speed queries and skip AI
     if any(k in query_lower for k in ['wifi speed', 'internet speed', 'speed test']):
         import platform, subprocess, re
         system_platform = platform.system().lower()
-        print("⚡ Checking network speed...")
-        
+        print("Retrieving Wi-Fi link speed...")
         if system_platform == 'darwin':
-            speed_info = {}
-            
-            # Method 1: Apple's airport utility for current tx/rx rates
             try:
+                # First try Apple's airport utility
                 airport = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
-                out = subprocess.check_output([airport, "-I"], text=True)
-                
-                # Get TX rate (transmission speed)
-                tx_match = re.search(r"lastTxRate: (\d+)", out)
-                if tx_match:
-                    speed_info['tx_rate'] = int(tx_match.group(1))
-                
-                # Get signal strength
-                rssi_match = re.search(r"agrCtlRSSI: (-?\d+)", out)
-                if rssi_match:
-                    rssi = int(rssi_match.group(1))
-                    speed_info['signal_strength'] = rssi
-                    
-                    # Classify signal quality
-                    if rssi > -50:
-                        speed_info['signal_quality'] = "Excellent"
-                    elif rssi > -60:
-                        speed_info['signal_quality'] = "Very Good"
-                    elif rssi > -70:
-                        speed_info['signal_quality'] = "Good"
-                    elif rssi > -80:
-                        speed_info['signal_quality'] = "Fair"
-                    else:
-                        speed_info['signal_quality'] = "Poor"
-            except Exception:
-                pass
-            
-            # Method 2: networksetup for more connection details
-            try:
-                out = subprocess.check_output(["networksetup", "-getinfo", "Wi-Fi"], text=True)
-                speed_match = re.search(r"Speed: (\d+)", out)
-                if speed_match:
-                    speed_info['link_speed'] = int(speed_match.group(1))
-            except Exception:
-                pass
-                
-            # Display the collected information in a clean format
-            if speed_info:
-                print("\n📶 Wi-Fi Connection Information:")
-                print("------------------------------")
-                if 'tx_rate' in speed_info:
-                    print(f"Current Speed: {speed_info['tx_rate']} Mbps")
-                if 'link_speed' in speed_info:
-                    print(f"Maximum Link Speed: {speed_info['link_speed']} Mbps")
-                if 'signal_strength' in speed_info:
-                    print(f"Signal Strength: {speed_info['signal_strength']} dBm ({speed_info['signal_quality']})")
-                print("------------------------------")
-            else:
-                # Fallback to system_profiler if no information was collected
                 try:
+                    out = subprocess.check_output([airport, "-I"], text=True)
+                    m = re.search(r"lastTxRate: (\d+)", out)
+                    if m:
+                        print(f"Wi-Fi link speed: {m.group(1)} Mbps")
+                    else:
+                        # Fallback to networksetup command
+                        out = subprocess.check_output(["networksetup", "-getinfo", "Wi-Fi"], text=True)
+                        print(f"Wi-Fi connection info:\n{out}")
+                except Exception:
+                    # Fallback to system_profiler
                     out = subprocess.check_output(["system_profiler", "SPNetworkDataType"], text=True)
                     wifi_section = re.search(r"Wi-Fi:.*?(?=^\S)", out, re.MULTILINE | re.DOTALL)
                     if wifi_section:
-                        print("\n📶 Wi-Fi Connection Details:")
-                        print("------------------------------")
-                        print(wifi_section.group(0).strip())
-                        print("------------------------------")
+                        print(f"Wi-Fi connection details:\n{wifi_section.group(0).strip()}")
                     else:
                         print("Could not determine Wi-Fi details.")
-                except Exception:
-                    print("Could not determine Wi-Fi details.")
-                    
+            except Exception as e:
+                print(f"Error retrieving Wi-Fi speed: {e}")
         elif system_platform in ['linux', 'ubuntu', 'jetson']:
             try:
                 out = subprocess.check_output(["iwconfig"], stderr=subprocess.DEVNULL, text=True)
-                speed_match = re.search(r"Bit Rate[=:]\s*(\d+\.?\d*)\s*Mb/s", out)
-                quality_match = re.search(r"Link Quality[=:]\s*(\d+)/(\d+)", out)
-                signal_match = re.search(r"Signal level[=:]\s*(-?\d+)\s*dBm", out)
-                
-                print("\n📶 Wi-Fi Connection Information:")
-                print("------------------------------")
-                if speed_match:
-                    print(f"Current Speed: {speed_match.group(1)} Mbps")
-                if quality_match and int(quality_match.group(2)) > 0:
-                    quality_percent = int(int(quality_match.group(1)) * 100 / int(quality_match.group(2)))
-                    print(f"Link Quality: {quality_percent}%")
-                if signal_match:
-                    signal = int(signal_match.group(1))
-                    quality = "Poor"
-                    if signal > -50:
-                        quality = "Excellent"
-                    elif signal > -60:
-                        quality = "Very Good"
-                    elif signal > -70:
-                        quality = "Good"
-                    elif signal > -80:
-                        quality = "Fair"
-                    print(f"Signal Strength: {signal} dBm ({quality})")
-                print("------------------------------")
+                m = re.search(r"Bit Rate=(\d+\.?\d*) Mb/s", out)
+                print(f"Wi-Fi link speed: {m.group(1)} Mbps" if m else "Could not determine Wi-Fi link speed.")
             except Exception:
-                print("Error: Could not retrieve Wi-Fi information. Make sure wireless tools are installed.")
+                print("Error: 'iwconfig' command not available or failed.")
         else:
             print("Error: Unsupported platform for Wi-Fi speed retrieval.")
         return

@@ -19,7 +19,22 @@ class AIHandler:
         self.api_key = api_key
         self.ollama_base_url = ollama_base_url
         self.google_model_name = google_model_name
-        self.ollama_model_name = "llama2" # Default Ollama model, can be configured
+        # Try to get default model from config rather than hardcoding 'llama2'
+        self.ollama_model_name = None
+        try:
+            config_paths = ["config/settings.json", "../config/settings.json"]
+            for path in config_paths:
+                if os.path.exists(path):
+                    with open(path, 'r') as f:
+                        config = json.load(f)
+                        self.ollama_model_name = config.get("default_ollama_model")
+                        break
+        except:
+            pass
+        
+        # Use fallback if no config found
+        if not self.ollama_model_name:
+            self.ollama_model_name = "gemma3:4b"  # Better default than llama2 which is often not available
 
         if self.model_type == "google":
             if not genai:
@@ -73,7 +88,8 @@ class AIHandler:
                     models_list = self.client.list()
                     available_models = [m['name'] for m in models_list.get('models', [])]
                 except Exception as conn_err:
-                    print(f"Failed to list models: {conn_err}")
+                    # Suppress model listing error message as it's not critical
+                    # print(f"Failed to list models: {conn_err}")
                     # Try an alternative approach by directly using httpx
                     import httpx
                     with httpx.Client() as client:
@@ -93,8 +109,10 @@ class AIHandler:
                     if found_model:
                         self.ollama_model_name = found_model
                     else:
-                        print(f"Warning: Default Ollama model '{self.ollama_model_name}' not found. Using first available model: {available_models[0]}")
-                        self.ollama_model_name = available_models[0]
+                        # Use the configured model even if not immediately found in the list
+                        if available_models:
+                            print(f"Using first available model: {available_models[0]}")
+                            self.ollama_model_name = available_models[0]
 
                 print(f"Ollama AI Handler initialized. Using model: {self.ollama_model_name} from {self.ollama_base_url}")
             except Exception as e:

@@ -1,0 +1,228 @@
+"""
+Main window for UaiBot GUI with dual window interface
+Compatible with Mac, Ubuntu, and Jetson platforms
+"""
+import os
+import sys
+import platform
+
+# Add project root to sys.path to enable imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
+
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QTextEdit, QLineEdit, QLabel, QComboBox,
+    QTabWidget, QSplitter, QFrame, QMessageBox, QAction
+)
+from PyQt5.QtCore import Qt, QSize, pyqtSignal, QThread, QTimer
+from PyQt5.QtGui import QFont, QPixmap, QIcon, QPalette, QColor
+
+from core.utils import load_config, save_config, get_project_root
+from core.ai_handler import AIHandler
+from core.shell_handler import ShellHandler
+from platform_uai.platform_manager import PlatformManager
+from gui.dual_window import UaiBotDualInterface, EyesWindow, TextWindow
+
+
+class MainWindow:
+    """
+    Main controller for the UaiBot application
+    Uses dual window interface with separate windows for eyes and text I/O
+    """
+    def __init__(self):
+        # Load configuration
+        self.config = load_config()
+        if not self.config:
+            print("Error: Failed to load configuration. Please check config/settings.json")
+            sys.exit(1)
+            
+        # Initialize platform manager
+        self.platform_manager = PlatformManager()
+        if not self.platform_manager.platform_supported:
+            print(f"Error: Unsupported platform: {platform.system()}")
+            sys.exit(1)
+            
+        self.platform_manager.initialize()
+        self.audio_handler = self.platform_manager.get_audio_handler()
+        self.usb_handler = self.platform_manager.get_usb_handler()
+        
+        # Initialize AI and shell handlers
+        self.init_handlers()
+        
+        # Set up the UI - using dual window interface
+        self.setup_ui()
+        
+    def init_handlers(self):
+        """Initialize AI and shell handlers"""
+        ai_provider = self.config.get("default_ai_provider")
+        if not ai_provider:
+            print("Error: No default_ai_provider specified in configuration.")
+            sys.exit(1)
+            
+        try:
+            if ai_provider == "google":
+                google_api_key = self.config.get("google_api_key")
+                if not google_api_key:
+                    google_api_key = os.getenv("GOOGLE_API_KEY")
+                if not google_api_key:
+                    print("Error: Google API key not configured.")
+                    sys.exit(1)
+                google_model = self.config.get("default_google_model")
+                if not google_model:
+                    google_model = "gemini-1.5-pro"
+                self.ai_handler = AIHandler(
+                    model_type="google", 
+                    api_key=google_api_key,
+                    google_model_name=google_model
+                )
+            elif ai_provider == "ollama":
+                ollama_url = self.config.get("ollama_base_url", "http://localhost:11434")
+                ollama_model = self.config.get("default_ollama_model", "llama2")
+                self.ai_handler = AIHandler(
+                    model_type="ollama",
+                    ollama_base_url=ollama_url
+                )
+                self.ai_handler.set_ollama_model(ollama_model)
+            else:
+                print(f"Error: Unknown AI provider '{ai_provider}'.")
+                sys.exit(1)
+                
+            # Initialize shell handler
+            shell_safe_mode = self.config.get("shell_safe_mode", True)
+            shell_dangerous_check = self.config.get("shell_dangerous_check", True)
+            self.shell_handler = ShellHandler(
+                safe_mode=shell_safe_mode,
+                enable_dangerous_command_check=shell_dangerous_check
+            )
+            
+        except Exception as e:
+            print(f"Error: Failed to initialize handlers: {str(e)}")
+            sys.exit(1)
+            
+    def setup_ui(self):
+        """Set up the dual window interface"""
+        self.interface = UaiBotDualInterface()
+        
+        # Connect the command handling
+        self.interface.text_window.command_submitted.connect(self.process_command)
+        
+        # Show welcome message
+        welcome_message = (
+            "Welcome to UaiBot!\n\n"
+            f"Platform: {self.platform_manager.platform_name}\n"
+            f"AI Provider: {self.config.get('default_ai_provider')}\n"
+            "Enter a command or question to get started."
+        )
+        self.interface.text_window.add_output_text(welcome_message)
+        
+    def toggle_safe_mode(self):
+        """Toggle shell safe mode"""
+        current_mode = self.config.get("shell_safe_mode", True)
+        self.config["shell_safe_mode"] = not current_mode
+        
+        # Update shell handler
+        self.shell_handler.safe_mode = not current_mode
+        
+        # Save to config
+        save_config(self.config)
+        
+        # Show confirmation
+        self.interface.text_window.add_output_text(
+            f"Shell Safe Mode is now {'ON' if not current_mode else 'OFF'}"
+        )
+    
+    def process_command(self, user_input):
+        """Process user command"""
+        # Display user input (already shown by interface)
+        
+        # Query AI
+        import platform as sys_platform
+        system_platform = sys_platform.system().lower()
+        platform_name = self.platform_manager.platform_name
+        
+        # Platform-specific command examples
+        platform_examples = ""
+        if platform_name == "mac":
+            platform_examples = """
+            Examples of correct macOS commands:
+            
+            File Operations:
+            - List files: ls -la
+            - Create empty file: touch filename.txt
+            - Show file content: cat filename.txt
+            
+            Applications & URLs:
+            - Open Chrome: open -a 'Google Chrome'
+            - Open URL in default browser: open 'https://www.google.com'
+            
+            Media & System:
+            - Text to speech: say "Hello world"
+            - Show disk usage: df -h
+            """
+        elif platform_name in ["ubuntu", "jetson"]:
+            platform_examples = """
+            Examples of correct Linux commands:
+            - Open Chrome: google-chrome or chromium-browser
+            - Open URL in default browser: xdg-open 'https://www.google.com'
+            - Open file browser: nautilus .
+            """
+        
+        prompt = (
+            f"User request: '{user_input}'. "
+            f"You are running on {system_platform} ({platform_name}). "
+            f"Based on this request, suggest a single, common, and safe command specifically for {system_platform}. "
+            "Avoid generating complex command chains unless explicitly requested. "
+            f"For macOS, use macOS-specific commands (like 'open -a' for applications). "
+            f"For Linux, use Linux-specific commands. "
+            f"{platform_examples}\n"
+            "If the request is ambiguous or potentially unsafe, respond with 'Error: Cannot fulfill request safely.'"
+        )
+        
+        try:
+            # Set avatar to thinking state
+            self.interface.eyes_window.set_emotion("thinking")
+            
+            # Get AI response
+            ai_response = self.ai_handler.query_ai(prompt)
+            
+            # Display AI response
+            self.interface.text_window.add_output_text(f"AI suggested command: {ai_response}")
+            
+            # Set avatar to happy state if successful
+            self.interface.eyes_window.set_emotion("happy")
+            
+            # Check command safety
+            if ai_response and not ai_response.startswith("Error:"):
+                safety_level = self.shell_handler.check_command_safety_level(ai_response)
+                
+                if safety_level == 'POTENTIALLY_DANGEROUS':
+                    self.interface.eyes_window.set_emotion("sad")  # Use sad instead of concerned
+                    self.interface.text_window.add_output_text(f"WARNING: Potentially dangerous command!")
+                    
+                    if self.shell_handler.safe_mode:
+                        self.interface.text_window.add_output_text("Execution blocked by safe mode.")
+                    else:
+                        # For simplicity, just warn without asking confirmation
+                        self.interface.text_window.add_output_text("Executing with caution...")
+                        output = self.shell_handler.execute_command(ai_response)
+                        self.interface.text_window.add_output_text(f"Output: {output}")
+                else:
+                    # Safe command, execute it
+                    output = self.shell_handler.execute_command(ai_response)
+                    self.interface.text_window.add_output_text(f"Output: {output}")
+            elif ai_response.startswith("Error:"):
+                self.interface.eyes_window.set_emotion("confused")
+                self.interface.text_window.add_output_text(f"{ai_response}")
+            else:
+                self.interface.eyes_window.set_emotion("confused")
+                self.interface.text_window.add_output_text("AI did not return a valid command.")
+                
+        except Exception as e:
+            self.interface.eyes_window.set_emotion("sad")
+            self.interface.text_window.add_output_text(f"Error: {str(e)}")
+    
+    def show(self):
+        """Show the interface"""
+        self.interface.show()
