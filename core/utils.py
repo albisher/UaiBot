@@ -1,5 +1,9 @@
 """
 Utility functions for the UaiBot project
+
+Copyright (c) 2025 UaiBot Team
+License: Custom license - free for personal and educational use.
+Commercial use requires a paid license. See LICENSE file for details.
 """
 import os
 import sys

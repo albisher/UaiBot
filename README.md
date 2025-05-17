@@ -113,3 +113,15 @@ The demo provides examples of different ways to use the command execution utilit
 ## Security
 
 UaiBot executes commands directly on your system. It includes safety measures to prevent harmful operations, but please use responsibly.
+
+## License
+
+UaiBot is available under a custom license:
+- **Free for personal use**
+- **Free for educational purposes**
+- **Commercial use requires a paid license**
+
+See the [LICENSE](LICENSE) file for complete details on the free use license.
+See the [COMMERCIAL_LICENSE](COMMERCIAL_LICENSE) file for details on commercial licensing.
+
+Commercial licensing inquiries should be directed to [YOUR_CONTACT_INFORMATION].

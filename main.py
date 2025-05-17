@@ -3,6 +3,10 @@
 UaiBot: AI-powered shell assistant.
 Main entry point for the UaiBot application.
 Supports both GUI and command-line interfaces.
+
+Copyright (c) 2025 UaiBot Team
+License: Custom license - free for personal and educational use.
+Commercial use requires a paid license. See LICENSE file for details.
 """
 import json
 import argparse
@@ -32,6 +36,9 @@ from screen_handler.screen_manager import ScreenManager
 # Platform management for GUI
 from platform_uai.platform_manager import PlatformManager
 
+# Import license validation
+from core.license_check import check_license
+
 # GUI imports (only loaded if needed)
 GUI_AVAILABLE = False
 try:
@@ -43,7 +50,7 @@ except ImportError:
 
 def main():
     """Main entry point for UaiBot."""
-    # Parse command-line arguments
+    # Parse command-line arguments first to check for license skip
     parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant.")
     parser.add_argument("-c", "--command", type=str, help="Execute a single command and exit.")
     parser.add_argument("-q", "--quiet", action="store_true", help="Run in quiet mode with minimal output")
@@ -52,12 +59,18 @@ def main():
     parser.add_argument("-i", "--interactive", action="store_true", help="Force interactive mode, regardless of config")
     parser.add_argument("--non-interactive", action="store_true", help="Disable interactive mode")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
+    parser.add_argument("--skip-license-check", action="store_true", help="Skip license validation (for development only)")
     args = parser.parse_args()
 
     # Set quiet mode from command line args
     quiet_mode = args.quiet if hasattr(args, 'quiet') else False
     # Set debug mode from command line args
     debug_mode = args.debug if hasattr(args, 'debug') else False
+    
+    # Check license status for potential commercial use unless skipped
+    if not (hasattr(args, 'skip_license_check') and args.skip_license_check):
+        license_valid = check_license()
+        # We don't exit on invalid license, just warn - this could be changed if desired
     
     # Helper function for logging
     def log(message, force=False, debug_only=False):
