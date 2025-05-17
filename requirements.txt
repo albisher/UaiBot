@@ -2,6 +2,7 @@
 
 # AI and API dependencies
 openai                # OpenAI API for AI integration
+urllib3>=2.0.0        # HTTP client library (updated version to address LibreSSL warnings)
 google-generativeai   # Google's Generative AI API
 ollama                # Ollama client for local AI models
 httpx                 # HTTP client library
@@ -9,7 +10,7 @@ httpx                 # HTTP client library
 # Hardware interface
 pyusb                 # USB device access
 pyserial              # Serial port interface
-plistlib              # For parsing plist data on macOS
+# plistlib is part of the Python standard library
 
 # Audio interface
 sounddevice           # Audio playback and recording
@@ -18,9 +19,21 @@ SpeechRecognition     # Speech recognition
 pyttsx3               # Text-to-speech (offline)
 gTTS                  # Google Text-to-Speech
 vosk                  # Offline speech recognition
+wave                  # For audio file handling
+
+# Video and camera
+opencv-python         # OpenCV for camera access and computer vision
 
 # GUI
 PyQt5                 # Qt GUI framework
+
+# Command processing
+regex                 # Advanced regular expressions
+# shlex is part of the Python standard library
+
+# System utilities
+psutil                # System monitoring and process utilities
+tabulate              # Pretty-print tabular data (for nice terminal output)
 
 # Platform-specific dependencies
 # Mac requirements are fully covered above

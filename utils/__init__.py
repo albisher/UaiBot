@@ -1,42 +1,11 @@
 """
-Utility functions for the UaiBot project
+Utility functions for UaiBot.
+Shared across different modules.
 """
 import os
-import sys
-import json
 import platform
-
-def get_project_root():
-    """Return the absolute path to the project root directory"""
-    # Assuming this file is in the core/ directory
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-def load_config():
-    """Load the configuration from config/settings.json"""
-    config_path = os.path.join(get_project_root(), "config", "settings.json")
-    try:
-        with open(config_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"Error: {config_path} not found. Please create it.")
-        return None
-    except json.JSONDecodeError:
-        print(f"Error: {config_path} is not valid JSON. Please check the format.")
-        return None
-    except Exception as e:
-        print(f"Error loading config: {e}")
-        return None
-
-def save_config(config_data):
-    """Save the configuration to config/settings.json"""
-    config_path = os.path.join(get_project_root(), "config", "settings.json")
-    try:
-        with open(config_path, 'w') as f:
-            json.dump(config_data, f, indent=2)
-        return True
-    except Exception as e:
-        print(f"Error saving configuration: {e}")
-        return False
+from pathlib import Path
+import json
 
 def get_platform_name():
     """
@@ -112,9 +81,56 @@ def get_platform_name():
         # Generic fallback
         return f"{platform.system()} {platform.release()}"
 
-def ensure_directory_exists(directory):
-    """Ensure a directory exists, create it if it doesn't"""
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-        return True
-    return False
+def get_project_root():
+    """
+    Get the path to the project root directory.
+    
+    Returns:
+        Path: Path to the project root
+    """
+    return Path(__file__).parent.parent
+
+def load_config():
+    """
+    Load configuration from settings.json
+    
+    Returns:
+        dict: Configuration data
+    """
+    try:
+        config_file = os.path.join(get_project_root(), "config", "settings.json")
+        if not os.path.isfile(config_file):
+            # Try to create config directory if it doesn't exist
+            os.makedirs(os.path.join(get_project_root(), "config"), exist_ok=True)
+            with open(config_file, 'w') as f:
+                default_config = {
+                    "default_ai_provider": "ollama",
+                    "ollama_base_url": "http://localhost:11434",
+                    "default_ollama_model": "gemma:7b",
+                    "google_api_key": "YOUR_GOOGLE_API_KEY",
+                    "default_google_model": "gemini-1.0-pro",
+                    "shell_safe_mode": True,
+                    "interactive_mode": True,
+                    "shell_dangerous_check": True
+                }
+                json.dump(default_config, f, indent=2)
+            print(f"Created default configuration at {config_file}")
+            return default_config
+            
+        with open(config_file, 'r') as f:
+            config_data = json.load(f)
+            
+        return config_data
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        return None
+
+def is_interactive_session():
+    """
+    Check if the script is running in an interactive session.
+    
+    Returns:
+        bool: True if interactive, False otherwise
+    """
+    import sys
+    return sys.stdin.isatty() and sys.stdout.isatty()

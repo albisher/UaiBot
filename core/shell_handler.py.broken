@@ -350,15 +350,6 @@ class ShellHandler:
             
         return "SAFE"
     
-    def get_usb_devices(self):
-        """
-        Get a list of available USB devices.
-        
-        Returns:
-            str: Formatted string with device information
-        """
-        return self.usb_detector.get_usb_devices()
-    
     def find_folders(self, folder_name, location="~", max_results=20, include_cloud=True):
         """
         Find folders matching a given name pattern.
@@ -499,7 +490,7 @@ class ShellHandler:
                         
                 formatted_result += "\n"
             
-            # Then show filesystem folders if we have any and they're requested
+            # Then show filesystem folders if we have any
             if all_folders:
                 formatted_result += "💻 Local Filesystem:\n\n"
                 for folder in all_folders:
@@ -511,3 +502,19 @@ class ShellHandler:
             return formatted_result
         except Exception as e:
             return f"Error searching for folders: {str(e)}"
+
+}")
+            return "ERROR_ASSESSING"
+            
+        return "SAFE"
+    
+    def get_usb_devices(self):
+        """
+        Get a list of available USB devices.
+        
+        Returns:
+            str: Formatted string with device information
+        """
+        return self.usb_detector.get_usb_devices()
+    
+    

@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""
+UaiBot Screen Session Manager
+Handles screen sessions for remote command execution
+"""
+import os
+import subprocess
+import platform
+import shutil
+import re
+
+class SessionManager:
+    """
+    Handles screen sessions for UaiBot
+    """
+    
+    def __init__(self, quiet_mode=False):
+        """Initialize the session manager"""
+        self.quiet_mode = quiet_mode
+        self.screen_path = self._find_screen_binary()
+        
+    def _find_screen_binary(self):
+        """Find the screen binary path"""
+        # Check if screen is installed
+        screen_path = shutil.which("screen")
+        
+        if not screen_path:
+            return None
+        
+        return screen_path
+    
+    def is_screen_available(self):
+        """Check if screen is available"""
+        return self.screen_path is not None
+    
+    def list_sessions(self):
+        """
+        List all screen sessions
+        Returns a list of dictionaries with session information
+        """
+        if not self.is_screen_available():
+            return "Screen command not found. Please install screen first."
+        
+        try:
+            cmd_result = subprocess.run(
+                [self.screen_path, "-ls"], 
+                capture_output=True, 
+                text=True
+            )
+            
+            if cmd_result.returncode != 0:
+                return f"Failed to list screen sessions: {cmd_result.stderr}"
+            
+            # Parse the output to get session information
+            sessions = []
+            lines = cmd_result.stdout.strip().split("\n")
+            
+            # Skip the header line
+            for line in lines[1:]:
+                # Skip empty lines and the "There is a screen..." line
+                if line.strip() and not line.strip().startswith("There"):
+                    # Parse the line to get session info
+                    match = re.search(r'(\d+)\.([^\s]+)\s+([^\s]+)', line.strip())
+                    if match:
+                        pid, name, status = match.groups()
+                        sessions.append({
+                            "pid": pid,
+                            "name": name,
+                            "status": status
+                        })
+            
+            if not sessions:
+                return "No active screen sessions found."
+                
+            return sessions
+            
+        except Exception as e:
+            return f"Error listing screen sessions: {str(e)}"
+    
+    def create_session(self, session_name):
+        """Create a new screen session"""
+        if not self.is_screen_available():
+            return "Screen command not found. Please install screen first."
+        
+        try:
+            # Check if a session with this name already exists
+            existing_sessions = self.list_sessions()
+            
+            if isinstance(existing_sessions, list):
+                # Check if session name already exists
+                for session in existing_sessions:
+                    if session["name"] == session_name:
+                        return f"Session '{session_name}' already exists."
+            
+            # Create a new detached screen session
+            cmd_result = subprocess.run(
+                [self.screen_path, "-dmS", session_name],
+                capture_output=True,
+                text=True
+            )
+            
+            if cmd_result.returncode != 0:
+                return f"Failed to create screen session: {cmd_result.stderr}"
+                
+            return f"Screen session '{session_name}' created successfully."
+            
+        except Exception as e:
+            return f"Error creating screen session: {str(e)}"
+    
+    def kill_session(self, session_name):
+        """Kill a screen session"""
+        if not self.is_screen_available():
+            return "Screen command not found. Please install screen first."
+        
+        try:
+            # Check if the session exists
+            existing_sessions = self.list_sessions()
+            
+            if not isinstance(existing_sessions, list):
+                return "Failed to list sessions."
+                
+            session_exists = False
+            for session in existing_sessions:
+                if session["name"] == session_name:
+                    session_exists = True
+                    break
+            
+            if not session_exists:
+                return f"Session '{session_name}' not found."
+            
+            # Kill the session
+            cmd_result = subprocess.run(
+                [self.screen_path, "-S", session_name, "-X", "quit"],
+                capture_output=True,
+                text=True
+            )
+            
+            if cmd_result.returncode != 0:
+                return f"Failed to kill screen session: {cmd_result.stderr}"
+                
+            return f"Screen session '{session_name}' killed successfully."
+            
+        except Exception as e:
+            return f"Error killing screen session: {str(e)}"
+    
+    def send_command(self, session_name, command):
+        """Send a command to a screen session"""
+        if not self.is_screen_available():
+            return "Screen command not found. Please install screen first."
+        
+        try:
+            # Check if the session exists
+            existing_sessions = self.list_sessions()
+            
+            if not isinstance(existing_sessions, list):
+                return "Failed to list sessions."
+                
+            session_exists = False
+            for session in existing_sessions:
+                if session["name"] == session_name:
+                    session_exists = True
+                    break
+            
+            if not session_exists:
+                return f"Session '{session_name}' not found."
+            
+            # Try platform-specific commands first
+            if platform.system() == "Darwin":
+                # On macOS, try AppleScript first as it's more reliable
+                try:
+                    apple_script = f'''
+                    tell application "Terminal"
+                        do script "screen -S {session_name} -X stuff '{command}\\n'"
+                    end tell
+                    '''
+                    result = subprocess.run(
+                        ["osascript", "-e", apple_script],
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    if result.returncode == 0:
+                        return f"Command sent to session '{session_name}' successfully."
+                except Exception:
+                    # Fall back to standard method
+                    pass
+            
+            # Standard method for all platforms
+            cmd_result = subprocess.run(
+                [self.screen_path, "-S", session_name, "-X", "stuff", f"{command}\n"],
+                capture_output=True,
+                text=True
+            )
+            
+            if cmd_result.returncode != 0:
+                return f"Failed to send command to screen: {cmd_result.stderr}"
+            
+        except Exception as e:
+            return f"Error sending command to screen: {str(e)}"
+            
+        return f"Command sent to session '{session_name}' successfully."

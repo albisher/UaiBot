@@ -358,7 +358,7 @@ class ShellHandler:
             str: Formatted string with device information
         """
         return self.usb_detector.get_usb_devices()
-    
+        
     def find_folders(self, folder_name, location="~", max_results=20, include_cloud=True):
         """
         Find folders matching a given name pattern.
@@ -372,7 +372,7 @@ class ShellHandler:
         Returns:
             str: Formatted search results
         """
-        folder_name = folder_name.replace('"', '\"').replace("'", "\'")  # Escape quotes
+        folder_name = folder_name.replace('"', '\\"').replace("'", "\\'")  # Escape quotes
         location = os.path.expanduser(location)
         
         try:
@@ -380,9 +380,10 @@ class ShellHandler:
             all_folders = []
             cloud_folders = []
             
-            # First check for platform-specific notes folders
+            # First check for iCloud folders if applicable
             if include_cloud and folder_name.lower() in ["notes", "note", "notes app"]:
-                if self.system_platform == "darwin":
+                # Handle different platforms
+                if self.system_platform == "darwin":  # macOS
                     # Try to find iCloud Notes folders
                     icloud_path = os.path.expanduser("~/Library/Mobile Documents/com~apple~Notes")
                     if os.path.exists(icloud_path):
@@ -390,55 +391,10 @@ class ShellHandler:
                             # Count total notes in root
                             notes_count = 0
                             for root, dirs, files in os.walk(icloud_path):
-                                # Count just files in the root iCloud notes folder
-                                if root == icloud_path:
-                                    for file in files:
-                                        if file.endswith('.icloud') or file.endswith('.notesdata'):
-                                            notes_count += 1
                             
-                            cloud_folders.append({"name": "Notes", "path": "iCloud/Notes", "type": "iCloud", "items": str(notes_count)})
-                            
-                            # Check for actual iCloud folders
-                            cloud_subfolders = []
-                            notes_dirs = os.path.join(icloud_path, "Notes")
-                            if os.path.exists(notes_dirs):
-                                try:
-                                    for item in os.listdir(notes_dirs):
-                                        subfolder_path = os.path.join(notes_dirs, item)
-                                        if os.path.isdir(subfolder_path):
-                                            # Count notes in this subfolder
-                                            items_count = 0
-                                            for root, dirs, files in os.walk(subfolder_path):
-                                                items_count += len(files)
-                                            
-                                            cloud_subfolders.append({
-                                                "name": item, 
-                                                "items": str(items_count)
-                                            })
-                                except Exception as e:
-                                    if not self.quiet_mode:
-                                        print(f"Error scanning Notes subfolders: {e}")
-                            
-                            for subfolder in cloud_subfolders:
-                                cloud_folders.append({
-                                    "name": subfolder["name"], 
-                                    "path": f"iCloud/Notes/{subfolder['name']}", 
-                                    "type": "iCloud", 
-                                    "items": subfolder["items"]
-                                })
-                        except Exception as e:
-                            if not self.quiet_mode:
-                                print(f"Error scanning iCloud Notes folders: {e}")
-                            # Fallback for Notes folder if scanning fails
-                            cloud_folders.append({"name": "Notes", "path": "iCloud/Notes", "type": "iCloud", "items": "Unknown"})
-                        
-                        # Also check for local Notes container
-                        local_notes = os.path.expanduser("~/Library/Containers/com.apple.Notes")
-                        if os.path.exists(local_notes):
-                            cloud_folders.append({"name": "Notes App", "path": "Notes App (Local)", "type": "Local", "items": "Notes App Data"})
-                
-                elif self.system_platform == "windows":
+                elif self.system_platform == "windows":  # Windows
                     # Try to identify common Windows Notes locations
+                    # Windows has OneNote, Sticky Notes, etc.
                     note_locations = [
                         os.path.expanduser("~/Documents/OneNote Notebooks"),
                         os.path.expanduser("~/OneDrive/Documents/OneNote Notebooks"),
@@ -456,7 +412,7 @@ class ShellHandler:
                             elif "ONENOTE.EXE" in note_path:
                                 cloud_folders.append({"name": "OneNote Application", "path": note_path, "type": "Microsoft", "items": "OneNote App"})
                 
-                elif self.system_platform == "linux":
+                elif self.system_platform == "linux":  # Linux
                     # Check for GNOME Notes (Bijiben)
                     note_locations = [
                         os.path.expanduser("~/.local/share/bijiben"),
@@ -467,6 +423,59 @@ class ShellHandler:
                     for note_path in note_locations:
                         if os.path.exists(note_path):
                             cloud_folders.append({"name": "GNOME Notes", "path": note_path, "type": "Linux", "items": "Notes App"})
+                
+                # For macOS, continue with the existing code
+                if self.system_platform == "darwin" and os.path.exists(icloud_path):
+                    try:
+                        # Count total notes in root
+                        notes_count = 0
+                        for root, dirs, files in os.walk(icloud_path):
+                            # Count just files in the root iCloud notes folder
+                            if root == icloud_path:
+                                for file in files:
+                                    if file.endswith('.icloud') or file.endswith('.notesdata'):
+                                        notes_count += 1
+                        
+                        cloud_folders.append({"name": "Notes", "path": "iCloud/Notes", "type": "iCloud", "items": str(notes_count)})
+                        
+                        # Check for actual iCloud folders
+                        cloud_subfolders = []
+                        notes_dirs = os.path.join(icloud_path, "Notes")
+                        if os.path.exists(notes_dirs):
+                            try:
+                                for item in os.listdir(notes_dirs):
+                                    subfolder_path = os.path.join(notes_dirs, item)
+                                    if os.path.isdir(subfolder_path):
+                                        # Count notes in this subfolder
+                                        items_count = 0
+                                        for root, dirs, files in os.walk(subfolder_path):
+                                            items_count += len(files)
+                                        
+                                        cloud_subfolders.append({
+                                            "name": item, 
+                                            "items": str(items_count)
+                                        })
+                            except Exception as e:
+                                if not self.quiet_mode:
+                                    print(f"Error scanning Notes subfolders: {e}")
+                        
+                        for subfolder in cloud_subfolders:
+                            cloud_folders.append({
+                                "name": subfolder["name"], 
+                                "path": f"iCloud/Notes/{subfolder['name']}", 
+                                "type": "iCloud", 
+                                "items": subfolder["items"]
+                            })
+                    except Exception as e:
+                        if not self.quiet_mode:
+                            print(f"Error scanning iCloud Notes folders: {e}")
+                        # Fallback for Notes folder if scanning fails
+                        cloud_folders.append({"name": "Notes", "path": "iCloud/Notes", "type": "iCloud", "items": "Unknown"})
+                    
+                # Also check for local Notes container
+                local_notes = os.path.expanduser("~/Library/Containers/com.apple.Notes")
+                if os.path.exists(local_notes):
+                    cloud_folders.append({"name": "Notes App", "path": "Notes App (Local)", "type": "Local", "items": "Notes App Data"})
             
             # Construct the find command with error redirection for filesystem folders
             command = f'find {location} -type d -name "*{folder_name}*" 2>/dev/null | grep -v "Library/|.Trash" | head -n {max_results}'
@@ -486,21 +495,23 @@ class ShellHandler:
             
             # First show cloud folders (if any)
             if cloud_folders:
-                if self.system_platform == "darwin":
-                    formatted_result += "🌥️  iCloud:\n\n"
-                elif self.system_platform == "windows":
-                    formatted_result += "📝  Note Applications:\n\n"
-                else:
-                    formatted_result += "📝  Notes:\n\n"
-                    
-                # Show all folders with type and count
+                formatted_result += "🌥️  iCloud:\n\n"
+                # Show iCloud root first
                 for cf in cloud_folders:
-                    formatted_result += f"  • {cf['name']}    {cf['items']}\n"
+                    if cf["name"] == "Notes":
+                        # Get actual iCloud Notes count from the items field instead of hardcoded 75
+                        formatted_result += f"  • All iCloud       {cf['items']}\n"
+                        formatted_result += f"  • {cf['name']}          {cf['items']}\n"
+                
+                # Then show subfolders with proper indentation
+                for cf in cloud_folders:
+                    if cf["name"] != "Notes" and "iCloud/Notes/" in cf["path"]:
+                        formatted_result += f"  • {cf['name']}    {cf['items']}\n"
                         
                 formatted_result += "\n"
             
             # Then show filesystem folders if we have any and they're requested
-            if all_folders:
+            if all_folders and folder_name.lower() not in ["notes", "note", "notes app"]:
                 formatted_result += "💻 Local Filesystem:\n\n"
                 for folder in all_folders:
                     formatted_result += f"  • {folder}\n"

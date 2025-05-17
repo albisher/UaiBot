@@ -22,281 +22,6 @@ Given the style we discussed (rounded rectangles, circles, lines), drawing them 
 Let's illustrate how you could draw a couple of the sample emojis directly in code.
 PyQt5 Example: Drawing Robot Emojis with QPainter
 
-We can create a custom widget or a function that generates a QPixmap with the emoji drawn on it. Here's an example of a RobotEmojiWidget that can draw different robot expressions.
-Python
-
-import sys
-import os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-from PyQt5.QtGui import QPainter, QColor, QBrush, QPen, QPixmap, QPainterPath
-from PyQt5.QtCore import Qt, QSize, QRectF
-
-# --- Remember to set up your venv and install PyQt5 ---
-# python -m venv venv
-# source venv/bin/activate  (or venv\Scripts\activate on Windows)
-# pip install PyQt5
-
-class RobotEmojiRenderer:
-    """
-    A class responsible for rendering different robot emoji states onto a QPixmap.
-    """
-    def __init__(self, size=64):
-        self.size = size
-        # Define base colors (can be customized)
-        self.body_color = QColor("#B0BEC5")  # Light bluish-grey (Silver/Teal suggestion)
-        self.visor_color = QColor("#263238") # Dark grey for visor
-        self.neutral_eye_mouth_color = QColor("#81D4FA") # Cyan
-        self.happy_eye_mouth_color = QColor("#A5D6A7")   # Light Green
-        self.thinking_eye_mouth_color = QColor("#FFD54F") # Yellow/Orange
-
-    def get_emoji_pixmap(self, state="neutral"):
-        pixmap = QPixmap(self.size, self.size)
-        pixmap.fill(Qt.transparent) # Transparent background
-
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing) # For smooth shapes
-
-        # Common drawing parameters
-        padding = self.size * 0.05
-        head_height = self.size * 0.6
-        head_y_offset = self.size * 0.1
-        
-        body_height = self.size * 0.25
-        body_y_offset = head_y_offset + head_height * 0.8 # Body slightly under head
-
-        # Draw Body (optional, simple rounded rect)
-        body_rect = QRectF(
-            padding * 2.5, body_y_offset,
-            self.size - padding * 5, body_height
-        )
-        painter.setBrush(QBrush(self.body_color.darker(110)))
-        painter.setPen(Qt.NoPen) # No outline for body or slightly darker outline
-        painter.drawRoundedRect(body_rect, 10.0, 10.0)
-
-
-        # Draw Head
-        head_rect = QRectF(
-            padding, head_y_offset,
-            self.size - padding * 2, head_height
-        )
-        painter.setBrush(QBrush(self.body_color))
-        painter.setPen(QPen(self.body_color.darker(120), 1)) # Subtle outline
-        painter.drawRoundedRect(head_rect, 15.0, 15.0)
-
-        # Draw Visor
-        visor_padding = padding * 1.5
-        visor_rect = QRectF(
-            head_rect.x() + visor_padding, head_rect.y() + visor_padding * 0.8,
-            head_rect.width() - visor_padding * 2, head_rect.height() - visor_padding * 1.6
-        )
-        painter.setBrush(QBrush(self.visor_color))
-        painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(visor_rect, 10.0, 10.0)
-
-        # Draw Features based on state
-        if state == "neutral":
-            self._draw_neutral_face(painter, visor_rect)
-        elif state == "happy":
-            self._draw_happy_face(painter, visor_rect)
-        elif state == "thinking":
-            self._draw_thinking_face(painter, visor_rect)
-        # Add more states (elif state == "sad_error": self._draw_sad_error_face(painter, visor_rect))
-
-        painter.end()
-        return pixmap
-
-    def _draw_neutral_face(self, painter, visor_bounds):
-        pen = QPen(self.neutral_eye_mouth_color, self.size * 0.04) # Pen thickness relative to size
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-
-        eye_width = self.size * 0.12
-        eye_height = self.size * 0.08
-        eye_y_offset = visor_bounds.y() + visor_bounds.height() * 0.35
-        eye_spacing = self.size * 0.08 # Space from center
-
-        # Left Eye (oval)
-        left_eye_rect = QRectF(
-            visor_bounds.center().x() - eye_spacing - eye_width, eye_y_offset - eye_height / 2,
-            eye_width, eye_height
-        )
-        painter.drawEllipse(left_eye_rect)
-
-        # Right Eye (oval)
-        right_eye_rect = QRectF(
-            visor_bounds.center().x() + eye_spacing, eye_y_offset - eye_height / 2,
-            eye_width, eye_height
-        )
-        painter.drawEllipse(right_eye_rect)
-        
-        # Mouth (line)
-        mouth_y_offset = visor_bounds.y() + visor_bounds.height() * 0.7
-        mouth_width = self.size * 0.25
-        painter.drawLine(
-            int(visor_bounds.center().x() - mouth_width / 2), int(mouth_y_offset),
-            int(visor_bounds.center().x() + mouth_width / 2), int(mouth_y_offset)
-        )
-
-    def _draw_happy_face(self, painter, visor_bounds):
-        pen = QPen(self.happy_eye_mouth_color, self.size * 0.045)
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-
-        eye_y_offset = visor_bounds.y() + visor_bounds.height() * 0.40
-        eye_width = self.size * 0.15
-        eye_height = self.size * 0.12 # for arc control points
-
-        # Eyes (upward crescents using QPainterPath for arcs)
-        # Left Eye Path
-        left_eye_path = QPainterPath()
-        left_eye_path.moveTo(visor_bounds.center().x() - self.size * 0.20, eye_y_offset + eye_height * 0.2)
-        left_eye_path.quadTo(
-            visor_bounds.center().x() - self.size * 0.12, eye_y_offset - eye_height * 0.5, # control point
-            visor_bounds.center().x() - self.size * 0.04, eye_y_offset + eye_height * 0.2  # end point
-        )
-        painter.drawPath(left_eye_path)
-
-        # Right Eye Path
-        right_eye_path = QPainterPath()
-        right_eye_path.moveTo(visor_bounds.center().x() + self.size * 0.04, eye_y_offset + eye_height * 0.2)
-        right_eye_path.quadTo(
-            visor_bounds.center().x() + self.size * 0.12, eye_y_offset - eye_height * 0.5, # control point
-            visor_bounds.center().x() + self.size * 0.20, eye_y_offset + eye_height * 0.2  # end point
-        )
-        painter.drawPath(right_eye_path)
-
-        # Mouth (wide smile arc)
-        mouth_rect = QRectF(
-            visor_bounds.center().x() - self.size * 0.15, visor_bounds.y() + visor_bounds.height() * 0.55,
-            self.size * 0.3, self.size * 0.25
-        )
-        start_angle = 0 * 16  # QPainter angles are in 1/16th of a degree
-        span_angle = 180 * 16
-        painter.drawArc(mouth_rect, start_angle, span_angle)
-        
-    def _draw_thinking_face(self, painter, visor_bounds):
-        pen = QPen(self.thinking_eye_mouth_color, self.size * 0.04)
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.setBrush(self.thinking_eye_mouth_color) # Fill eyes for thinking
-
-        eye_radius = self.size * 0.04
-        eye_y_offset = visor_bounds.y() + visor_bounds.height() * 0.35
-        
-        # Left Eye (dot)
-        painter.drawEllipse(
-            visor_bounds.center().x() - self.size * 0.15 - eye_radius, eye_y_offset - eye_radius,
-            eye_radius * 2, eye_radius * 2
-        )
-        
-        # Right Eye (slightly narrowed or line)
-        painter.setBrush(Qt.NoBrush) # Line for this eye part
-        painter.drawLine(
-            int(visor_bounds.center().x() + self.size * 0.08), int(eye_y_offset),
-            int(visor_bounds.center().x() + self.size * 0.18), int(eye_y_offset - self.size * 0.01) # slightly squinted
-        )
-
-        # Mouth (flat or slightly wavy line)
-        mouth_y_offset = visor_bounds.y() + visor_bounds.height() * 0.7
-        mouth_width = self.size * 0.2
-        path = QPainterPath()
-        path.moveTo(visor_bounds.center().x() - mouth_width / 2, mouth_y_offset)
-        path.quadTo(
-            visor_bounds.center().x(), mouth_y_offset + self.size * 0.02, # control for slight wave
-            visor_bounds.center().x() + mouth_width / 2, mouth_y_offset
-        )
-        painter.drawPath(path)
-
-
-class EmojiDisplayWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Programmatic Robot Emoji Demo")
-        self.setGeometry(100, 100, 250, 300)
-
-        # Use the renderer
-        self.emoji_renderer = RobotEmojiRenderer(size=128) # Create emojis at 128x128
-
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.layout = QVBoxLayout(self.central_widget)
-
-        self.emoji_label = QLabel("Emoji will appear here")
-        self.emoji_label.setAlignment(Qt.AlignCenter)
-        self.emoji_label.setMinimumSize(130, 130)
-        self.layout.addWidget(self.emoji_label)
-
-        self.emoji_states = ["neutral", "happy", "thinking"] # Add more as you implement them
-        self.current_emoji_index = 0
-
-        self.setup_buttons()
-        self.update_emoji_display()
-
-    def setup_buttons(self):
-        button_layout = QHBoxLayout()
-        self.prev_button = QPushButton("Previous")
-        self.prev_button.clicked.connect(self.show_previous_emoji)
-        button_layout.addWidget(self.prev_button)
-
-        self.next_button = QPushButton("Next")
-        self.next_button.clicked.connect(self.show_next_emoji)
-        button_layout.addWidget(self.next_button)
-        
-        self.layout.addLayout(button_layout)
-
-    def update_emoji_display(self):
-        emoji_state = self.emoji_states[self.current_emoji_index]
-        pixmap = self.emoji_renderer.get_emoji_pixmap(emoji_state)
-        self.emoji_label.setPixmap(pixmap)
-        self.emoji_label.setText("")
-
-    def show_next_emoji(self):
-        self.current_emoji_index = (self.current_emoji_index + 1) % len(self.emoji_states)
-        self.update_emoji_display()
-
-    def show_previous_emoji(self):
-        self.current_emoji_index = (self.current_emoji_index - 1 + len(self.emoji_states)) % len(self.emoji_states)
-        self.update_emoji_display()
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = EmojiDisplayWindow()
-    window.show()
-    sys.exit(app.exec_())
-
-Explanation of the Code:
-
-    RobotEmojiRenderer Class:
-        __init__(self, size=64): Initializes with a target size for the emoji. It also defines base colors.
-        get_emoji_pixmap(self, state="neutral"):
-            Creates a transparent QPixmap of the specified size.
-            Initializes a QPainter on this pixmap.
-            Sets Antialiasing for smooth drawing.
-            Draws common elements: _draw_body() (optional), _draw_head(), _draw_visor(). These methods would contain QPainter commands like drawRoundedRect, setBrush, setPen.
-            Based on the state string ("neutral", "happy", "thinking", etc.), it calls a specific method like _draw_neutral_face(), _draw_happy_face(), etc.
-            Each face-drawing method uses QPainter commands (drawEllipse, drawLine, drawArc, drawPath) to draw eyes and mouth within the visor_bounds.
-        Helper methods (_draw_neutral_face, _draw_happy_face, _draw_thinking_face): These contain the specific QPainter logic for each expression. You would add more methods for other expressions (e.g., _draw_sad_error_face, _draw_waving_gesture).
-
-    EmojiDisplayWindow Class:
-        This is similar to the previous example but instead of loading images, it uses RobotEmojiRenderer to get a QPixmap.
-        It cycles through different emoji_states ("neutral", "happy", "thinking").
-
-Extending to the Full Set:
-
-    You would add more elif state == "..." conditions in get_emoji_pixmap.
-    Implement corresponding _draw_..._face(self, painter, visor_bounds) methods for each new emoji state. This involves figuring out the coordinates and QPainter calls for eyes, mouth, and any additional elements (like a thumbs-up, lightbulb, etc.).
-    For elements like a "waving hand" or "thumbs up," you'd add QPainter commands to draw those shapes, likely outside the visor area but connected to the body/head.
-
-Summary:
-
-Drawing emojis in code is a powerful technique, especially for simpler, geometric styles. It gives you scalability and reduces reliance on external files. The main trade-off is the increased development effort in writing the drawing code for each distinct emoji. For your AI assistant, this approach could work very well and lead to a very polished and efficient result.
-
-Following are list of emoji that we can start with.
-
-## Popular Kaomoji Text Emoticons and Their Meanings
 
 Kaomoji are Japanese text emoticons created using keyboard characters to express emotions, actions, and objects. Below is a comprehensive list of common kaomoji along with their meanings, organized by emotion or theme[3][2][4].
 
@@ -405,3 +130,55 @@ Citations:
 [7] https://kaomojikuma.com
 [8] https://jemoticons.me
 
+
+
+========
+
+Here is a structured table listing essential emote faces, each with a sample emoji and a brief description. This covers a wide range of common expressions typically used for emotes, based on standard emoji sets[2][3][4][7][8].
+
+| Emote Name                | Sample | Description                         |
+|---------------------------|--------|-------------------------------------|
+| Grinning Face             | 😀     | Expresses general happiness or joy. |
+| Beaming Face with Smiling Eyes | 😁 | Shows big, joyful smile and delight.|
+| Face with Tears of Joy    | 😂     | Laughing so hard, tears come out.   |
+| Smiling Face with Heart-Eyes | 😍  | Shows love or adoration.            |
+| Winking Face              | 😉     | Playful or friendly gesture.        |
+| Smirking Face             | 😏     | Suggests confidence or flirtation.  |
+| Face Savoring Food        | 😋     | Enjoyment, often after eating.      |
+| Face with Tongue          | 😛     | Playful, teasing, or silly mood.    |
+| Winking Face with Tongue  | 😜     | Joking, silly, or cheeky.           |
+| Zany Face                 | 🤪     | Wild, crazy, or goofy feeling.      |
+| Hugging Face              | 🤗     | Offering a virtual hug or warmth.   |
+| Neutral Face              | 😐     | No strong emotion; neutral.         |
+| Expressionless Face       | 😑     | Blank, unamused, or indifferent.    |
+| Thinking Face             | 🤔     | Deep thought or pondering.          |
+| Face with Rolling Eyes    | 🙄     | Annoyance or sarcasm.               |
+| Grimacing Face            | 😬     | Awkwardness or nervousness.         |
+| Relieved Face             | 😌     | Relief or calm after stress.        |
+| Pensive Face              | 😔     | Sadness or deep thought.            |
+| Sleepy Face               | 😪     | Feeling tired or about to sleep.    |
+| Crying Face               | 😢     | Sadness or disappointment.          |
+| Loudly Crying Face        | 😭     | Intense sadness or grief.           |
+| Face Screaming in Fear    | 😱     | Shock, fear, or horror.             |
+| Angry Face                | 😠     | Mild anger or annoyance.            |
+| Enraged Face              | 😡     | Strong anger or rage.               |
+| Face with Medical Mask    | 😷     | Sickness or concern for health.     |
+| Partying Face             | 🥳     | Celebration or festivity.           |
+| Nerd Face                 | 🤓     | Geeky, smart, or bookish mood.      |
+| Smiling Face with Sunglasses | 😎  | Cool, relaxed, or confident.        |
+| Exploding Head            | 🤯     | Mind-blown or shocked.              |
+
+This table can be expanded or customized to fit specific needs, but these are the core emote faces frequently used for expressive communication in chats, streams, and social media[2][3][4][7][8].
+
+Citations:
+[1] https://en.wikipedia.org/wiki/List_of_emoticons
+[2] https://unicode.org/emoji/charts/full-emoji-list.html
+[3] https://emojipedia.org/smileys
+[4] https://www.freecodecamp.org/news/all-emojis-emoji-list-for-copy-and-paste/
+[5] https://www.emojimeanings.net
+[6] https://assets.clip-studio.com/en-us/detail?id=1969057
+[7] https://support.microsoft.com/en-us/skype/what-is-the-full-list-of-emoticons-01af0c65-529f-4a4d-8e3a-a393033a359a
+[8] https://www.w3schools.com/charsets/ref_emoji_smileys.asp
+
+---
+Answer from Perplexity: pplx.ai/share
