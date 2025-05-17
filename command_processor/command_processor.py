@@ -166,6 +166,14 @@ class CommandProcessor:
         is_usb_query, usb_result = self._check_usb_query(user_input)
         if is_usb_query:
             return usb_result
+        
+        # Direct command handling for Apple Notes app and other special folders
+        if "notes" in user_input.lower() and ("folder" in user_input.lower() or 
+                                            "app" in user_input.lower() or
+                                            "show me" in user_input.lower() or
+                                            "where" in user_input.lower()):
+            # Special case for Apple Notes - ensure we handle it directly
+            return self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
             
         # Check if this is a file/folder search request
         if "find" in user_input.lower() or "search" in user_input.lower():
@@ -253,7 +261,7 @@ class CommandProcessor:
         
         # Common folder names that users might ask about
         common_folders = {
-            "note": ["notes", "note", "notebook", "notebooks"],
+            "note": ["notes", "note", "notebook", "notebooks", "notes app", "apple notes"],
             "document": ["documents", "document", "docs", "doc"],
             "download": ["downloads", "download"],
             "desktop": ["desktop"],
@@ -267,7 +275,33 @@ class CommandProcessor:
             "game": ["games", "game", "steam", "gaming"]
         }
         
-        # Check if query is asking to list folders
+        # ===== Enhanced detection for direct "show me" commands =====
+        # Direct commands like "show me X" or "show X"
+        direct_show_patterns = [
+            r"^show\s+(?:me\s+)?(?:my\s+)?(.+?)(?:\s+folders?)?$",
+            r"^display\s+(?:my\s+)?(.+?)(?:\s+folders?)?$",
+            r"^list\s+(?:my\s+)?(.+?)(?:\s+folders?)?$",
+            r"^open\s+(?:my\s+)?(.+?)(?:\s+folders?)?$"
+        ]
+        
+        # Check for direct commands first (highest priority)
+        import re
+        for pattern in direct_show_patterns:
+            match = re.match(pattern, query_lower)
+            if match:
+                requested_item = match.group(1).strip()
+                # Check if it's a known folder type
+                for folder_type, variants in common_folders.items():
+                    if requested_item in variants or any(v in requested_item for v in variants):
+                        if folder_type == "note":
+                            # Special handling for Notes app on macOS
+                            return True, self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
+                        else:
+                            # Handle other folder types
+                            search_term = folder_type.title() + "s"  # e.g., Documents, Downloads
+                            return True, self.shell_handler.find_folders(search_term, location="~", include_cloud=True)
+        
+        # Check if query is asking to list folders with more general phrases
         contains_list_action = any(action in query_lower for action in 
                              ["list", "show", "find", "where", "locate", "search for", "look for", "get"])
                              
@@ -307,3 +341,19 @@ class CommandProcessor:
                     return True, self.shell_handler.find_folders(search_term, location="~")
         
         return False, ""
+    
+    def _check_usb_query(self, user_input):
+        """Check if the query is about USB devices."""
+        # Keywords that indicate USB queries
+        usb_keywords = [
+            "usb", "devices", "attached", "connect", "plugged", "inserted", 
+            "ports", "hardware", "serial", "tty", "dev", "cu.", "tty."
+        ]
+        
+        # Check if the query contains USB-related keywords
+        if any(keyword in user_input.lower() for keyword in usb_keywords):
+            # Get USB device information using run_command
+            result = self.usb_detector.get_usb_devices()
+            return True, result
+            
+        return False, None

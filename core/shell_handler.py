@@ -7,7 +7,7 @@ import shlex
 import os
 import platform
 import json
-from core.utils import get_platform_name
+from core.utils import get_platform_name, run_command
 from device_manager.usb_detector import USBDetector
 
 try:
@@ -175,8 +175,8 @@ class ShellHandler:
             # Special handling for screen command
             if command_string.startswith('screen '):
                 self.log("Using special handling for screen command")
-                return subprocess.run(command_string, text=True, shell=True, 
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE).stderr or "Screen command executed"
+                result = run_command(command_string, text=True, shell=True, capture_output=True)
+                return result['stderr'] or "Screen command executed"
                 
             # Special handling for USB device queries
             if ('usb' in command_string.lower() or 'dev/tty' in command_string.lower() or 'dev/cu' in command_string.lower()) and \
@@ -222,13 +222,13 @@ class ShellHandler:
 
                     # Execute without shell=True
                     self.log(f"Executing with shlex: {command_parts}")
-                    result = subprocess.run(command_parts, capture_output=True, text=True, check=False)
+                    result = run_command(command_parts, capture_output=True, text=True, check=False)
                 except ValueError as e:
                     # If shlex can't parse the command, try with shell=True if permitted
                     self.log(f"Error parsing command with shlex: {str(e)}")
                     if not self.safe_mode or force_shell:
                         self.log(f"Falling back to shell=True for: {command_string}")
-                        result = subprocess.run(command_string, shell=True, capture_output=True, text=True, check=False)
+                        result = run_command(command_string, shell=True, capture_output=True, text=True, check=False)
                     else:
                         return f"Error: Could not parse command '{command_string}'. Try simplifying or using quotes properly."
             else: # force_shell is True
@@ -238,19 +238,37 @@ class ShellHandler:
                         self.log("Shell=True allowed without confirmation due to special command needs.")
                 
                 self.log(f"Executing with shell=True: {command_string}")
-                result = subprocess.run(command_string, shell=True, capture_output=True, text=True, check=False)
+                result = run_command(command_string, shell=True, capture_output=True, text=True, check=False)
 
             # Process command output
-            if result.returncode != 0:
-                error_message = f"Error executing command: {command_string}"
-                error_message += f"\nReturn Code: {result.returncode}"
-                if result.stdout:
-                    error_message += f"\nStdout:\n{result.stdout.strip()}"
-                if result.stderr:
-                    error_message += f"\nStderr:\n{result.stderr.strip()}"
-                self.log(error_message)
-                return result.stderr.strip() if result.stderr else f"Command failed with return code {result.returncode}"
-            return result.stdout.strip()
+            if isinstance(result, dict):  # Using run_command directly
+                returncode = result['returncode']
+                stdout = result.get('stdout', '')
+                stderr = result.get('stderr', '')
+                
+                if returncode != 0:
+                    error_message = f"Error executing command: {command_string}"
+                    error_message += f"\nReturn Code: {returncode}"
+                    if stdout:
+                        error_message += f"\nStdout:\n{stdout.strip()}"
+                    if stderr:
+                        error_message += f"\nStderr:\n{stderr.strip()}"
+                    self.log(error_message)
+                    return stderr.strip() if stderr else f"Command failed with return code {returncode}"
+                
+                return stdout.strip()
+            else:  # Legacy subprocess.CompletedProcess object - for backwards compatibility
+                if result.returncode != 0:
+                    error_message = f"Error executing command: {command_string}"
+                    error_message += f"\nReturn Code: {result.returncode}"
+                    if hasattr(result, 'stdout') and result.stdout:
+                        error_message += f"\nStdout:\n{result.stdout.strip()}"
+                    if hasattr(result, 'stderr') and result.stderr:
+                        error_message += f"\nStderr:\n{result.stderr.strip()}"
+                    self.log(error_message)
+                    return result.stderr.strip() if hasattr(result, 'stderr') and result.stderr else f"Command failed with return code {result.returncode}"
+                
+                return result.stdout.strip() if hasattr(result, 'stdout') else ""
         
         except Exception as e:
             return f"An unexpected error occurred: {str(e)}"
@@ -381,10 +399,27 @@ class ShellHandler:
             cloud_folders = []
             
             # First check for platform-specific notes folders
-            if include_cloud and folder_name.lower() in ["notes", "note", "notes app"]:
+            if include_cloud and folder_name.lower() in ["notes", "note", "notes app", "apple notes"]:
                 if self.system_platform == "darwin":
                     # Try to find iCloud Notes folders
                     icloud_path = os.path.expanduser("~/Library/Mobile Documents/com~apple~Notes")
+                    
+                    # Also check for alternate iCloud Notes locations
+                    alternate_paths = [
+                        os.path.expanduser("~/Library/Group Containers/group.com.apple.notes"),
+                        os.path.expanduser("~/Library/Containers/com.apple.Notes"),
+                        "/Applications/Notes.app"
+                    ]
+                    
+                    # Always add Apple Notes app entry
+                    # This ensures we always return something for Apple Notes requests
+                    cloud_folders.append({
+                        "name": "Apple Notes App", 
+                        "path": "/Applications/Notes.app", 
+                        "type": "Application", 
+                        "items": "Apple Notes"
+                    })
+                    
                     if os.path.exists(icloud_path):
                         try:
                             # Count total notes in root
@@ -480,9 +515,9 @@ class ShellHandler:
             
             # Format the output with emojis according to enhancement guidelines
             if not all_folders and not cloud_folders:
-                return f"No folders matching '{folder_name}' found in {location}."
+                return f"I searched for '{folder_name}' folders but didn't find any matching folders in {location}."
                 
-            formatted_result = f"📂 Found folders matching '{folder_name}':\n\n"
+            formatted_result = f"I found these folders matching '{folder_name}':\n\n"
             
             # First show cloud folders (if any)
             if cloud_folders:

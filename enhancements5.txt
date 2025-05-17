@@ -1,261 +1,436 @@
-# UaiBot Output Formatting Guidelines
+# UaiBot Code Structure and Behavior Guidelines
 
-This document provides comprehensive guidelines for formatting UaiBot's output with balanced whitespace and effective emoji usage to create an intuitive, visually pleasing, and accessible user experience.
+This document defines the comprehensive architecture, code organization principles, and behavioral requirements for UaiBot to ensure it executes commands directly rather than suggesting them.
 
-## 1. Whitespace Balance Principles
+# PART 1: CORE BEHAVIORAL PRINCIPLES
 
-### 1.1. Vertical Spacing
+## Direct Command Execution Is Mandatory
 
-Proper vertical spacing improves readability and content organization:
+UaiBot MUST execute commands directly when requested. This is not optional but mandatory:
 
-- **Section Separation**: Use double line breaks to separate major sections
-- **Logical Grouping**: Use single line breaks to group related items
-- **Progressive Disclosure**: Use indentation to show hierarchical relationships
+1. **Direct Execution Principle**: UaiBot MUST execute commands to obtain information rather than suggest commands. 
+   - Example: "show my Notes folders" → Execute find command and display results
+   - WRONG: Suggesting "ls ~/Notes" or explaining how to find folders
+   - CORRECT: Executing "find ~ -type d -name '*Notes*'" and displaying results
 
-Example with proper vertical spacing:
+2. **Zero Suggestion Policy**: UaiBot SHOULD NEVER suggest commands for basic information retrieval:
+   - WRONG: "You can run 'uptime' to see how long the system has been running"
+   - CORRECT: "Your system has been running for 3 days, 7 hours, and 15 minutes"
+
+3. **Always Execute, Never Explain**: When a command can answer a user's question, UaiBot MUST:
+   - Execute the command silently in the background
+   - Process and format the results in a user-friendly way
+   - Present only the processed information, not the command used
+
+4. **Complete Information Delivery**: Provide full, processed information:
+   - WRONG: "To see system uptime, use the 'uptime' command"
+   - CORRECT: "Your system has been running for 3 days, 7 hours, and 15 minutes"
+
+## User Intent Recognition Rules
+
+UaiBot MUST accurately interpret user intent from various query phrasings:
+
+1. **Information Request Recognition**: These patterns MUST trigger direct command execution:
+   - "how long..." → Execute relevant command and return processed results
+   - "show me..." → Execute search and display results directly
+   - "what are..." → Execute listing command and present findings
+   - "where is/are..." → Execute location search and show results
+
+2. **System Information Queries**: ALL system information queries MUST be executed directly:
+   - "system uptime" → Execute uptime command and format results
+   - "disk space" → Execute df command and present readable results
+   - "memory usage" → Execute memory status command and show formatted results
+   - "running processes" → Execute process listing command and present organized results
+
+3. **File System Queries**: ALL file/folder queries MUST be executed directly:
+   - "Notes folders" → Execute folder search for Notes and display results
+   - "Documents files" → Execute file search in Documents and show findings
+   - "recent files" → Execute modified files search and display results
+
+# PART 2: CODE ARCHITECTURE AND STRUCTURE
+
+## Folder Structure and Responsibilities
+
+1. `/command_processor/`
+   - Contains logic to process user input and determine handling strategy
+   - **MUST detect and DIRECTLY EXECUTE common queries** (folder searches, system info)
+   - **Main pattern matching and intent detection** happens here
+   - No AI involvement for standard queries that can be handled by shell commands
+   - Must implement comprehensive regex patterns for query recognition
+
+2. `/core/`
+   - Contains foundational components like AI handling and shell execution
+   - `shell_handler.py` must provide methods for all common shell operations
+   - **Must ONLY return actual results, NEVER instructions or command suggestions**
+   - Must implement comprehensive OS detection for cross-platform support
+   - Must contain robust error handling to prevent fallback to AI suggestions
+
+3. `/platform_uai/`
+   - Platform-specific implementations (macOS, Ubuntu, Windows)
+   - Each platform folder must include specialized commands for that OS
+   - Must contain platform-specific path knowledge (e.g., Notes folders on macOS)
+
+4. `/terminal_commands/` (MANDATORY NEW FOLDER)
+   - Repository of all terminal command templates
+   - Must contain OS-specific command variants for all supported platforms
+   - Must include command builders for all common operations
+   - Must map natural language intents to appropriate command execution
+   - Must cover all basic system information and file operations
+
+## Command Processing Architecture
+
+### 1. Command Processing Flow (STRICTLY REQUIRED)
+
+The command processor MUST follow this exact flow with no deviations:
+
+1. Parse user input for direct execution patterns using comprehensive regex patterns
+2. If pattern matched, execute appropriate command DIRECTLY with NO AI involvement
+3. Process command output to create human-readable results
+4. Return ONLY processed results, NEVER suggestions or instructions
+
+### 2. Command Processing Implementation
+
+```python
+def process_command(self, user_input):
+    """Process user input and execute commands directly."""
+    query_lower = user_input.lower()
+    
+    # SYSTEM INFORMATION QUERIES - Must be checked first
+    if self._is_system_info_query(query_lower):
+        return self._execute_system_info_command(query_lower)
+        
+    # FILE/FOLDER OPERATIONS - Check second
+    if self._is_file_folder_query(query_lower):
+        return self._execute_file_folder_command(query_lower)
+    
+    # APP-SPECIFIC QUERIES - Check third
+    if self._is_app_specific_query(query_lower):
+        return self._execute_app_specific_command(query_lower)
+        
+    # GENERAL COMMAND DETECTION - Check fourth
+    if self._is_general_command_query(query_lower):
+        return self._execute_general_command(query_lower)
+        
+    # ONLY as last resort, use AI
+    return self._handle_with_ai(user_input)
+```
+
+### 3. Command Detection Implementation
+
+```python
+def _is_system_info_query(self, query):
+    """Detect system info queries with comprehensive patterns."""
+    # REQUIRED: Detect uptime queries
+    if re.search(r'(how\s+long|since|uptime|duration|running\s+time|system\s+on\s+time|time\s+running)', query):
+        return True
+        
+    # REQUIRED: Detect memory queries  
+    if re.search(r'(memory|ram|available\s+memory|free\s+memory|memory\s+usage)', query):
+        return True
+        
+    # REQUIRED: Detect disk space queries
+    if re.search(r'(disk|space|storage|free\s+space|available\s+space|disk\s+usage)', query):
+        return True
+        
+    # More patterns must be added for all system information types
+    return False
+
+def _is_file_folder_query(self, query):
+    """Detect file and folder operation queries."""
+    # REQUIRED: Notes folder patterns - must be comprehensive!
+    if re.search(r'(notes?\s+folders?|where\s+.*\s+notes|show\s+.*\s+notes|list\s+.*\s+notes|find\s+.*\s+notes)', query):
+        return True
+        
+    # REQUIRED: General folder patterns
+    if re.search(r'(folders?|directories?|where\s+.*\s+folders?|show\s+.*\s+folders?|list\s+.*\s+folders?)', query):
+        return True
+        
+    # REQUIRED: File search patterns
+    if re.search(r'(files?|where\s+.*\s+files?|show\s+.*\s+files?|list\s+.*\s+files?|find\s+.*\s+files?)', query):
+        return True
+        
+    return False
+```
+
+### 4. Command Execution Implementation
+
+```python
+def _execute_system_info_command(self, query):
+    """Execute appropriate system command for information queries."""
+    # REQUIRED: Handle uptime queries - MUST EXECUTE, not suggest
+    if 'uptime' in query or 'how long' in query or 'running' in query:
+        if self.system_platform == 'darwin' or self.system_platform == 'linux':
+            # Get raw output from uptime command
+            output = self.shell_handler.execute_command('uptime', force_shell=True)
+            # Process the output to extract human-readable information
+            readable_uptime = self._process_uptime_output(output)
+            return f"Your system has been running for {readable_uptime}"
+        elif self.system_platform == 'windows':
+            # Windows equivalent using PowerShell
+            cmd = 'powershell "Get-CimInstance -ClassName Win32_OperatingSystem | Select LastBootUpTime"'
+            output = self.shell_handler.execute_command(cmd, force_shell=True)
+            readable_uptime = self._process_windows_uptime(output)
+            return f"Your system has been running for {readable_uptime}"
+    # MANY MORE system info commands must be implemented
+    
+def _execute_file_folder_command(self, query):
+    """Execute appropriate file/folder command."""
+    # REQUIRED: Notes folder handling - MUST EXECUTE, not suggest
+    if 'note' in query and ('folder' in query or 'app' in query):
+        # Special handling for Notes folders
+        return self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
+        
+    # REQUIRED: General folder search - MUST EXECUTE, not suggest
+    if 'folder' in query or 'director' in query:
+        # Extract search term and execute folder search
+        folder_name = self._extract_search_term(query)
+        return self.shell_handler.find_folders(folder_name, location="~", include_cloud=True)
+```
+
+## Terminal Commands Implementation (MANDATORY)
+
+The `/terminal_commands/` directory MUST be created and MUST contain these components:
+
+### 1. Command Template Structure
 
 ```
-🤖 UaiBot System Report
-
-📊 System Status
-  CPU: 45% utilization
-  RAM: 3.2GB/8GB used
-  Disk: 120GB free
-
-📱 Connected Devices
-  Arduino (COM3)
-  Webcam (active)
-
-📝 Recent Commands
-  ls -la
-  git status
+/terminal_commands/
+  __init__.py
+  command_registry.py          # Registry of all available commands
+  command_executor.py          # Core execution and output processing logic
+  system_commands/
+    __init__.py
+    uptime_commands.py         # All platform-specific uptime commands
+    disk_commands.py           # All platform-specific disk commands
+    memory_commands.py         # All platform-specific memory commands
+    process_commands.py        # All platform-specific process commands
+    network_commands.py        # All platform-specific network commands
+  file_commands/
+    __init__.py
+    search_commands.py         # All platform-specific file search commands
+    folder_commands.py         # All platform-specific folder commands
+    app_specific/
+      __init__.py
+      notes_commands.py        # All platform-specific Notes app commands
+      photos_commands.py       # All platform-specific Photos app commands
 ```
 
-### 1.2. Horizontal Spacing
+### 2. Command Registry Implementation
 
-Balanced horizontal spacing creates visual harmony and improves scanning:
-
-- **Consistent Padding**: Add 1-2 spaces between content sections
-- **Column Alignment**: Left-align text blocks, right-align numeric values
-- **Field Separation**: Use consistent spacing between labels and values
-
-Example of balanced horizontal alignment:
-
-```
-Device Name       Type        Status      Path
----------------   ---------   ---------   -------------
-Arduino Uno       Serial      Connected   /dev/ttyACM0  
-Webcam C920       Video       Active      /dev/video0
-External Drive    Storage     Mounted     /media/drive1
-```
-
-### 1.3. Visual Dividers
-
-Use dividers to separate distinct content areas:
-
-- **Full-width dividers**: Use for major section breaks (─────────────)
-- **Partial dividers**: Use for subsection separation (───── or ·······)
-- **Box drawing**: Use for content encapsulation (╭───╮ ╰───╯)
-
-Example of effective divider usage:
-
-```
-╭─── Device Information ───────────────────╮
-│                                          │
-│  Name: Arduino Mega                      │
-│  Type: Microcontroller                   │
-│  Port: /dev/ttyACM0                      │
-│                                          │
-├─── Connection Status ────────────────────┤
-│                                          │
-│  Status: Connected                       │
-│  Baud Rate: 115200                       │
-│  Data Bits: 8                            │
-│                                          │
-╰──────────────────────────────────────────╯
-```
-
-## 2. Emoji Usage Guidelines
-
-### 2.1. Functional Categorization
-
-Organize emojis by functional categories for consistent visual language:
-
-| Category        | Primary Emojis           | Secondary Emojis                    |
-|-----------------|--------------------------|-------------------------------------|
-| Status          | ✅ ⚠️ ❌ 🔄              | 🟢 🟡 🔴 ⚫                         |
-| Devices         | 💻 📱 🖨️ 📷 🎮           | 🔌 💾 💿 🖱️                        |
-| System          | 🤖 🔧 ⚙️ 🔐              | 📊 📈 💤 🔔                        |
-| Files/Folders   | 📁 📂 📄 📝              | 📚 📊 📦 🗄️                        |
-| Network         | 🌐 📡 📶 🔐              | 🌍 🔒 🔓 ⚡                         |
-| Actions         | ▶️ ⏸️ ⏹️ 🔍              | ✏️ 🔄 🔎 📥                        |
-
-### 2.2. Placement Consistency
-
-- **Prefix for Categories**: Use emoji at the beginning of section headers
-- **Status Indicators**: Place status emojis at the beginning of status lines
-- **Action Buttons**: Place action emojis before action labels
-
-Example of consistent emoji placement:
-
-```
-🖥️ System Information
-  ✅ OS: macOS 11.6
-  ✅ Memory: 16GB
-  ⚠️ Disk Space: 10% remaining
-
-🔌 Device Status
-  🟢 Arduino (connected)
-  🔴 Webcam (disconnected)
+```python
+# terminal_commands/command_registry.py
+class CommandRegistry:
+    """Registry for all terminal commands with platform-specific variants."""
+    
+    def __init__(self, platform):
+        self.platform = platform
+        # Initialize command dictionary
+        self.commands = {
+            # System Information Commands - REQUIRED
+            "uptime": {
+                "darwin": "uptime",
+                "linux": "uptime",
+                "windows": 'powershell "Get-CimInstance -ClassName Win32_OperatingSystem | Select LastBootUpTime"'
+            },
+            "memory": {
+                "darwin": "vm_stat",
+                "linux": "free -h",
+                "windows": 'powershell "Get-CimInstance Win32_OperatingSystem | Select FreePhysicalMemory,TotalVisibleMemorySize"'
+            },
+            
+            # File/Folder Commands - REQUIRED
+            "find_folders": {
+                "darwin": 'find ~ -type d -name "*{search_term}*" 2>/dev/null | grep -v "Library/|.Trash" | head -n {limit}',
+                "linux": 'find ~ -type d -name "*{search_term}*" 2>/dev/null | head -n {limit}',
+                "windows": 'powershell "Get-ChildItem -Path $HOME -Recurse -Directory -Filter *{search_term}* | Select-Object -First {limit} | Select-Object FullName"'
+            },
+            
+            # App-Specific Commands - REQUIRED
+            "notes_folders": {
+                "darwin": self._get_macos_notes_command(),
+                "linux": 'find ~ -type d -name "*[nN]otes*" 2>/dev/null',
+                "windows": 'powershell "Get-ChildItem -Path $HOME -Recurse -Directory -Filter *notes* | Select-Object FullName"'
+            }
+        }
+    
+    def _get_macos_notes_command(self):
+        """Get comprehensive command to find Notes folders on macOS."""
+        # Must check multiple locations
+        return 'find ~/Library/Containers/com.apple.Notes ~/Library/Group\\ Containers/group.com.apple.notes ~/Library/Mobile\\ Documents/com~apple~Notes /Applications/Notes.app -type d 2>/dev/null'
+    
+    def get_command(self, command_type, **params):
+        """Get platform-specific command with parameters filled in."""
+        if command_type not in self.commands:
+            raise ValueError(f"Unknown command type: {command_type}")
+            
+        if self.platform not in self.commands[command_type]:
+            raise ValueError(f"Platform {self.platform} not supported for {command_type}")
+            
+        cmd_template = self.commands[command_type][self.platform]
+        # Fill in any parameters in the command template
+        return cmd_template.format(**params)
 ```
 
-### 2.3. Density Guidelines
+## Query Intent to Command Mapping (COMPREHENSIVE)
 
-- **Primary Content**: 1 emoji per content block
-- **Lists**: 1 emoji per list item
-- **Status Overview**: Use emoji clusters only for critical status dashboards
-- **Avoid Overuse**: Never use multiple emojis for the same concept
+| User Query Pattern              | Command Type        | Required Output                               |
+|--------------------------------|---------------------|----------------------------------------------|
+| "how long system running"      | uptime              | "Your system has been running for X days, Y hours, Z minutes" |
+| "uptime"                       | uptime              | "Your system has been running for X days, Y hours, Z minutes" |
+| "system on time"               | uptime              | "Your system has been running for X days, Y hours, Z minutes" |
+| "show me Notes folders"        | notes_folders       | "I found these Notes folders: [list of folders]" |
+| "Notes app folders"            | notes_folders       | "I found these Notes folders: [list of folders]" |
+| "what folders in Notes"        | notes_folders       | "I found these Notes folders: [list of folders]" |
+| "disk space"                   | disk_space          | "You have X GB free space out of Y GB total (Z% used)" |
+| "storage left"                 | disk_space          | "You have X GB free space out of Y GB total (Z% used)" |
+| "memory usage"                 | memory              | "Your system is using X GB of memory out of Y GB total (Z% used)" |
+| "RAM"                          | memory              | "Your system is using X GB of memory out of Y GB total (Z% used)" |
+| "find X files"                 | find_files          | "I found these files matching 'X': [list of files]" |
+| "search for X folders"         | find_folders        | "I found these folders matching 'X': [list of folders]" |
 
-Example of appropriate emoji density:
+## Special Application Handling (MANDATORY REQUIREMENTS)
 
-```
-✅ Command successful!
+UaiBot MUST implement special handling for these applications:
 
-📋 Results:
-  📁 3 directories processed
-  📄 27 files analyzed
-  ⚠️ 2 warnings detected
+### 1. Notes App
+
+- **Mandatory Detection**: MUST detect ALL variations of queries about Notes folders
+  - "Notes folders", "Notes app folders", "show Notes", "folders in Notes", etc.
   
-🕒 Operation completed in 3.5 seconds
-```
-
-## 3. Practical Implementation Examples
-
-### 3.1. Command Output
-
-```
-$ uaibot search devices
-
-🔍 Searching for connected devices...
-
-📱 Found 3 devices:
-
-  1. 📊 Arduino Mega
-     │  Status: 🟢 Connected
-     │  Port: /dev/ttyACM0
-     └  Driver: ch340
-
-  2. 💾 Kingston USB Drive
-     │  Status: 🟢 Mounted
-     │  Size: 32GB (12GB free)
-     └  Mount: /media/usb0
-
-  3. 📷 Logitech Webcam C920
-     │  Status: 🟢 Available
-     └  Device: /dev/video0
-
-✅ All devices ready for use.
-```
-
-### 3.2. System Monitoring Output
-
-```
-$ uaibot monitor system
-
-📊 System Status                   🕒 Updated: 14:35:22
-
-┌─ Resource Usage ───────────────────────────────────────┐
-│                                                        │
-│  CPU: [███████▒▒▒] 68%           🟠 Moderate Load      │
-│  RAM: [█████████▒] 92%           🔴 High Usage         │
-│  Disk: [████▒▒▒▒▒▒] 42%          🟢 Healthy           │
-│  Network: ↑12MB/s ↓3MB/s        🟢 Normal Traffic     │
-│                                                        │
-└────────────────────────────────────────────────────────┘
-
-┌─ Top Processes ───────────────────────────────────────┐
-│                                                       │
-│  1. 🔵 chrome         CPU: 24%    MEM: 1.2GB         │
-│  2. 🔵 python3        CPU: 15%    MEM: 420MB         │
-│  3. 🔵 finder         CPU:  8%    MEM: 310MB         │
-│                                                       │
-└───────────────────────────────────────────────────────┘
-
-💡 Tip: Consider closing unused Chrome tabs to reduce memory usage.
-```
-
-### 3.3. Help Command Output
-
-```
-$ uaibot help screen
-
-📘 Screen Command Reference
-
-  Control terminal screen sessions with these commands:
-
-  screen -S NAME       Create new session named NAME
-  screen -r NAME       Reattach to session NAME
-  screen -ls           List all sessions
+- **Platform-Specific Implementation**:
+  - **macOS**: 
+    - Check `/Applications/Notes.app`
+    - Check `~/Library/Containers/com.apple.Notes`
+    - Check `~/Library/Group Containers/group.com.apple.notes`
+    - Check `~/Library/Mobile Documents/com~apple~Notes`
   
-  Inside a screen session:
+  - **Windows**: 
+    - Check OneNote locations
+    - Check Sticky Notes locations
   
-  Ctrl+A d            Detach from current session
-  Ctrl+A c            Create new window
-  Ctrl+A n            Switch to next window
-  Ctrl+A p            Switch to previous window
-  
-  Use 'uaibot help COMMAND' for more information on other commands.
+  - **Linux**:
+    - Check GNOME Notes locations
+    
+- **Output Requirements**:
+  - MUST return a formatted list of Notes folders
+  - MUST include folder paths
+  - MUST include folder types (System, iCloud, Local)
+  - MUST NOT suggest commands to find Notes
+
+### 2. System Information Queries
+
+- **Uptime Queries**: MUST execute appropriate commands
+  - **macOS/Linux**: 
+    - Execute `uptime`
+    - Process raw output to extract readable duration
+    - Return formatted duration in "X days, Y hours, Z minutes" format
+    
+  - **Windows**:
+    - Use PowerShell to get system boot time
+    - Calculate duration from boot time to now
+    - Return formatted duration in "X days, Y hours, Z minutes" format
+
+- **Memory Usage**:
+  - **macOS**: Use `vm_stat` and process output
+  - **Linux**: Use `free -h` and process output
+  - **Windows**: Use PowerShell to get memory information
+
+## Implementation Requirements (CRITICAL FIXES)
+
+### 1. Command Executor Implementation
+
+```python
+# terminal_commands/command_executor.py
+class CommandExecutor:
+    """Executes terminal commands and processes their output."""
+    
+    def __init__(self, shell_handler, command_registry):
+        self.shell_handler = shell_handler
+        self.command_registry = command_registry
+        self.output_processor = OutputProcessor()
+    
+    def execute_system_command(self, command_type, **params):
+        """Execute a system command and return processed results."""
+        try:
+            # Get the platform-specific command
+            command = self.command_registry.get_command(command_type, **params)
+            
+            # Execute the command using shell handler
+            raw_output = self.shell_handler.execute_command(command, force_shell=True)
+            
+            # Process the output according to command type
+            if command_type == "uptime":
+                return self.output_processor.process_uptime(raw_output)
+            elif command_type == "memory":
+                return self.output_processor.process_memory(raw_output)
+            elif command_type == "disk_space":
+                return self.output_processor.process_disk_space(raw_output)
+            # More command types...
+            
+            return raw_output
+        except Exception as e:
+            return f"An error occurred: {str(e)}"
 ```
 
-### 3.4. Error Message Formatting
+### 2. Output Processor Implementation
 
+```python
+# terminal_commands/output_processor.py
+class OutputProcessor:
+    """Processes raw command output into human-readable format."""
+    
+    def process_uptime(self, raw_output):
+        """Process uptime command output."""
+        # Example implementation for macOS/Linux
+        if "load" in raw_output:
+            # Extract the uptime part from output like: "14:30  up 3 days,  2:14, 5 users, load averages: 1.20 1.33 1.42"
+            uptime_parts = raw_output.split(",")
+            if len(uptime_parts) >= 2:
+                up_part = uptime_parts[0].split("up ")[1].strip()
+                # Format nicely
+                return f"Your system has been running for {up_part}"
+        
+        # Fallback for simple output
+        return f"System uptime: {raw_output.strip()}"
+    
+    def process_notes_folders(self, raw_output):
+        """Process Notes folder search output."""
+        if not raw_output or raw_output.strip() == "":
+            return "I didn't find any Notes folders on your system."
+            
+        folders = raw_output.strip().split("\n")
+        
+        result = "I found these Notes folders for you:\n\n"
+        for folder in folders:
+            folder = folder.strip()
+            if folder:
+                if "iCloud" in folder:
+                    result += f"• iCloud Notes: {folder}\n"
+                elif "Containers" in folder:
+                    result += f"• Local Notes: {folder}\n"
+                elif "Notes.app" in folder:
+                    result += f"• Notes Application: {folder}\n"
+                else:
+                    result += f"• {folder}\n"
+                    
+        return result.strip()
 ```
-❌ Error: Unable to connect to device
 
-│  Error details:
-│  • Port /dev/ttyACM0 is in use by another process
-│  • Process: screen (PID 1234)
-│
-│  Possible solutions:
-│  1. Close the other application using the device
-│  2. Try using a different port
-│  3. Run: sudo lsof /dev/ttyACM0 to see all processes using it
-```
+## Critical Changes Required (IMMEDIATE ACTION)
 
-## 4. Implementation Recommendations
+1. **Create `/terminal_commands/` directory** with all required files
+2. **Fix `CommandProcessor`** to detect and execute common queries directly
+3. **Enhance regex patterns** to catch all variations of common requests
+4. **Implement direct command execution** for system info queries (uptime, memory, disk space)
+5. **Implement special Notes app handling** with direct folder search execution
+6. **Create comprehensive `CommandRegistry`** with all platform-specific commands
+7. **Implement `OutputProcessor`** to convert raw command output to human-readable results
+8. **Add proper error handling** to prevent fallback to AI suggestions
 
-1. **Create formatting utility functions** in the codebase for consistent application:
-   ```python
-   def format_header(text, emoji=""):
-       """Format a section header with optional emoji"""
-       if emoji:
-           return f"{emoji} {text}\n{'-' * (len(text) + 3)}\n"
-       return f"{text}\n{'-' * len(text)}\n"
-   ```
+# PART 3: OUTPUT FORMATTING
 
-2. **Maintain an emoji dictionary** for consistent usage across the application:
-   ```python
-   EMOJI = {
-       "success": "✅",
-       "warning": "⚠️",
-       "error": "❌",
-       "info": "ℹ️",
-       # Add more categories as needed
-   }
-   ```
+For comprehensive output formatting guidelines, including whitespace balance principles, emoji usage guidelines, practical implementation examples, and implementation recommendations, please refer to the dedicated document:
 
-3. **Use string alignment methods** for consistent spacing:
-   ```python
-   def format_table_row(label, value, width=20):
-       """Format a table row with consistent spacing"""
-       return f"{label:<{width}} {value}"
-   ```
+`/Users/amac/Documents/code/UaiBot/enhancements4.txt`
 
-4. **Respect terminal width** for better display on different screens:
-   ```python
-   import shutil
-   term_width, _ = shutil.get_terminal_size()
-   divider = "─" * term_width
-   ```
-
-By implementing these formatting guidelines consistently throughout UaiBot, you'll create an intuitive, visually appealing, and professional user experience that enhances usability and makes information more accessible.
+These guidelines should be followed to create an intuitive, visually appealing, and professional user experience that enhances usability and makes information more accessible.

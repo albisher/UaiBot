@@ -5,6 +5,8 @@ import os
 import sys
 import json
 import platform
+import subprocess
+import shlex
 
 def get_project_root():
     """Return the absolute path to the project root directory"""
@@ -37,6 +39,124 @@ def save_config(config_data):
     except Exception as e:
         print(f"Error saving configuration: {e}")
         return False
+
+def run_command(command, capture_output=True, text=True, shell=False, timeout=None, 
+                check=False, env=None, cwd=None, input=None, async_mode=False):
+    """
+    Run a terminal command and return the result.
+    
+    This is a comprehensive utility function that can handle most command execution scenarios
+    using the recommended subprocess module approach.
+    
+    Args:
+        command (str or list): The command to execute. Can be a string or list of arguments.
+        capture_output (bool): Whether to capture stdout/stderr (True) or allow it to print to terminal (False).
+        text (bool): If True, decode output as text instead of bytes.
+        shell (bool): If True, execute command through the shell. Use with caution due to security risks.
+        timeout (int, optional): Maximum time to wait for command completion in seconds.
+        check (bool): If True, raise an exception if command returns non-zero exit status.
+        env (dict, optional): Dictionary of environment variables to use for the subprocess.
+        cwd (str, optional): Directory to change to before executing the command.
+        input (str, optional): Input to pass to the command's stdin.
+        async_mode (bool): If True, return a Popen object for asynchronous execution.
+    
+    Returns:
+        If async_mode is False (default):
+            dict: {'returncode': int, 'stdout': str or bytes, 'stderr': str or bytes, 'success': bool}
+        If async_mode is True:
+            subprocess.Popen: The process object for asynchronous interaction
+    
+    Example:
+        # Simple usage
+        result = run_command("ls -la")
+        print(result['stdout'])
+        
+        # Advanced usage
+        result = run_command(["find", "/path", "-name", "*.py"], timeout=30)
+        if result['success']:
+            files = result['stdout'].strip().split('\n')
+        else:
+            print(f"Error: {result['stderr']}")
+        
+        # Asynchronous usage
+        process = run_command("long_running_process", async_mode=True, capture_output=True)
+        # Do other work...
+        stdout, stderr = process.communicate()
+    """
+    if isinstance(command, str) and not shell:
+        # Split the string into a list for security, unless shell=True is explicitly requested
+        command = shlex.split(command)
+
+    try:
+        if async_mode:
+            # For asynchronous execution, return the Popen object
+            kwargs = {
+                'stdout': subprocess.PIPE if capture_output else None,
+                'stderr': subprocess.PIPE if capture_output else None,
+                'text': text,
+                'shell': shell,
+                'env': env,
+                'cwd': cwd
+            }
+            
+            # Remove None values to use defaults
+            kwargs = {k: v for k, v in kwargs.items() if v is not None}
+            
+            process = subprocess.Popen(command, **kwargs)
+            return process
+        else:
+            # For synchronous execution, use run() and return a dict with results
+            kwargs = {
+                'capture_output': capture_output,
+                'text': text,
+                'shell': shell,
+                'timeout': timeout,
+                'check': False,  # We'll handle this manually to include in the return dict
+                'env': env,
+                'cwd': cwd,
+                'input': input
+            }
+            
+            # Remove None values to use defaults
+            kwargs = {k: v for k, v in kwargs.items() if v is not None}
+            
+            result = subprocess.run(command, **kwargs)
+            
+            # Create a standardized return dict
+            output = {
+                'returncode': result.returncode,
+                'success': result.returncode == 0,
+                'stdout': result.stdout if capture_output else None,
+                'stderr': result.stderr if capture_output else None
+            }
+            
+            # Raise exception if check is True and return code is non-zero
+            if check and result.returncode != 0:
+                error_msg = f"Command '{command}' failed with returncode {result.returncode}"
+                if capture_output:
+                    error_msg += f"\nStdout: {result.stdout}\nStderr: {result.stderr}"
+                raise subprocess.CalledProcessError(result.returncode, command, 
+                                                  result.stdout if capture_output else None,
+                                                  result.stderr if capture_output else None)
+            
+            return output
+            
+    except subprocess.TimeoutExpired as e:
+        return {
+            'returncode': -1,
+            'success': False,
+            'stdout': None,
+            'stderr': f"Command timed out after {timeout} seconds",
+            'exception': e
+        }
+    except Exception as e:
+        return {
+            'returncode': -1,
+            'success': False,
+            'stdout': None,
+            'stderr': str(e),
+            'exception': e
+        }
 
 def get_platform_name():
     """

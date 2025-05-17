@@ -1,16 +1,21 @@
 """
 UaiBot - Dual Window Implementation with Emoji-Based Avatar
 Creates two separate windows: one for the robot emoji avatar and one for text I/O
+Supports multimodal inputs including text, images, audio, and gestures
 """
 import sys
 import re
+import os
+import tempfile
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QGraphicsScene, 
                             QGraphicsView, QGraphicsItem, QStyleOptionGraphicsItem,
                             QVBoxLayout, QHBoxLayout, QTextEdit, QFrame, QSplitter,
-                            QPushButton, QLabel, QLineEdit)
+                            QPushButton, QLabel, QLineEdit, QFileDialog, QToolBar, 
+                            QAction, QMenu, QMessageBox)
 from PyQt5.QtGui import (QPainter, QBrush, QColor, QPen, QRadialGradient, QPixmap,
-                        QFont, QPainterPath, QPolygonF)
-from PyQt5.QtCore import Qt, QRectF, QPointF, QTimer, pyqtSignal, QSize
+                        QFont, QPainterPath, QPolygonF, QIcon)
+from PyQt5.QtCore import Qt, QRectF, QPointF, QTimer, pyqtSignal, QSize, QByteArray, QBuffer
+from PyQt5.QtMultimedia import QAudioRecorder, QAudioEncoderSettings
 
 # Import the RobotEmojiItem from new_avatar.py
 from gui.new_avatar import RobotEmojiItem
@@ -161,6 +166,37 @@ class TextWindow(QMainWindow):
         
         layout.addLayout(input_layout)
         
+        # Toolbar for multimodal input
+        self.toolbar = QToolBar("Multimodal Input")
+        self.addToolBar(self.toolbar)
+        
+        # Action for image input
+        self.image_action = QAction(QIcon.fromTheme("image-x-generic"), "Insert Image", self)
+        self.image_action.setShortcut("Ctrl+I")
+        self.image_action.triggered.connect(self.insert_image)
+        self.toolbar.addAction(self.image_action)
+        
+        # Action for audio input
+        self.audio_action = QAction(QIcon.fromTheme("audio-x-generic"), "Record Audio", self)
+        self.audio_action.setShortcut("Ctrl+R")
+        self.audio_action.triggered.connect(self.record_audio)
+        self.toolbar.addAction(self.audio_action)
+        
+        # Action for gesture input (placeholder, not functional)
+        self.gesture_action = QAction(QIcon.fromTheme("edit-undo"), "Gesture Input (Beta)", self)
+        self.gesture_action.setShortcut("Ctrl+G")
+        self.gesture_action.triggered.connect(self.gesture_input)
+        self.toolbar.addAction(self.gesture_action)
+        
+        # Menu for file operations
+        self.file_menu = self.menuBar().addMenu("File")
+        self.file_menu.addAction(self.image_action)
+        self.file_menu.addAction(self.audio_action)
+        self.file_menu.addAction(self.gesture_action)
+        
+        # Status bar message
+        self.statusBar().showMessage("Ready")
+        
     def add_output_text(self, text):
         """Add text to the output area"""
         self.output_area.append(text)
@@ -174,7 +210,67 @@ class TextWindow(QMainWindow):
         if command:
             self.command_submitted.emit(command)
             self.input_field.clear()
-
+            
+    def insert_image(self):
+        """Insert an image file into the input field"""
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Image File", "", 
+                                                   "Images (*.png *.xpm *.jpg *.jpeg *.bmp);;All Files (*)", 
+                                                   options=options)
+        if file_name:
+            # For now, just insert the file path as text
+            self.input_field.setText(f"![Image]({file_name})")
+            self.submit_command()
+        
+    def record_audio(self):
+        """Record audio input and insert file path"""
+        # Use a temporary file for audio recording
+        temp_file, _ = tempfile.mkstemp(suffix=".wav", prefix="uaibot_")
+        os.close(temp_file)  # Close the file descriptor
+        
+        # Set up audio recorder
+        self.audio_recorder = QAudioRecorder()
+        audio_settings = QAudioEncoderSettings()
+        audio_settings.setCodec("audio/pcm")
+        audio_settings.setSampleRate(16000)
+        audio_settings.setBitRate(128000)
+        audio_settings.setChannelCount(1)
+        self.audio_recorder.setEncodingSettings(audio_settings)
+        
+        # Set the output file
+        self.audio_recorder.setOutputLocation(QUrl.fromLocalFile(temp_file))
+        
+        # Start recording
+        self.audio_recorder.record()
+        self.statusBar().showMessage("Recording audio... Press 'Stop' to end.")
+        
+        # Add a stop button to the toolbar
+        self.stop_action = QAction("Stop Recording", self)
+        self.stop_action.setShortcut("Ctrl+S")
+        self.stop_action.triggered.connect(self.stop_audio_recording)
+        self.toolbar.addAction(self.stop_action)
+        
+    def stop_audio_recording(self):
+        """Stop audio recording and process the file"""
+        self.audio_recorder.stop()
+        self.statusBar().showMessage("Audio recording stopped.")
+        
+        # Get the recorded file path
+        recorded_file = self.audio_recorder.outputLocation().toLocalFile()
+        if recorded_file:
+            # For now, just insert the file path as text
+            self.input_field.setText(f"[Audio]({recorded_file})")
+            self.submit_command()
+        else:
+            QMessageBox.warning(self, "Recording Error", "Failed to locate the recorded audio file.")
+        
+        # Remove the stop action
+        self.toolbar.removeAction(self.stop_action)
+        
+    def gesture_input(self):
+        """Placeholder for gesture input functionality"""
+        QMessageBox.information(self, "Gesture Input", "Gesture input is not yet functional.")
+        
 
 class UaiBotDualInterface:
     """Controller class that manages both windows and their interactions"""

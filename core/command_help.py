@@ -263,5 +263,196 @@ class CommandHelp:
                 'screen -S session -X stuff "command\\n"'
             ],
             'categories': ['terminal', 'serial', 'usb']
+        },
+        
+        # Adding missing commands from enhancements2.txt
+        'killall': {
+            'description': 'Kill processes by name',
+            'syntax': 'killall [options] process_name',
+            'examples': ['killall Finder', 'killall Dock', 'killall -9 process_name'],
+            'categories': ['system', 'admin']
+        },
+        'dscacheutil': {
+            'description': 'Manage the Directory Service cache',
+            'syntax': 'dscacheutil [options]',
+            'examples': ['sudo dscacheutil -flushcache', 'dscacheutil -q user'],
+            'categories': ['system', 'network', 'admin']
+        },
+        'more': {
+            'description': 'Display file contents one screen at a time',
+            'syntax': 'more [options] [file]',
+            'examples': ['more file.txt', 'ls -la | more'],
+            'categories': ['text', 'file']
+        },
+        'touch': {
+            'description': 'Create empty files or update timestamps',
+            'syntax': 'touch [options] file...',
+            'examples': ['touch newfile.txt', 'touch -a file.txt'],
+            'categories': ['file']
+        },
+        'rmdir': {
+            'description': 'Remove empty directories',
+            'syntax': 'rmdir [options] directory...',
+            'examples': ['rmdir empty_dir', 'rmdir -p path/to/empty_dir'],
+            'categories': ['directory']
+        },
+        'history': {
+            'description': 'Display command history',
+            'syntax': 'history [options]',
+            'examples': ['history', 'history 10', '!42'],
+            'categories': ['productivity']
+        },
+        'man': {
+            'description': 'Display manual pages for commands',
+            'syntax': 'man [options] command',
+            'examples': ['man ls', 'man -k search_term'],
+            'categories': ['help', 'documentation']
+        },
+        'date': {
+            'description': 'Display or set date and time',
+            'syntax': 'date [options] [+format]',
+            'examples': ['date', 'date +%Y-%m-%d', 'date -r file.txt'],
+            'categories': ['system', 'utility']
+        },
+        'cal': {
+            'description': 'Display a calendar',
+            'syntax': 'cal [options] [month] [year]',
+            'examples': ['cal', 'cal -y', 'cal 12 2023'],
+            'categories': ['utility']
+        },
+        'alias': {
+            'description': 'Create command aliases',
+            'syntax': 'alias [name[=\'command\']]',
+            'examples': ['alias', 'alias ll=\'ls -la\'', 'alias cls=\'clear\''],
+            'categories': ['productivity', 'shell']
+        },
+        'chown': {
+            'description': 'Change file owner and group',
+            'syntax': 'chown [options] [owner][:group] file...',
+            'examples': ['sudo chown user file.txt', 'sudo chown -R user:group directory'],
+            'categories': ['file', 'admin', 'permissions']
+        },
+        'chgrp': {
+            'description': 'Change group ownership',
+            'syntax': 'chgrp [options] group file...',
+            'examples': ['sudo chgrp staff file.txt', 'sudo chgrp -R staff directory'],
+            'categories': ['file', 'admin', 'permissions']
+        },
+        'chmod': {
+            'description': 'Change file mode/permissions',
+            'syntax': 'chmod [options] mode file...',
+            'examples': ['chmod 755 file.txt', 'chmod -R u+w directory'],
+            'categories': ['file', 'admin', 'permissions']
+        },
+        'grep': {
+            'description': 'Search for patterns in files or output',
+            'syntax': 'grep [options] pattern [file...]',
+            'examples': ['grep "text" file.txt', 'ls -la | grep "\.txt$"'],
+            'categories': ['text', 'search']
+        },
+        'find': {
+            'description': 'Find files in a directory hierarchy',
+            'syntax': 'find [path...] [expression]',
+            'examples': ['find . -name "*.txt"', 'find /home -type d -name "Downloads"'],
+            'categories': ['file', 'directory', 'search']
+        },
+        'killall': {
+            'description': 'Kill processes by name',
+            'syntax': 'killall [options] name...',
+            'examples': ['killall Safari', 'sudo killall -HUP mDNSResponder'],
+            'categories': ['system', 'process']
+        },
+        'diskutil': {
+            'description': 'Disk utilities on macOS',
+            'syntax': 'diskutil [command] [options]',
+            'examples': ['diskutil list', 'diskutil info disk0s2'],
+            'categories': ['system', 'disk', 'mac']
+        },
+        'ifconfig': {
+            'description': 'Configure network interface parameters',
+            'syntax': 'ifconfig [interface] [options]',
+            'examples': ['ifconfig', 'ifconfig en0', 'sudo ifconfig en0 down'],
+            'categories': ['network']
+        },
+        'spctl': {
+            'description': 'Security assessment policy control on macOS',
+            'syntax': 'spctl [options] [command]',
+            'examples': ['sudo spctl --master-disable', 'sudo spctl --assess --type execute file'],
+            'categories': ['system', 'security', 'mac']
+        },
+        'csrutil': {
+            'description': 'Configure System Integrity Protection on macOS',
+            'syntax': 'csrutil [command]',
+            'examples': ['csrutil status', 'csrutil disable'],
+            'categories': ['system', 'security', 'mac']
+        },
+        'launchctl': {
+            'description': 'Interface to launchd on macOS',
+            'syntax': 'launchctl [command] [options]',
+            'examples': ['launchctl list', 'sudo launchctl load /Library/LaunchDaemons/com.example.plist'],
+            'categories': ['system', 'admin', 'mac']
+        },
+        'pbcopy': {
+            'description': 'Copy to clipboard from standard input',
+            'syntax': 'pbcopy',
+            'examples': ['echo "text" | pbcopy', 'cat file.txt | pbcopy'],
+            'categories': ['utility', 'mac']
+        },
+        'pbpaste': {
+            'description': 'Paste from clipboard to standard output',
+            'syntax': 'pbpaste',
+            'examples': ['pbpaste', 'pbpaste > file.txt'],
+            'categories': ['utility', 'mac']
+        },
+        'defaults': {
+            'description': 'Access macOS user defaults system',
+            'syntax': 'defaults [command] [domain] [key] [value]',
+            'examples': [
+                'defaults read com.apple.finder',
+                'defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/App.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"'
+            ],
+            'categories': ['system', 'preferences', 'mac']
+        },
+        'awk': {
+            'description': 'Pattern scanning and processing language',
+            'syntax': 'awk [options] \'program\' [file...]',
+            'examples': ['awk \'{print $1}\' file.txt', 'ls -l | awk \'{print $9}\''],
+            'categories': ['text', 'processing']
+        },
+        'sed': {
+            'description': 'Stream editor for filtering and transforming text',
+            'syntax': 'sed [options] \'command\' [file...]',
+            'examples': ['sed \'s/old/new/g\' file.txt', 'echo "text" | sed \'s/e/E/g\''],
+            'categories': ['text', 'processing']
+        },
+        'xattr': {
+            'description': 'Display and manipulate extended attributes',
+            'syntax': 'xattr [options] [file...]',
+            'examples': ['xattr -l file', 'xattr -d com.apple.quarantine file'],
+            'categories': ['file', 'mac']
+        },
+        'hdiutil': {
+            'description': 'Manipulate disk images on macOS',
+            'syntax': 'hdiutil [command] [options]',
+            'examples': ['hdiutil attach image.dmg', 'hdiutil create -size 100m -fs HFS+ disk.dmg'],
+            'categories': ['disk', 'mac']
+        },
+        'zip': {
+            'description': 'Package and compress files',
+            'syntax': 'zip [options] zipfile files...',
+            'examples': ['zip archive.zip file1 file2', 'zip -r archive.zip directory'],
+            'categories': ['file', 'compression']
+        },
+        'unzip': {
+            'description': 'Extract compressed files from a ZIP archive',
+            'syntax': 'unzip [options] file[.zip] [files...] [-d dir]',
+            'examples': ['unzip archive.zip', 'unzip -l archive.zip'],
+            'categories': ['file', 'compression']
+        },
+        'tar': {
+            'description': 'Manipulate tape archives',
+            'syntax': 'tar [options] [file...]',
+            'examples': ['tar -cvf archive.tar files/', 'tar -xvf archive.tar'],
+            'categories': ['file', 'compression']
         }
     }

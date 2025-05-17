@@ -26,7 +26,6 @@ from core.shell_handler import ShellHandler
 from core.utils import load_config, get_project_root
 
 # Import modules
-from command_processor import CommandProcessor
 from device_manager import USBDetector
 from screen_handler.screen_manager import ScreenManager
 
@@ -196,8 +195,17 @@ def main():
                                 enable_dangerous_command_check=shell_dangerous_check, 
                                 quiet_mode=quiet_mode)
     
-    # Initialize the command processor
-    command_processor = CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode)
+    # Initialize the command processor with our new implementation
+    # Use the command_processor.py in the main directory, not the command_processor module
+    # This is to ensure we're using the updated version with direct execution
+    from importlib.machinery import SourceFileLoader
+    cp_module = SourceFileLoader("command_processor_main", 
+                            os.path.join(os.path.dirname(os.path.abspath(__file__)), "command_processor.py")).load_module()
+    command_processor = cp_module.CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode)
+    
+    # Debug log showing which command processor we're using
+    if debug_mode:
+        log(f"Using CommandProcessor from: {cp_module.__file__}")
     
     # Initialize screen manager
     screen_manager = ScreenManager(quiet_mode=quiet_mode)

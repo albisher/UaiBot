@@ -1,181 +1,115 @@
-# UaiBot - Terminal Assistant
+# UaiBot - AI-Powered Learning Assistant
 
-UaiBot is an AI-powered terminal assistant that helps users interact with their system, execute commands, and manage USB devices.
+UaiBot is an AI-powered assistant designed to help users learn about command-line interactions, understand system operations, and provide general AI assistance. It features direct command execution, consistent output formatting, and a friendly interface.
 
-## Project Structure
+## Key Features
 
-The project has been restructured into a more modular design with the following components:
+- Direct command execution for user queries
+- Cross-platform support (macOS, Linux, Windows)
+- System information retrieval
+- File and folder operations
+- Notes app integration
+- YouTube trending video information
+- Consistently formatted, visually appealing output
+- Flexible terminal command execution utility
 
-```
-UaiBot/
-├── command_processor/              # Command processing functionality
-│   ├── __init__.py
-│   └── command_processor.py        # Handles command processing and routing
-├── device_manager/                 # USB device management
-│   ├── __init__.py
-│   └── usb_detector.py             # Detects and lists USB devices
-├── screen_handler/                 # Screen session management
-│   ├── __init__.py
-│   ├── screen_manager.py           # Manages screen sessions
-│   └── session_manager.py          # Additional screen session functionality
-├── tests/                          # Test suite
-│   ├── __init__.py
-│   ├── run_tests.py                # Master test runner
-│   ├── test_architecture.py        # Tests for modular architecture
-│   ├── test_multilingual.py        # Tests for multilingual support
-│   ├── test_screen_sessions.py     # Tests for screen session functionality
-│   ├── test_enhanced_shell.py      # Tests for shell functionality
-│   ├── test_modular.py             # Tests for modular components
-│   └── test_ollama.py              # Tests for Ollama integration
-├── utils/                          # Common utility functions
-│   └── __init__.py
-├── core/                           # Core functionality 
-│   ├── ai_handler.py               # AI integration
-│   ├── platform_commands.py        # Platform-specific commands
-│   ├── shell_handler.py            # Shell command execution
-│   └── utils.py                    # Core utility functions
-└── main.py                         # Main entry point
-```
+## Installation
 
-## Module Descriptions
-
-### command_processor
-
-Processes user commands and determines how they should be handled:
-- Determine if commands should run locally or on a screen session
-- Handle USB-specific queries
-- Route commands to the appropriate handler
-
-### device_manager
-
-Handles USB device detection and management:
-- Detect and list connected USB devices
-- Format device information in a user-friendly way
-- Generate commands for remote device detection
-
-### screen_handler
-
-Manages screen sessions and communication:
-- List active screen sessions
-- Send commands to screen sessions
-- Manage screen session connectivity
-
-## How to Run
-
-UaiBot can now run in both GUI and command-line interfaces, offering a consistent experience:
-
-### Starting UaiBot
-
-The simplest way to start UaiBot is to use the launcher script:
-
+1. Clone the repository:
 ```bash
-python start_uaibot.py
+git clone https://github.com/yourusername/UaiBot.git
+cd UaiBot
 ```
 
-This will automatically choose the best interface (GUI or command-line) based on your environment.
-
-### Command-Line Options
-
-UaiBot supports the following command-line options:
-
-```
-  -h, --help            Show help message and exit
-  -c COMMAND, --command COMMAND
-                        Execute a single command and exit
-  -q, --quiet           Run in quiet mode with minimal output
-  -g, --gui             Launch the graphical user interface
-  --no-gui              Force command-line mode even if GUI is available
-  -i, --interactive     Force interactive mode, regardless of config
-  --non-interactive     Disable interactive mode
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### GUI Mode
-
-In GUI mode, UaiBot provides a dual-window interface:
-- An emoji-based avatar window that reacts to your commands
-- A text interaction window for entering commands and viewing responses
-
-The GUI automatically handles all the same commands as the command-line interface.
-
-### Configuration
-
-UaiBot's behavior can be configured in `config/settings.json`:
-
-```json
-{
-  "default_ai_provider": "ollama",
-  "use_gui": true,
-  "interactive_mode": true,
-  "shell_safe_mode": false,
-  "shell_dangerous_check": true
-}
+3. Install required packages:
+```bash
+pip install -r requirements.txt
 ```
 
-### utils
-
-Common utility functions used across the application:
-- Platform detection and information
-- Configuration loading
-- Path management
-
-### core
-
-Core functionality for the application:
-- AI integration for command suggestions
-- Shell command execution
-- Safety checks and command validation
+4. Set up API keys (optional):
+   - Create a `.env` file in the project root
+   - Add your API keys:
+   ```
+   YOUTUBE_API_KEY=your_youtube_api_key
+   # Add other API keys as needed
+   ```
 
 ## Usage
 
-Run UaiBot with the following command:
+Start UaiBot in interactive mode:
 
 ```bash
-python main.py
+python src/main.py
 ```
 
-Options:
-- `-c, --command`: Execute a single command and exit
-- `-q, --quiet`: Run in quiet mode with minimal output
-
-## Features
-
-- **AI-Powered Command Suggestions**: Get AI suggestions for commands based on natural language input
-- **USB Device Management**: Detect and interact with connected USB devices
-- **Screen Session Integration**: Send commands to screen sessions for remote device management
-- **Multilingual Support**: Process commands in multiple languages, including English and Arabic
-
-## Testing
-
-UaiBot includes a comprehensive test suite to ensure functionality across all modules:
+Or process a single command:
 
 ```bash
-# Run all tests
-python tests/run_tests.py
-
-# Run only architecture tests
-python tests/run_tests.py --architecture
-
-# Run only multilingual tests
-python tests/run_tests.py --multilingual
-
-# Run only screen session tests
-python tests/run_tests.py --screen
-
-# Run a quick test suite (skips longer tests)
-python tests/run_tests.py --quick
+python src/main.py "what's the system uptime?"
 ```
-
-The test suite covers:
-- **Architecture Tests**: Validate the modular component structure
-- **Multilingual Tests**: Test commands in different languages
-- **Screen Session Tests**: Verify screen session management functionality
-- **Enhanced Shell Tests**: Test shell command execution features
-- **Modular Tests**: Validate individual module functionality
-- **Ollama Integration**: Test AI integration with Ollama
-- **Cross-Platform Support**: Works on macOS, Linux, and Windows
 
 ## Example Commands
 
-- `show usb devices` - List all connected USB devices with details
-- `send "ls -la" to screen` - Send a command to an active screen session
-- `check temperature on the connected device` - Query system temperature on a connected device via screen
+- "Show my Notes topics" - Lists your Apple Notes topics
+- "What's trending on YouTube?" - Shows currently trending videos
+- "How long has my system been running?" - Displays system uptime
+- "Show disk space" - Displays available disk space
+- "Find documents folder" - Locates folders matching "documents"
+
+## Terminal Command Execution
+
+UaiBot provides a versatile utility for executing terminal commands through Python. The `run_command` utility in `core/utils.py` offers several advantages over basic subprocess calls:
+
+### Features
+
+- Unified interface for both synchronous and asynchronous command execution
+- Comprehensive error handling and timeout support
+- Environment variable customization
+- Protection against shell injection attacks
+- Standardized return format with success flag and captured output
+
+### Basic Usage
+
+```python
+from core.utils import run_command
+
+# Simple command execution
+result = run_command("ls -la")
+if result['success']:
+    print(result['stdout'])
+else:
+    print(f"Error: {result['stderr']}")
+
+# Secure execution with argument list (prevents shell injection)
+result = run_command(["find", "/path", "-name", "*.py"])
+
+# With environment variables
+custom_env = os.environ.copy()
+custom_env["MY_VAR"] = "custom_value"
+result = run_command("echo $MY_VAR", shell=True, env=custom_env)
+
+# Asynchronous execution
+process = run_command("long_running_command", async_mode=True, capture_output=True)
+# Do other work...
+stdout, stderr = process.communicate()
+```
+
+### Demo
+
+To see the command utility in action, run the interactive demo:
+
+```bash
+python demo_run_command.py
+```
+
+The demo provides examples of different ways to use the command execution utility.
+
+## Security
+
+UaiBot executes commands directly on your system. It includes safety measures to prevent harmful operations, but please use responsibly.

@@ -1,5 +1,19 @@
 # filepath: /Users/amac/Documents/code/UaiBot/requirements.txt
 
+# Core requirements
+PyQt5>=5.15.0
+requests>=2.25.1
+python-dotenv>=0.19.0
+
+# For shell operations
+psutil>=5.8.0
+
+# For NLP (basic intent recognition)
+nltk>=3.6.2
+
+# For API access
+google-api-python-client>=2.0.0
+
 # AI and API dependencies
 openai                # OpenAI API for AI integration
 urllib3>=2.0.0        # HTTP client library (updated version to address LibreSSL warnings)

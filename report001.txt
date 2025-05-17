@@ -1,0 +1,82 @@
+# UaiBot Alignment Report: idea.txt & enhancements*.txt vs. Implementation
+
+## 1. Command Help Coverage
+**Planned:** Comprehensive help for all commands, including new categories and examples (see enhancements2.txt).
+**Current:** `core/command_help.py` covers many commands, but not all categories or new commands from enhancements2.txt.
+**Action:**  
+- Review `core/command_help.py` and add missing commands/categories/examples as per enhancements2.txt.
+- Ensure all commands in the enhancements are present with proper syntax and examples.
+
+## 2. Platform-Specific Command Mapping
+**Planned:** Platform-specific command templates for Mac, Ubuntu, Jetson, etc. (see enhancements2.txt and idea.txt).
+**Current:** `core/platform_commands.py` covers Mac, Ubuntu, Jetson, but may lack some new mappings (e.g., new file/network/system commands).
+**Action:**  
+- Compare enhancements2.txt mappings with `PLATFORM_COMMANDS` in `core/platform_commands.py`.
+- Add any missing command templates or categories.
+
+## 3. Safe Command Whitelist
+**Planned:** Expanded and categorized safe command whitelist (see enhancements2.txt).
+**Current:** `core/shell_handler.py` and related files have a large whitelist, but may not match the latest enhancements.
+**Action:**  
+- Ensure all commands in enhancements2.txt are present in `SAFE_COMMAND_WHITELIST` in `core/shell_handler.py`.
+- Remove any obsolete commands not in the approved list.
+
+## 4. Folder/Notes Finder Logic
+**Planned:** Enhanced `find_folders` to support cloud/local notes, platform-specific logic, and improved output (see enhancements.txt).
+**Current:** Multiple versions of `find_folders` exist; main logic is in `core/shell_handler.py` and helpers.
+**Action:**  
+- Ensure the main `find_folders` method matches the latest fixed/enhanced version (see `core/fixed_find_folders.py` and enhancements.txt).
+- Remove old/duplicate logic and unify to the approved version.
+
+## 5. Command Routing & Context Detection
+**Planned:** Smarter routing of commands (local vs. screen/USB), improved detection of intent/context (see enhancements3.txt).
+**Current:** `command_processor/command_processor.py` and `core/command_detector.py` handle routing, but may not cover all new patterns.
+**Action:**  
+- Review enhancements3.txt for new routing/detection patterns.
+- Update `command_processor/command_processor.py` and `core/command_detector.py` to cover all described scenarios and edge cases.
+
+## 6. Test Coverage
+**Planned:** Tests for all new features and edge cases (see enhancements4.txt).
+**Current:** Many test scripts exist, but may not cover all enhancements.
+**Action:**  
+- Review enhancements4.txt and add/expand tests in `/tests/` to cover all new/changed behaviors.
+
+## 7. User Interface/UX
+**Planned:** Dual window GUI, clear feedback, safe mode toggling, etc. (see idea.txt and enhancements5.txt).
+**Current:** GUI code exists in `/backup/gui/main_window.py.new`, but may lack some planned features.
+**Action:**  
+- Compare enhancements5.txt and idea.txt with GUI code.
+- Add missing features (e.g., safe mode toggle, clearer feedback, etc.).
+
+## 8. Documentation & Examples
+**Planned:** Up-to-date documentation and usage examples for all features (see idea.txt).
+**Current:** Some docstrings and comments, but may not be comprehensive.
+**Action:**  
+- Update docstrings and add usage examples where missing, especially for new/changed features.
+
+---
+
+## Where to Change Code
+
+- **core/command_help.py**: Add/align command help entries.
+- **core/platform_commands.py**: Update/add platform command mappings.
+- **core/shell_handler.py**: Sync SAFE_COMMAND_WHITELIST and find_folders logic.
+- **command_processor/command_processor.py** & **core/command_detector.py**: Update routing/context logic.
+- **tests/**: Add/expand tests for new features.
+- **backup/gui/main_window.py.new**: Add missing GUI/UX features.
+- **All modules**: Update docstrings/examples as needed.
+
+---
+
+## Why These Changes
+
+- To ensure the codebase matches the approved vision and enhancements.
+- To provide a consistent, robust, and user-friendly experience.
+- To maintain testability, safety, and platform compatibility.
+
+---
+
+**Next Steps:**  
+- Review each section above and update the corresponding files.
+- After changes, re-run all tests and verify alignment with the enhancements and idea documents.
+
