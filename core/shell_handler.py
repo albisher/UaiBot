@@ -9,6 +9,7 @@ import platform
 import json
 from core.utils import get_platform_name, run_command
 from device_manager.usb_detector import USBDetector
+from core.browser_handler import BrowserHandler
 
 try:
     from core.platform_commands import get_platform_command
@@ -74,6 +75,9 @@ class ShellHandler:
         
         # Create a USB device detector
         self.usb_detector = USBDetector(quiet_mode=quiet_mode)
+        
+        # Create a browser handler
+        self.browser_handler = BrowserHandler(shell_handler=self)
         
         if not self.quiet_mode:
             print(f"ShellHandler initialized. Safe mode: {self.safe_mode}, Dangerous command check: {self.enable_dangerous_command_check}")
@@ -376,6 +380,19 @@ class ShellHandler:
             str: Formatted string with device information
         """
         return self.usb_detector.get_usb_devices()
+        
+    def get_browser_content(self, browser_name=None):
+        """
+        Get content from browser tabs (titles and URLs).
+        
+        Args:
+            browser_name (str, optional): Specific browser to target
+                                         ("chrome", "firefox", "safari", "edge")
+        
+        Returns:
+            str: Formatted browser content or error message
+        """
+        return self.browser_handler.get_browser_content(browser_name)
     
     def find_folders(self, folder_name, location="~", max_results=20, include_cloud=True):
         """

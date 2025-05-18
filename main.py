@@ -281,8 +281,9 @@ def main():
             # Create dual window interface
             interface = UaiBotDualInterface()
             
-            # Set handlers
-            interface.set_handlers(ai_handler=ai_handler, shell_handler=shell_handler)
+            # Set handlers including command_processor
+            interface.set_handlers(ai_handler=ai_handler, shell_handler=shell_handler, 
+                               command_processor=command_processor, quiet_mode=quiet_mode)
             
             # Note: No need to show welcome message here as it's already shown in the GUI class constructor
             

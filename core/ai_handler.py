@@ -424,6 +424,13 @@ class AIHandler:
         else:
             raise ValueError(f"Unsupported model_type: {self.model_type}. Choose 'google' or 'ollama'.")
 
+    def get_ai_response(self, prompt):
+        """
+        Public method for getting AI responses. Delegates to query_ai.
+        This method ensures API compatibility with existing code.
+        """
+        return self.query_ai(prompt)
+        
     def query_ai(self, prompt):
         """
         Queries the configured AI model with the provided prompt.

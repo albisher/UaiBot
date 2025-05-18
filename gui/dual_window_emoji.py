@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QGraphicsScene,
                             QAction, QMenu, QMessageBox)
 from PyQt5.QtGui import (QPainter, QBrush, QColor, QPen, QRadialGradient, QPixmap,
                         QFont, QPainterPath, QPolygonF, QIcon)
-from PyQt5.QtCore import Qt, QRectF, QPointF, QTimer, pyqtSignal, QSize, QByteArray, QBuffer
+from PyQt5.QtCore import Qt, QRectF, QPointF, QTimer, pyqtSignal, QSize, QByteArray, QBuffer, QUrl
 from PyQt5.QtMultimedia import QAudioRecorder, QAudioEncoderSettings
 
-# Import the RobotEmojiItem from new_avatar.py
-from gui.new_avatar import RobotEmojiItem
+# Import the new EmojiAvatar
+from gui.emoji_avatar import EmojiAvatar
 
 class EmojiWindow(QMainWindow):
     """Window that displays the robot emoji face"""
@@ -35,12 +35,12 @@ class EmojiWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)
         layout.setContentsMargins(10, 10, 10, 10)  # Add a small margin
         
-        # Create graphics scene for robot emoji
+        # Create graphics scene for emoji avatar
         self.scene = QGraphicsScene()
         self.scene.setBackgroundBrush(QColor(45, 45, 60))  # Slightly dark background
         
-        # Create and add robot emoji
-        self.robot_emoji = RobotEmojiItem()
+        # Create and add emoji avatar
+        self.robot_emoji = EmojiAvatar()
         self.scene.addItem(self.robot_emoji)
         
         # Create view for the emoji
@@ -86,8 +86,18 @@ class EmojiWindow(QMainWindow):
         ))
         
     def set_emotion(self, emotion):
-        """Set the robot emoji emotion"""
-        self.robot_emoji.set_emotion(emotion)
+        """Set the emoji avatar emotion"""
+        # Map old emotions to new emoji avatar emotions if necessary
+        emotion_mapping = {
+            "surprise": "surprised",
+            "curious": "thinking"
+        }
+        
+        # Apply mapping if needed
+        mapped_emotion = emotion_mapping.get(emotion, emotion)
+        
+        # Set the emotion
+        self.robot_emoji.set_emotion(mapped_emotion)
         self.emotion_label.setText(emotion.capitalize())
         self.emotion_changed.emit(emotion)  # Emit signal for other windows to sync
 
@@ -274,7 +284,7 @@ class TextWindow(QMainWindow):
 
 class UaiBotDualInterface:
     """Controller class that manages both windows and their interactions"""
-    def __init__(self, ai_handler=None, shell_handler=None):
+    def __init__(self, ai_handler=None, shell_handler=None, command_processor=None, quiet_mode=False):
         self.eyes_window = EmojiWindow()  # Keep old name for compatibility
         self.emoji_window = self.eyes_window  # Add new name 
         self.text_window = TextWindow()
@@ -282,6 +292,8 @@ class UaiBotDualInterface:
         # Store handlers if provided
         self.ai_handler = ai_handler
         self.shell_handler = shell_handler
+        self.command_processor = command_processor
+        self.quiet_mode = quiet_mode
         
         # Connect signals
         self.text_window.command_submitted.connect(self.handle_command)
@@ -300,12 +312,16 @@ class UaiBotDualInterface:
         self.text_window.move(self.eyes_window.x(), 
                               self.eyes_window.y() + self.eyes_window.height() + 30)
         
-    def set_handlers(self, ai_handler=None, shell_handler=None):
-        """Set or update the AI and shell handlers"""
+    def set_handlers(self, ai_handler=None, shell_handler=None, command_processor=None, quiet_mode=None):
+        """Set or update the handlers"""
         if ai_handler:
             self.ai_handler = ai_handler
         if shell_handler:
             self.shell_handler = shell_handler
+        if command_processor:
+            self.command_processor = command_processor
+        if quiet_mode is not None:
+            self.quiet_mode = quiet_mode
             
     def handle_command(self, command):
         """Process user commands"""
@@ -321,24 +337,27 @@ class UaiBotDualInterface:
         self.system_platform = platform.system().lower()
         self.platform_name = get_platform_name()
         
-        # Special commands for emotions
+        # Special commands for emotions (handle locally in GUI)
         emotion_commands = {
             "happy": "I'm happy to help!",
             "sad": "I'm sorry to hear that.",
             "surprise": "Wow, that's amazing!",
+            "surprised": "Wow, that's amazing!",
             "confused": "I'm not sure I understand...",
-            "neutral": "I'm here to assist you!"
+            "neutral": "I'm here to assist you!",
+            "thinking": "Let me think about that...",
+            "worried": "I'm a bit concerned about that."
         }
         
         # Check for direct emotion commands or special UaiBot commands
         if command.lower().startswith("emotion "):
             emotion = command.lower().split(" ", 1)[1].strip()
-            if emotion in ["happy", "sad", "surprise", "confused", "neutral", "curious", "thinking"]:
+            if emotion in ["happy", "sad", "surprise", "surprised", "confused", "neutral", "curious", "thinking", "worried"]:
                 self.eyes_window.set_emotion(emotion)
                 self.text_window.add_output_text(f"UaiBot: Emotion set to {emotion}!")
                 return
             else:
-                self.text_window.add_output_text(f"UaiBot: Unknown emotion '{emotion}'. Available emotions: happy, sad, surprise, confused, neutral, curious, thinking")
+                self.text_window.add_output_text(f"UaiBot: Unknown emotion '{emotion}'. Available emotions: happy, sad, surprised, confused, neutral, thinking, worried")
                 return
         
         # Check for VS Code reading requests
@@ -685,8 +704,41 @@ class UaiBotDualInterface:
                 self.eyes_window.set_emotion("curious")
             return
                 
-        # Use AI handler for normal commands if available
-        if self.ai_handler:
+        # Use command processor for handling commands
+        if self.command_processor:
+            try:
+                # Process the command through main's command processor
+                result = self.command_processor.process_command(command)
+                
+                # Display the result in the GUI
+                self.text_window.add_output_text(f"UaiBot: {result}")
+                
+                # Also print to terminal if not in quiet mode
+                if not self.quiet_mode:
+                    print(f"[GUI Command] {command}")
+                    print(f"Result: {result}")
+                
+                # Determine emotion based on response content
+                emotion = "neutral"
+                if "error" in result.lower() or "failed" in result.lower():
+                    emotion = "confused"
+                elif "sorry" in result.lower():
+                    emotion = "sad"
+                elif "great" in result.lower() or "success" in result.lower():
+                    emotion = "happy"
+                
+                # Set emotion based on response
+                self.eyes_window.set_emotion(emotion)
+                
+            except Exception as e:
+                error_msg = f"Error processing command: {str(e)}"
+                self.text_window.add_output_text(error_msg)
+                if not self.quiet_mode:
+                    print(error_msg)
+                self.eyes_window.set_emotion("sad")
+        
+        # Fall back to AI handler if command processor not available
+        elif self.ai_handler:
             try:
                 # Query AI for response
                 ai_response = self.ai_handler.query_ai(command)
@@ -698,20 +750,8 @@ class UaiBotDualInterface:
                         emotion = emotion_key
                         break
                 
-                # Check if response appears to be a command
-                if ai_response.strip().startswith("!") or ai_response.strip().startswith("`"):
-                    proposed_command = ai_response.strip()
-                    # Remove command markers
-                    if proposed_command.startswith("!"):
-                        proposed_command = proposed_command[1:].strip()
-                    elif proposed_command.startswith("`") and proposed_command.endswith("`"):
-                        proposed_command = proposed_command[1:-1].strip()
-                    
-                    self.text_window.add_output_text(f"UaiBot: I suggest this command:\n{proposed_command}")
-                    self.text_window.add_output_text("To execute, type '!' followed by the command.")
-                else:
-                    # Regular response
-                    self.text_window.add_output_text(f"UaiBot: {ai_response}")
+                # Display the AI response
+                self.text_window.add_output_text(f"UaiBot: {ai_response}")
                 
                 # Set emotion based on response
                 self.eyes_window.set_emotion(emotion)
@@ -720,16 +760,9 @@ class UaiBotDualInterface:
                 self.text_window.add_output_text(f"Error: {str(e)}")
                 self.eyes_window.set_emotion("sad")
         else:
-            # No AI handler, use simple response
-            for emotion, response in emotion_commands.items():
-                if emotion in command.lower():
-                    self.eyes_window.set_emotion(emotion)
-                    self.text_window.add_output_text(f"UaiBot: {response}")
-                    return
-                    
-            # Default response if no specific emotion mentioned
-            self.eyes_window.set_emotion("neutral")
-            self.text_window.add_output_text("UaiBot: I'm here to help with commands! (AI handler not available)")
+            # No command processor or AI handler available
+            self.text_window.add_output_text("UaiBot: Command processors not initialized! Cannot process your request.")
+            self.eyes_window.set_emotion("confused")
             
     def shutdown(self):
         """Clean shutdown of the interface"""
