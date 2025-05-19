@@ -7,5 +7,8 @@ programmatically across different platforms.
 """
 from .mouse_keyboard_handler import MouseKeyboardHandler
 
+# We don't need to import from input_control.py here
+# The function is in an external file
+
 # Export main class
 __all__ = ['MouseKeyboardHandler']

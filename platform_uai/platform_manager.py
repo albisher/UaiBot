@@ -16,6 +16,7 @@ class PlatformManager:
         self.config = load_config()
         self.audio_handler = None
         self.usb_handler = None
+        self.input_handler = None
         
         # Check if the platform is supported
         if not self.platform_name:
@@ -32,7 +33,7 @@ class PlatformManager:
             
         # Import platform utils
         try:
-            from platform_uai.platform_utils import get_audio_handler, get_usb_handler
+            from platform_uai.platform_utils import get_audio_handler, get_usb_handler, get_input_handler
             
             # Initialize audio handler
             self.audio_handler = get_audio_handler()
@@ -44,9 +45,14 @@ class PlatformManager:
             if not self.usb_handler:
                 print(f"Failed to initialize USB handler for {self.platform_name}")
                 
-            # Check if both handlers were initialized successfully
-            if self.audio_handler and self.usb_handler:
-                print(f"Successfully initialized platform components for {self.platform_name}")
+            # Initialize Input handler
+            self.input_handler = get_input_handler()
+            if not self.input_handler:
+                print(f"Failed to initialize input handler for {self.platform_name}")
+                
+            # Check if handlers were initialized successfully
+            if self.audio_handler and self.usb_handler and self.input_handler:
+                print(f"Successfully initialized all platform components for {self.platform_name}")
                 return True
             else:
                 print(f"Platform initialization incomplete for {self.platform_name}")

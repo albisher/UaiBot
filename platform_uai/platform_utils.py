@@ -96,3 +96,31 @@ def get_usb_handler():
         
     # Create and return an instance of the handler
     return handler_class()
+
+def get_input_handler():
+    """Get the platform-specific input handler"""
+    input_module = load_platform_handler('input_control')
+    if not input_module:
+        print("WARNING: No platform-specific input handler found.")
+        # Fall back to common implementation
+        try:
+            from platform_uai.common.input_control.mouse_keyboard_handler import MouseKeyboardHandler
+            print("Using common cross-platform input handler as fallback.")
+            return MouseKeyboardHandler()
+        except ImportError as e:
+            print(f"Failed to load common input handler: {e}")
+            return None
+    
+    # Find the handler class in the module
+    handler_class = None
+    for name in dir(input_module):
+        if name.endswith('InputHandler'):
+            handler_class = getattr(input_module, name)
+            break
+    
+    if not handler_class:
+        print("ERROR: Could not find InputHandler class in module")
+        return None
+        
+    # Create and return an instance of the handler
+    return handler_class()

@@ -18,31 +18,10 @@ sys.path.append(project_root)
 
 # Attempt to import from platform_uai first
 try:
-    # Store original DISPLAY value to detect headless environments
-    original_display = os.environ.get('DISPLAY')
-    original_wayland = os.environ.get('WAYLAND_DISPLAY')
-    
-    # If we're in a headless environment, import might fail
-    # Let's set up a dummy display temporarily to allow import
-    is_headless = not original_display and not original_wayland
-    
-    if is_headless:
-        print("Headless environment detected, using simulation mode")
-        # Temporarily set a dummy display to allow PyAutoGUI to import
-        os.environ['DISPLAY'] = ':0.0'
-    
-    # Now try the import
     from platform_uai.platform_utils import get_input_handler
     
     # Get the appropriate platform-specific handler
     _platform_handler = get_input_handler()
-    
-    # Restore the original display environment
-    if is_headless:
-        if original_display is None:
-            del os.environ['DISPLAY']
-        else:
-            os.environ['DISPLAY'] = original_display
     
     if _platform_handler:
         warnings.warn(
