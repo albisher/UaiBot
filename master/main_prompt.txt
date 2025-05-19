@@ -66,3 +66,4 @@ We got this project running from many folders and files.
 - cache folder should be used for caching purposes.
 - and so on.
 
+We always run test files from their folder on another test specific folder to make sure every type of test is valid under that path.
