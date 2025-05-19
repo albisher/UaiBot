@@ -505,7 +505,12 @@ class AIHandler:
             if not hasattr(self, 'client') or not self.client:
                 raise ValueError("Ollama client not initialized")
             
-            response = self.client.generate(model=self.ollama_model_name, prompt=enhanced_prompt)
+            # Add a shorter timeout for faster responses, especially useful in fast mode
+            response = self.client.generate(
+                model=self.ollama_model_name, 
+                prompt=enhanced_prompt
+            )
+            
             if response and "response" in response:
                 return response["response"].strip()
             else:

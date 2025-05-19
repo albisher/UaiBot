@@ -182,11 +182,14 @@ def run_command(command, capture_output=True, text=True, shell=False, timeout=No
             return output
             
     except subprocess.TimeoutExpired as e:
+        error_msg = f"Command timed out after {timeout} seconds"
+        # Print a message in case we're in fast mode and about to terminate
+        print(f"Error: {error_msg}")
         return {
             'returncode': -1,
             'success': False,
             'stdout': None,
-            'stderr': f"Command timed out after {timeout} seconds",
+            'stderr': error_msg,
             'exception': e
         }
     except Exception as e:

@@ -265,7 +265,7 @@ def main():
                                 fast_mode=fast_mode)
     
     # Initialize the command processor with our new implementation
-    command_processor = CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode)
+    command_processor = CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode, fast_mode=fast_mode)
     
     # Debug log showing which command processor we're using
     if debug_mode:
@@ -303,6 +303,9 @@ def main():
         result = command_processor.process_command(args.command)
         log(result)
         log("UaiBot single command execution finished.", debug_only=True)
+        # In fast mode with a direct command, exit immediately without waiting for user input
+        if fast_mode:
+            sys.exit(0)
     elif use_gui and GUI_AVAILABLE:  # Launch GUI mode
         try:
             log("Launching UaiBot GUI interface...")
@@ -358,16 +361,30 @@ def main():
                 print("\nWelcome, I (UaiBot assistant) am ready to assist you.")
                 print("Type your request please:")
             
+            # If in fast mode with no command specified, show a hint about this mode
+            if fast_mode and not args.command:
+                log("Fast mode enabled. UaiBot will exit after executing one command.", debug_only=True)
+            
             while True:
                 # Get user input without showing "Request:" prompt
-                user_input = input()
-                if user_input.lower() in ['x', 'exit', 'quit']:
+                try:
+                    user_input = input()
+                    if user_input.lower() in ['x', 'exit', 'quit']:
+                        break
+                    result = command_processor.process_command(user_input)
+                    log(result)
+                    
+                    # Add a blank line and the prompt again after each response for better readability
+                    print("\nType your request please:")
+                    
+                    # In fast mode, exit after executing any command
+                    if fast_mode:
+                        log("\nFast mode enabled. Exiting after command execution.", debug_only=True)
+                        # Add sys.exit for immediate termination in fast mode
+                        sys.exit(0)
+                except KeyboardInterrupt:
+                    log("\nExiting UaiBot.")
                     break
-                result = command_processor.process_command(user_input)
-                log(result)
-                
-                # Add a blank line and the prompt again after each response for better readability
-                print("\nType your request please:")
         except KeyboardInterrupt:
             log("\nExiting UaiBot.")
         finally:

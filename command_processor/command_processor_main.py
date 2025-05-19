@@ -21,11 +21,12 @@ class CommandProcessor:
     Supports natural language command processing with platform-aware commands.
     """
     
-    def __init__(self, ai_handler, shell_handler, quiet_mode=False):
+    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False):
         """Initialize CommandProcessor with AI and shell handlers."""
         self.ai_handler = ai_handler
         self.shell_handler = shell_handler
         self.quiet_mode = quiet_mode
+        self.fast_mode = fast_mode  # Add fast_mode flag to control termination behavior
         self.system_platform = platform.system().lower()
         
         # Initialize platform commands helper
@@ -1179,10 +1180,15 @@ class CommandProcessor:
             if execution_result:
                 if "Error" in execution_result or "not found" in execution_result.lower():
                     result += f"{self.color_settings['error']}❌ There was a problem:{self.color_settings['reset']}\n{execution_result}\n"
-                    # Provide a helpful explanation when command fails
-                    result += f"\n{self.color_settings['important']}💡 Let me try a different approach:{self.color_settings['reset']}\n"
-                    fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
-                    result += fallback_response
+                    # In fast mode, skip fallback response to avoid delaying exit
+                    if not self.fast_mode:
+                        # Provide a helpful explanation when command fails
+                        result += f"\n{self.color_settings['important']}💡 Let me try a different approach:{self.color_settings['reset']}\n"
+                        fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
+                        result += fallback_response
+                    else:
+                        # In fast mode, just add a simple message
+                        result += f"\n{self.color_settings['important']}💡 Fast mode: Skipping fallback explanation.{self.color_settings['reset']}\n"
                 else:
                     result += f"{self.color_settings['success']}✅ Result:{self.color_settings['reset']}\n{execution_result}\n"
             else:

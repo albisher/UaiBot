@@ -185,8 +185,12 @@ class ShellHandler:
         # Simple pass-through for now, can be extended in the future
         return command_string
     
-    def execute_command(self, command, force_shell=False):
+    def execute_command(self, command, force_shell=False, timeout=None):
         """Execute a shell command safely and return the output."""
+        # Use a shorter timeout in fast mode to avoid hanging
+        if self.fast_mode and timeout is None:
+            timeout = 5  # 5 seconds timeout in fast mode to ensure quicker response
+            
         if self.safe_mode and not force_shell:
             # In safe mode, apply more stringent checks
             if not self.is_command_safe(command):
@@ -215,6 +219,7 @@ class ShellHandler:
                     args,
                     capture_output=True,
                     text=True,
+                    timeout=timeout,
                     check=False  # Don't raise exception on non-zero return code
                 )
             else:
@@ -230,6 +235,7 @@ class ShellHandler:
                     shell=True,
                     capture_output=True,
                     text=True,
+                    timeout=timeout,
                     check=False  # Don't raise exception on non-zero return code
                 )
                 
