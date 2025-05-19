@@ -58,19 +58,23 @@ def format_output_with_thinking(thinking_content, final_result, thinking_emoji="
         str: Formatted output with HTML/CSS for folding and colors
     """
     # Format the thinking section as a collapsible element
+    # Convert newlines to <br> before putting in the f-string to avoid backslash issues
+    thinking_content_html = thinking_content.replace('\n', '<br>')
     thinking_html = f"""
     <details>
         <summary style="cursor:pointer;color:#666;font-style:italic">{thinking_emoji} Thinking process (click to expand)</summary>
         <div style="margin-left:20px;padding:10px;border-left:2px solid #ddd;color:#666">
-            {thinking_content.replace('\n', '<br>')}
+            {thinking_content_html}
         </div>
     </details>
     """
     
     # Format the final result with the specified color
+    # Convert newlines to <br> before putting in the f-string to avoid backslash issues
+    final_result_html = final_result.replace('\n', '<br>')
     result_html = f"""
     <div style="color:{result_color};font-weight:bold;margin-top:10px">
-        {final_result.replace('\n', '<br>')}
+        {final_result_html}
     </div>
     """
     
@@ -212,6 +216,7 @@ def get_platform_name():
             "12.": "Monterey",
             "13.": "Ventura",
             "14.": "Sonoma",
+            "15.": "Sequoia",
         }
         
         for ver, name in macos_names.items():

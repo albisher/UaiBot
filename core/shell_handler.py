@@ -131,6 +131,24 @@ class ShellHandler:
         # Platform-specific commands are already included in the whitelist
         pass
     
+    def is_command_safe(self, command):
+        """
+        Public method to check if a command is safe.
+        Forwards to the internal _is_command_safe method after splitting the command.
+        
+        Args:
+            command (str): The command string to check
+            
+        Returns:
+            bool: True if the command is considered safe, False otherwise
+        """
+        try:
+            command_parts = shlex.split(command)
+            return self._is_command_safe(command_parts)
+        except ValueError:
+            # If shlex cannot split (e.g. unmatched quotes), consider unsafe
+            return False
+        
     def _is_command_safe(self, command_parts):
         """Checks if the command is on the whitelist."""
         if not command_parts:
@@ -556,7 +574,7 @@ class ShellHandler:
             pattern (str): Pattern to match folder names against
             max_depth (int): Maximum recursion depth
             current_depth (int): Current recursion depth
-            result_list (list): List to populate with results
+            result_list (list): List to be populated with results
             max_results (int): Maximum number of results
             is_wildcard (bool): Whether this is a wildcard search
         """

@@ -201,13 +201,12 @@ class ScreenSessionHandler:
             if platform.system().lower() == "darwin":
                 self.log("Command sending still failed, trying AppleScript approach...")
                 import os
-                # Double escape for AppleScript
-                apscript_escaped_cmd = escaped_command.replace('\\', '\\\\')
-                script = f"""
-                tell application "Terminal"
-                    do script "screen -S {target_session} -X stuff '{apscript_escaped_cmd}\\n'" in window 1
-                end tell
-                """
+                # Create the AppleScript command properly without problematic f-string with backslashes
+                applescript_part1 = 'tell application "Terminal"\n'
+                applescript_part2 = f'    do script "screen -S {target_session} -X stuff \'{escaped_command}'
+                applescript_part3 = r'\n\'" in window 1'
+                applescript_part4 = '\nend tell'
+                script = applescript_part1 + applescript_part2 + applescript_part3 + applescript_part4
                 os.system(f'osascript -e \'{script}\'')
                 result_msg = f"Command '{command}' sent to screen session {target_session} via AppleScript"
                 if is_interactive:

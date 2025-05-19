@@ -253,7 +253,9 @@ class PlatformCommands:
         else:  # Windows
             # Use echo for single line, or a temp file approach for multiline
             if '\n' in safe_content:
-                return f'echo {safe_content.replace("\n", "^& echo ")} > "{full_path}"'
+                # Fix: Handle the backslash in f-strings properly
+                formatted_content = safe_content.replace("\n", "^& echo ")
+                return f'echo {formatted_content} > "{full_path}"'
             else:
                 return f'echo {safe_content} > "{full_path}"'
             

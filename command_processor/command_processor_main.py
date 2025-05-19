@@ -1050,7 +1050,7 @@ class CommandProcessor:
             if content_requested:
                 # If content was requested but couldn't be extracted, ask AI for help
                 content_prompt = f"The user wants to create a file named {filename} but I couldn't extract the content they wanted. What would be a good default content based on their request: '{user_input}'?"
-                content = self.ai_handler.generate_response(content_prompt)
+                content = self.ai_handler.query_ai(content_prompt)
                 # Ensure it's not too long
                 if len(content) > 100:
                     content = content[:100] + "..."
@@ -1181,7 +1181,7 @@ class CommandProcessor:
                     result += f"{self.color_settings['error']}❌ There was a problem:{self.color_settings['reset']}\n{execution_result}\n"
                     # Provide a helpful explanation when command fails
                     result += f"\n{self.color_settings['important']}💡 Let me try a different approach:{self.color_settings['reset']}\n"
-                    fallback_response = self.ai_handler.generate_response(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
+                    fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
                     result += fallback_response
                 else:
                     result += f"{self.color_settings['success']}✅ Result:{self.color_settings['reset']}\n{execution_result}\n"

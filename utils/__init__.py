@@ -41,6 +41,7 @@ def get_platform_name():
             "12.": "Monterey",
             "13.": "Ventura",
             "14.": "Sonoma",
+            "15.": "Sequoia",
         }
         
         for ver, name in macos_names.items():

@@ -71,3 +71,6 @@ We always run test files from their folder on another test specific folder to ma
 After all coder creation or alteration you always run the code to make sure it works as expected.
 - you always check the code for any errors or bugs using same input it reported the bug with (if any).
 - you always check the code for any errors or bugs using same output it reported the bug with (if any).
+- you always make or update the todo list with the new findings
+- you always note if output following the expected format.
+- you always check if the used flage are getting the expected behaivior from the Uaibot?
