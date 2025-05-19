@@ -8,6 +8,8 @@ import os
 import sys
 import shutil
 import logging
+import platform
+from typing import Optional, List, Dict, Any, Union
 
 # Add project root to sys.path to enable imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -36,15 +38,21 @@ class TestOutputFormatter:
             except Exception as e:
                 print(f"Warning: Could not initialize OutputStyleManager: {e}")
                 
-        # Basic emojis for fallback mode
+        # Get system info for emoji compatibility
+        self.is_windows = platform.system() == 'Windows'
+        
+        # Basic emojis for fallback mode (with Windows fallbacks)
         self.emojis = {
-            "success": "✅",
-            "error": "❌",
-            "warning": "⚠️", 
-            "info": "ℹ️",
-            "search": "🔍",
-            "file": "📄",
-            "folder": "📁"
+            "success": "✅" if not self.is_windows else "[OK]",
+            "error": "❌" if not self.is_windows else "[ERROR]",
+            "warning": "⚠️" if not self.is_windows else "[WARN]", 
+            "info": "ℹ️" if not self.is_windows else "[INFO]",
+            "search": "🔍" if not self.is_windows else "[SEARCH]",
+            "file": "📄" if not self.is_windows else "[FILE]",
+            "folder": "📁" if not self.is_windows else "[DIR]",
+            "question": "❓" if not self.is_windows else "[?]",
+            "thinking": "🤔" if not self.is_windows else "[THINKING]",
+            "command": "📌" if not self.is_windows else "[CMD]"
         }
         
         self.output_shown = False
@@ -126,18 +134,10 @@ class TestOutputFormatter:
     
     def _get_emoji_for_result(self, result_type: str) -> str:
         """Get an appropriate emoji for the result type."""
-        emoji_map = {
-            'success': '✅',
-            'error': '❌',
-            'warning': '⚠️',
-            'info': 'ℹ️',
-            'question': '❓',
-            'thinking': '🤔',
-            'command': '📌',
-        }
+        emoji_map = self.emojis
         return emoji_map.get(result_type.lower(), '•')
     
-    def format_header(self, text, emoji_key=None):
+    def format_header(self, text: str, emoji_key: Optional[str] = None) -> str:
         """Format a header with optional emoji."""
         if self.style_mgr:
             return self.style_mgr.format_header(text, emoji_key)
@@ -149,7 +149,7 @@ class TestOutputFormatter:
             
         return f"{emoji}{text}\n{'-' * len(text)}\n"
     
-    def format_status(self, message, status="info"):
+    def format_status(self, message: str, status: str = "info") -> str:
         """Format a status message with appropriate emoji."""
         if self.style_mgr:
             return self.style_mgr.format_status_line(message, status)
@@ -160,7 +160,7 @@ class TestOutputFormatter:
             return f"{emoji} {message}"
         return message
         
-    def format_box(self, content, title=None, width=None):
+    def format_box(self, content: str, title: Optional[str] = None, width: Optional[int] = None) -> str:
         """Format content in a box with optional title."""
         if self.style_mgr:
             return self.style_mgr.format_box(content, title, width)
@@ -187,7 +187,8 @@ class TestOutputFormatter:
         result.append(f"└{'─' * (width - 2)}┘")
         return '\n'.join(result)
     
-    def format_file_operation_result(self, operation, success, message, details=None):
+    def format_file_operation_result(self, operation: str, success: bool, 
+                                    message: str, details: Optional[str] = None) -> str:
         """Format the result of a file operation in a consistent way."""
         status = "success" if success else "error"
         result = self.format_status(f"{operation}: {message}", status)
@@ -197,6 +198,16 @@ class TestOutputFormatter:
             result += "\n  " + "\n  ".join(details.split("\n"))
             
         return result
+    
+    def get_platform_info(self) -> Dict[str, str]:
+        """Return information about the current platform for reporting."""
+        return {
+            "system": platform.system(),
+            "release": platform.release(),
+            "version": platform.version(),
+            "python": platform.python_version(),
+            "emoji_support": "Limited" if self.is_windows else "Full"
+        }
     
 # Create a singleton instance for import elsewhere
 formatter = TestOutputFormatter()

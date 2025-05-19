@@ -264,6 +264,9 @@ class CommandProcessor:
 
     def process_command(self, user_input):
         """Process user input and execute commands directly."""
+        # Reset output state for new command
+        self._reset_output_state()
+        
         query_lower = user_input.lower().strip()
         
         if not query_lower:
@@ -304,6 +307,12 @@ class CommandProcessor:
         
         # If no patterns matched, use AI to generate a command
         return self._handle_with_ai(user_input)
+        
+    def _reset_output_state(self):
+        """Reset output state tracking to prevent duplication."""
+        self._thinking_shown = False
+        self._command_shown = False
+        self._result_shown = False
         
     def _is_iteration_command(self, query):
         """Detect iteration-related commands."""
@@ -354,14 +363,22 @@ class CommandProcessor:
                 command_type = 'continue'
         
         # Handle based on command type
+        result = thinking + "\n\n"
+        
         if command_type == 'continue':
-            return self._handle_continue_iteration(thinking)
+            result += self._handle_continue_iteration("")
         elif command_type == 'stop':
-            return self._handle_stop_iteration(thinking)
+            result += self._handle_stop_iteration("")
         elif command_type == 'status':
-            return self._handle_iteration_status(thinking)
+            result += self._handle_iteration_status("")
         else:
-            return f"{thinking}\n\n{self.color_settings['error']}❌ Unknown iteration command type.{self.color_settings['reset']}"
+            # Format the result with duplicate prevention
+            error_result = f"{self.color_settings['error']}❌ Unknown iteration command type.{self.color_settings['reset']}"
+            result_display = self._format_result(error_result, "")
+            if result_display:
+                result += result_display
+        
+        return result
     
     def _handle_continue_iteration(self, thinking):
         """Handle 'continue' iteration command."""
@@ -377,9 +394,23 @@ class CommandProcessor:
             self.iteration_state['current_operation'] = "Processing data"
             self.iteration_state['last_updated'] = datetime.now().isoformat()
             
-            result = f"{thinking}\n\n{self.color_settings['important']}🔄 Starting iteration process.{self.color_settings['reset']}\n"
-            result += f"Step 1/{self.iteration_state['total_steps']}: {self.iteration_state['current_operation']}\n"
-            result += f"{self.color_settings['success']}✅ Iteration initialized. Say 'continue' to proceed to the next step.{self.color_settings['reset']}"
+            result = ""
+            if thinking:
+                result = f"{thinking}\n\n"
+                
+            # Format the command with duplicate prevention
+            command_text = f"{self.color_settings['important']}🔄 Starting iteration process.{self.color_settings['reset']}\n"
+            command_text += f"Step 1/{self.iteration_state['total_steps']}: {self.iteration_state['current_operation']}"
+            command_display = self._format_command(command_text)
+            if command_display:
+                result += command_display + "\n"
+                
+            # Format the result with duplicate prevention
+            result_text = f"{self.color_settings['success']}✅ Iteration initialized. Say 'continue' to proceed to the next step.{self.color_settings['reset']}"
+            result_display = self._format_result(result_text, "")
+            if result_display:
+                result += result_display
+                
             return result
         else:
             # Continue to the next step
@@ -414,66 +445,135 @@ class CommandProcessor:
                     
                 self.iteration_state['step_results'].append(step_result)
                 
-                result = f"{thinking}\n\n{self.color_settings['important']}🔄 Continuing iteration process.{self.color_settings['reset']}\n"
-                result += f"Step {self.iteration_state['current_step']}/{self.iteration_state['total_steps']}: {current_op}\n"
-                result += f"{self.color_settings['success']}✅ {step_result}{self.color_settings['reset']}\n\n"
+                result = ""
+                if thinking:
+                    result = f"{thinking}\n\n"
+                
+                # Format the command with duplicate prevention
+                command_text = f"{self.color_settings['important']}🔄 Continuing iteration process.{self.color_settings['reset']}\n"
+                command_text += f"Step {self.iteration_state['current_step']}/{self.iteration_state['total_steps']}: {current_op}"
+                command_display = self._format_command(command_text)
+                if command_display:
+                    result += command_display + "\n"
+                
+                # Format the result with duplicate prevention
+                result_text = f"{self.color_settings['success']}✅ {step_result}{self.color_settings['reset']}\n\n"
                 
                 if self.iteration_state['current_step'] < self.iteration_state['total_steps']:
-                    result += "Say 'continue' to proceed to the next step."
+                    result_text += "Say 'continue' to proceed to the next step."
                 else:
-                    result += f"{self.color_settings['important']}🎉 Iteration complete! All steps finished.{self.color_settings['reset']}"
+                    result_text += f"{self.color_settings['important']}🎉 Iteration complete! All steps finished.{self.color_settings['reset']}"
                     # Reset iteration state after completion
                     self.iteration_state['active'] = False
+                    
+                result_display = self._format_result(result_text, "")
+                if result_display:
+                    result += result_display
                 
                 return result
             else:
                 # Already at the last step
-                result = f"{thinking}\n\n{self.color_settings['important']}🔄 Iteration process already complete.{self.color_settings['reset']}\n"
-                result += f"All {self.iteration_state['total_steps']} steps were completed.\n\n"
+                result = ""
+                if thinking:
+                    result = f"{thinking}\n\n"
                 
-                # Show summary of results
-                result += f"{self.color_settings['important']}📊 Summary of results:{self.color_settings['reset']}\n"
+                # Format the command with duplicate prevention
+                command_text = f"{self.color_settings['important']}🔄 Iteration process already complete.{self.color_settings['reset']}"
+                command_display = self._format_command(command_text)
+                if command_display:
+                    result += command_display + "\n"
+                
+                # Format the result with duplicate prevention
+                result_text = f"All {self.iteration_state['total_steps']} steps were completed.\n\n"
+                result_text += f"{self.color_settings['important']}📊 Summary of results:{self.color_settings['reset']}\n"
                 for i, step_result in enumerate(self.iteration_state['step_results']):
-                    result += f"  • Step {i+1}: {step_result}\n"
+                    result_text += f"  • Step {i+1}: {step_result}\n"
                 
                 # Reset iteration state
                 self.iteration_state['active'] = False
+                
+                result_display = self._format_result(result_text, "")
+                if result_display:
+                    result += result_display
+                    
                 return result
     
     def _handle_stop_iteration(self, thinking):
         """Handle 'stop' iteration command."""
         if not self.iteration_state['active']:
-            return f"{thinking}\n\n{self.color_settings['error']}⚠️ No active iteration process to stop.{self.color_settings['reset']}"
+            result = ""
+            if thinking:
+                result = f"{thinking}\n\n"
+                
+            error_text = f"{self.color_settings['error']}⚠️ No active iteration process to stop.{self.color_settings['reset']}"
+            error_display = self._format_result(error_text, "")
+            if error_display:
+                result += error_display
+                
+            return result
         
         # Reset iteration state
         current_step = self.iteration_state['current_step']
         total_steps = self.iteration_state['total_steps']
         self.iteration_state['active'] = False
         
-        result = f"{thinking}\n\n{self.color_settings['important']}🛑 Iteration process stopped.{self.color_settings['reset']}\n"
-        result += f"Stopped at step {current_step}/{total_steps}.\n\n"
+        result = ""
+        if thinking:
+            result = f"{thinking}\n\n"
+            
+        # Format the command with duplicate prevention
+        command_text = f"{self.color_settings['important']}🛑 Iteration process stopped.{self.color_settings['reset']}"
+        command_display = self._format_command(command_text)
+        if command_display:
+            result += command_display + "\n"
+        
+        # Format the result with duplicate prevention
+        result_text = f"Stopped at step {current_step}/{total_steps}.\n\n"
         
         # Show summary of results so far
         if self.iteration_state['step_results']:
-            result += f"{self.color_settings['important']}📊 Results so far:{self.color_settings['reset']}\n"
+            result_text += f"{self.color_settings['important']}📊 Results so far:{self.color_settings['reset']}\n"
             for i, step_result in enumerate(self.iteration_state['step_results']):
-                result += f"  • Step {i+1}: {step_result}\n"
+                result_text += f"  • Step {i+1}: {step_result}\n"
         
+        result_display = self._format_result(result_text, "")
+        if result_display:
+            result += result_display
+            
         return result
     
     def _handle_iteration_status(self, thinking):
         """Handle 'status' iteration command."""
         if not self.iteration_state['active']:
-            return f"{thinking}\n\n{self.color_settings['important']}ℹ️ No active iteration process.{self.color_settings['reset']}\n" + \
-                   f"You can start a new iteration by saying 'continue to iterate'."
+            result = ""
+            if thinking:
+                result = f"{thinking}\n\n"
+                
+            info_text = f"{self.color_settings['important']}ℹ️ No active iteration process.{self.color_settings['reset']}\n" + \
+                      f"You can start a new iteration by saying 'continue to iterate'."
+            info_display = self._format_result(info_text, "")
+            if info_display:
+                result += info_display
+                
+            return result
         
-        result = f"{thinking}\n\n{self.color_settings['important']}📊 Current Iteration Status:{self.color_settings['reset']}\n"
-        result += f"Progress: Step {self.iteration_state['current_step']}/{self.iteration_state['total_steps']}\n"
-        result += f"Current operation: {self.iteration_state['current_operation']}\n\n"
+        result = ""
+        if thinking:
+            result = f"{thinking}\n\n"
+            
+        # Format the command with duplicate prevention
+        command_text = f"{self.color_settings['important']}📊 Current Iteration Status:{self.color_settings['reset']}"
+        command_display = self._format_command(command_text)
+        if command_display:
+            result += command_display + "\n"
+        
+        # Format the result with duplicate prevention
+        result_text = f"Progress: Step {self.iteration_state['current_step']}/{self.iteration_state['total_steps']}\n"
+        result_text += f"Current operation: {self.iteration_state['current_operation']}\n\n"
         
         # Show percentage complete
         percentage = (self.iteration_state['current_step'] / self.iteration_state['total_steps']) * 100
-        result += f"Completion: {percentage:.1f}%\n"
+        result_text += f"Completion: {percentage:.1f}%\n"
         
         # Visual progress bar
         bar_length = 20
@@ -485,14 +585,18 @@ class CommandProcessor:
             progress_bar += " " * (bar_length - completed_length - 1)
         progress_bar += "]"
         
-        result += f"Progress: {progress_bar}\n\n"
+        result_text += f"Progress: {progress_bar}\n\n"
         
         # Show results of completed steps
         if self.iteration_state['step_results']:
-            result += f"{self.color_settings['important']}📝 Completed steps:{self.color_settings['reset']}\n"
+            result_text += f"{self.color_settings['important']}📝 Completed steps:{self.color_settings['reset']}\n"
             for i, step_result in enumerate(self.iteration_state['step_results']):
-                result += f"  • Step {i+1}: {step_result}\n"
+                result_text += f"  • Step {i+1}: {step_result}\n"
         
+        result_display = self._format_result(result_text, "")
+        if result_display:
+            result += result_display
+            
         return result
         
     def _is_machine_specs_query(self, query):
@@ -739,40 +843,139 @@ class CommandProcessor:
             platform_info = self.platform_commands.get_platform_info()
             
             # Create a user-friendly response
+            command_text = "System Information"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Format the result with duplicate prevention
             if self.platform_commands.is_linux:
                 # For Linux, include distribution info if available
                 if self.platform_commands.linux_distro:
-                    return f"You are running Linux ({self.platform_commands.linux_distro.capitalize()}). Your current shell is {self.platform_commands.shell}."
+                    result_text = f"You are running Linux ({self.platform_commands.linux_distro.capitalize()}). Your current shell is {self.platform_commands.shell}."
                 else:
-                    return f"You are running Linux. Your current shell is {self.platform_commands.shell}."
+                    result_text = f"You are running Linux. Your current shell is {self.platform_commands.shell}."
             elif self.platform_commands.is_macos:
-                return f"You are running macOS. Your current shell is {self.platform_commands.shell}."
+                result_text = f"You are running macOS. Your current shell is {self.platform_commands.shell}."
             elif self.platform_commands.is_windows:
-                return "You are running Windows."
+                result_text = "You are running Windows."
             else:
                 # Generic response if platform not specifically identified
-                return f"You are running {platform.system()} on {platform.machine()} architecture."
+                result_text = f"You are running {platform.system()} on {platform.machine()} architecture."
+            
+            result_display = self._format_result(result_text, "")
+            if result_display:
+                result += result_display
+                
+            return result
         
         # Use platform-specific commands for other system info queries
         if any(term in query for term in ['uptime', 'how long', 'running']):
             command = self.platform_commands.get_system_status_command("uptime")
-            return self.shell_handler.execute_command(command)
+            
+            # Format the command with duplicate prevention
+            command_text = f"Checking system uptime: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
+            
+            # Format the result with duplicate prevention
+            result_display = self._format_result(execution_result, command)
+            if result_display:
+                result += result_display
+                
+            return result
         
         if any(term in query for term in ['memory', 'ram']):
             command = self.platform_commands.get_system_status_command("memory")
-            return self.shell_handler.execute_command(command)
+            
+            # Format the command with duplicate prevention
+            command_text = f"Checking memory usage: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
+            
+            # Format the result with duplicate prevention
+            result_display = self._format_result(execution_result, command)
+            if result_display:
+                result += result_display
+                
+            return result
             
         if any(term in query for term in ['disk', 'storage', 'space']):
             command = self.platform_commands.get_system_status_command("disk")
-            return self.shell_handler.execute_command(command)
+            
+            # Format the command with duplicate prevention
+            command_text = f"Checking disk space: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
+            
+            # Format the result with duplicate prevention
+            result_display = self._format_result(execution_result, command)
+            if result_display:
+                result += result_display
+                
+            return result
             
         if any(term in query for term in ['cpu', 'processor', 'load']):
             command = self.platform_commands.get_system_status_command("cpu")
-            return self.shell_handler.execute_command(command)
+            
+            # Format the command with duplicate prevention
+            command_text = f"Checking CPU information: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
+            
+            # Format the result with duplicate prevention
+            result_display = self._format_result(execution_result, command)
+            if result_display:
+                result += result_display
+                
+            return result
             
         # Default system info - use a summary command based on platform
         command = self.platform_commands.get_system_status_command("summary")
-        return self.shell_handler.execute_command(command)
+        
+        # Format the command with duplicate prevention
+        command_text = f"Getting system summary: {command}"
+        command_display = self._format_command(command_text)
+        result = ""
+        
+        if command_display:
+            result += command_display + "\n"
+        
+        # Execute the command
+        execution_result = self.shell_handler.execute_command(command)
+        
+        # Format the result with duplicate prevention
+        result_display = self._format_result(execution_result, command)
+        if result_display:
+            result += result_display
+            
+        return result
         
     def _execute_notes_app_command(self, query):
         """Execute appropriate Notes app command directly using platform commands."""
@@ -780,49 +983,133 @@ class CommandProcessor:
         
         if 'open' in query:
             command = self.platform_commands.get_notes_command("open")
-            result = self.shell_handler.execute_command(command)
-            return f"✅ Opening notes application: {result}"
+            
+            # Format the command with duplicate prevention
+            command_text = f"Opening notes application: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
+            
+            # Format the result with duplicate prevention
+            result_text = f"✅ Opening notes application: {execution_result}"
+            result_display = self._format_result(result_text, command)
+            if result_display:
+                result += result_display
+                
+            return result
         
         elif 'count' in query or 'many' in query or 'number' in query:
             command = self.platform_commands.get_notes_command("count")
-            result = self.shell_handler.execute_command(command)
+            
+            # Format the command with duplicate prevention
+            command_text = f"Counting notes: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
             
             # Format the result nicely
-            if result.isdigit():
-                return f"{result_prefix}You have {result} notes."
+            if execution_result.isdigit():
+                result_text = f"{result_prefix}You have {execution_result} notes."
             else:
-                return f"{result_prefix}{result}"
+                result_text = f"{result_prefix}{execution_result}"
+                
+            # Format the result with duplicate prevention
+            result_display = self._format_result(result_text, command)
+            if result_display:
+                result += result_display
+                
+            return result
             
         elif ('list' in query and 'folder' not in query and 'topic' not in query) or ('show' in query and 'folder' not in query and 'topic' not in query):
             command = self.platform_commands.get_notes_command("list")
-            result = self.shell_handler.execute_command(command)
+            
+            # Format the command with duplicate prevention
+            command_text = f"Listing notes: {command}"
+            command_display = self._format_command(command_text)
+            result = ""
+            
+            if command_display:
+                result += command_display + "\n"
+            
+            # Execute the command
+            execution_result = self.shell_handler.execute_command(command)
             
             # Format the result with bullet points if it's a list
-            if '\n' in result:
-                notes = result.strip().split('\n')
+            if '\n' in execution_result:
+                notes = execution_result.strip().split('\n')
                 formatted_notes = "\n".join([f"  • {note}" for note in notes[:20]])
                 if len(notes) > 20:
                     formatted_notes += f"\n  ... and {len(notes) - 20} more notes"
-                return f"{result_prefix}{formatted_notes}"
+                result_text = f"{result_prefix}{formatted_notes}"
             else:
-                return f"{result_prefix}{result}"
+                result_text = f"{result_prefix}{execution_result}"
+                
+            # Format the result with duplicate prevention
+            result_display = self._format_result(result_text, command)
+            if result_display:
+                result += result_display
+                
+            return result
             
         else:
             # Default for topics/folders - using shell_handler.find_folders
             if hasattr(self.shell_handler, "find_folders"):
-                return self.shell_handler.find_folders("notes", "~", 20, True)
+                # Format the command with duplicate prevention
+                command_text = "Finding notes folders"
+                command_display = self._format_command(command_text)
+                result = ""
+                
+                if command_display:
+                    result += command_display + "\n"
+                
+                # Execute find_folders
+                execution_result = self.shell_handler.find_folders("notes", "~", 20, True)
+                
+                # Format the result with duplicate prevention
+                result_display = self._format_result(execution_result, command_text)
+                if result_display:
+                    result += result_display
+                    
+                return result
             else:
                 # Fallback to command if find_folders is not available
                 command = self.platform_commands.get_file_search_command("folder", "notes")
-                result = self.shell_handler.execute_command(command)
+                
+                # Format the command with duplicate prevention
+                command_text = f"Searching for notes folders: {command}"
+                command_display = self._format_command(command_text)
+                result = ""
+                
+                if command_display:
+                    result += command_display + "\n"
+                
+                # Execute the command
+                execution_result = self.shell_handler.execute_command(command)
                 
                 # Format the result with bullet points
-                if '\n' in result:
-                    folders = result.strip().split('\n')
+                if '\n' in execution_result:
+                    folders = execution_result.strip().split('\n')
                     formatted_folders = "\n".join([f"  📁 {folder}" for folder in folders])
-                    return f"{result_prefix}Potential notes folders found:\n{formatted_folders}"
+                    result_text = f"{result_prefix}Potential notes folders found:\n{formatted_folders}"
                 else:
-                    return f"{result_prefix}{result}"
+                    result_text = f"{result_prefix}{execution_result}"
+                    
+                # Format the result with duplicate prevention
+                result_display = self._format_result(result_text, command)
+                if result_display:
+                    result += result_display
+                    
+                return result
         
     def _execute_file_folder_command(self, query):
         """Execute appropriate file/folder command directly using platform commands."""
@@ -924,12 +1211,15 @@ class CommandProcessor:
                 
             command = self.platform_commands.get_file_search_command(search_type, search_term)
         
-        # Execute the command
-        if not self.quiet_mode:
-            print(f"\n🔍 Searching for {search_type}s" + 
-                  (f" with extension '{file_extension}'" if file_extension else f" matching '{search_term}'") + 
-                  f" in {location} directory\n")
-            print(f"Command: {command}\n")
+        # Format the command with duplicate prevention
+        command_text = f"🔍 Searching for {search_type}s" + \
+                      (f" with extension '{file_extension}'" if file_extension else f" matching '{search_term}'") + \
+                      f" in {location} directory: {command}"
+        command_display = self._format_command(command_text)
+        result = ""
+        
+        if command_display:
+            result += command_display + "\n"
         
         # Fix for wildcard pattern "**" which is causing issues
         if search_term == "**":
@@ -937,14 +1227,20 @@ class CommandProcessor:
             search_term = "*"
             # Get revised command with the safer pattern
             command = self.platform_commands.get_file_search_command(search_type, search_term)
-            if not self.quiet_mode:
-                print(f"Using safer search pattern: {command}\n")
             
-        result = self.shell_handler.execute_command(command)
+            # Format the updated command with duplicate prevention
+            updated_command_text = f"Using safer search pattern: {command}"
+            updated_command_display = self._format_command(updated_command_text)
+            
+            if updated_command_display:
+                result += updated_command_display + "\n"
+            
+        # Execute the command
+        execution_result = self.shell_handler.execute_command(command)
         
         # Format the results
-        if result and not result.startswith("Error"):
-            items = [item for item in result.strip().split('\n') if item]
+        if execution_result and not execution_result.startswith("Error"):
+            items = [item for item in execution_result.strip().split('\n') if item]
             if items:
                 icon = "📁" if search_type == "folder" else "📄"
                 formatted_results = "\n".join([f"  {icon} {item}" for item in items])
@@ -956,16 +1252,23 @@ class CommandProcessor:
                 if location and location != "current":
                     header += f" in your {location}"
                     
-                return f"{result_prefix}Found {len(items)} {header}:\n{formatted_results}"
+                result_text = f"{result_prefix}Found {len(items)} {header}:\n{formatted_results}"
             else:
                 header = f"{search_type.capitalize()}s"
                 if file_extension:
                     header += f" with extension .{file_extension}"
                 if location and location != "current":
                     header += f" in your {location}"
-                return f"No {header} were found."
+                result_text = f"No {header} were found."
         else:
-            return f"❌ Error searching for {search_type}s: {result}"
+            result_text = f"❌ Error searching for {search_type}s: {execution_result}"
+        
+        # Format the result with duplicate prevention
+        result_display = self._format_result(result_text, command)
+        if result_display:
+            result += result_display
+            
+        return result
             
     def _execute_file_creation_command(self, user_input):
         """Handle file creation requests by extracting filename, content, and location."""
@@ -1125,18 +1428,23 @@ class CommandProcessor:
         # Get the platform-specific command to create the file
         command = self.platform_commands.get_create_file_command(filename, content, location)
         
-        # Add verbose output in non-quiet mode
-        if not self.quiet_mode:
-            print(f"\nFile Creation Request:")
-            print(f"  Filename: {filename}")
-            print(f"  Location: {location}")
-            print(f"  Content: \"{content}\"")
-            print(f"  Command: {command}\n")
-            
-        result = self.shell_handler.execute_command(command)
+        # Initialize result string with thinking
+        result = ""
+        if thinking:
+            result += thinking + "\n\n"
         
-        # Format the response with thinking and colors
-        if not result or "Error" not in result:
+        # Format the command with duplicate prevention
+        command_text = f"Creating file '{filename}' in {location} with content: \"{content}\"\nCommand: {command}"
+        command_display = self._format_command(command_text)
+        
+        if command_display:
+            result += command_display + "\n\n"
+        
+        # Execute the command
+        execution_result = self.shell_handler.execute_command(command)
+        
+        # Format the response with colors
+        if not execution_result or "Error" not in execution_result:
             # Build the full path for reporting
             if location.lower() == 'desktop':
                 if self.platform_commands.is_windows:
@@ -1150,11 +1458,25 @@ class CommandProcessor:
                     path = f"~/Documents/{filename}"
             else:
                 path = f"{location}/{filename}"
-                
-            return f"{thinking}\n\n{self.color_settings['success']}✅ Created file '{filename}' in {location}{self.color_settings['reset']}" + \
-                   f"\n{self.color_settings['important']}📄 Content:{self.color_settings['reset']} \"{content}\""
+            
+            # Format the result with duplicate prevention
+            success_text = f"{self.color_settings['success']}✅ Created file '{filename}' in {location}{self.color_settings['reset']}" + \
+                          f"\n{self.color_settings['important']}📄 Content:{self.color_settings['reset']} \"{content}\""
+            result_display = self._format_result(success_text, command)
+            
+            if result_display:
+                result += result_display
+            
+            return result
         else:
-            return f"{thinking}\n\n{self.color_settings['error']}❌ Error creating file: {result}{self.color_settings['reset']}"
+            # Format the error result with duplicate prevention
+            error_text = f"{self.color_settings['error']}❌ Error creating file: {execution_result}{self.color_settings['reset']}"
+            result_display = self._format_result(error_text, command)
+            
+            if result_display:
+                result += result_display
+            
+            return result
         
     def _handle_with_ai(self, user_input):
         """Process user input with AI to generate an executable command."""
@@ -1203,28 +1525,19 @@ class CommandProcessor:
         if command:
             # Format the result with colors
             result = f"{thinking}\n\n"
-            result += f"{self.color_settings['important']}📌 I'll execute this command:{self.color_settings['reset']} {command}\n\n"
+            
+            # Format the command with duplicate prevention
+            command_display = self._format_command(command)
+            if command_display:
+                result += command_display + "\n\n"
             
             # Execute the command using the shell handler
             execution_result = self.shell_handler.execute_command(command)
             
-            # Format the execution result
-            if execution_result:
-                if "Error" in execution_result or "not found" in execution_result.lower():
-                    result += f"{self.color_settings['error']}❌ There was a problem:{self.color_settings['reset']}\n{execution_result}\n"
-                    # In fast mode, skip fallback response to avoid delaying exit
-                    if not self.fast_mode:
-                        # Provide a helpful explanation when command fails
-                        result += f"\n{self.color_settings['important']}💡 Let me try a different approach:{self.color_settings['reset']}\n"
-                        fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
-                        result += fallback_response
-                    else:
-                        # In fast mode, just add a simple message
-                        result += f"\n{self.color_settings['important']}💡 Fast mode: Skipping fallback explanation.{self.color_settings['reset']}\n"
-                else:
-                    result += f"{self.color_settings['success']}✅ Result:{self.color_settings['reset']}\n{execution_result}\n"
-            else:
-                result += f"{self.color_settings['success']}✅ Command executed successfully with no output.{self.color_settings['reset']}\n"
+            # Format the execution result with duplicate prevention
+            result_display = self._format_result(execution_result, command)
+            if result_display:
+                result += result_display
             
             return result
         else:
@@ -1249,6 +1562,47 @@ class CommandProcessor:
         formatted += "└───────────────────────────────────────────────┘"
         formatted += f"{self.color_settings['reset']}"
         return formatted
+        
+    def _format_command(self, command_text):
+        """Format the command with duplicate prevention."""
+        # Check if command has already been shown to prevent duplication
+        if hasattr(self, '_command_shown') and self._command_shown:
+            return ""
+            
+        # Mark command as shown
+        self._command_shown = True
+        
+        # Format the command with colors
+        return f"{self.color_settings['important']}📌 I'll execute this command:{self.color_settings['reset']} {command_text}"
+        
+    def _format_result(self, execution_result, command):
+        """Format the execution result with duplicate prevention."""
+        # Check if result has already been shown to prevent duplication
+        if hasattr(self, '_result_shown') and self._result_shown:
+            return ""
+            
+        # Mark result as shown
+        self._result_shown = True
+        
+        # Format the result based on execution outcome
+        if execution_result:
+            if "Error" in execution_result or "not found" in execution_result.lower():
+                result = f"{self.color_settings['error']}❌ There was a problem:{self.color_settings['reset']}\n{execution_result}\n"
+                # In fast mode, skip fallback response to avoid delaying exit
+                if not self.fast_mode:
+                    # Provide a helpful explanation when command fails
+                    result += f"\n{self.color_settings['important']}💡 Let me try a different approach:{self.color_settings['reset']}\n"
+                    fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
+                    result += fallback_response
+                else:
+                    # In fast mode, just add a simple message
+                    result += f"\n{self.color_settings['important']}💡 Fast mode: Skipping fallback explanation.{self.color_settings['reset']}\n"
+            else:
+                result = f"{self.color_settings['success']}✅ Result:{self.color_settings['reset']}\n{execution_result}\n"
+        else:
+            result = f"{self.color_settings['success']}✅ Command executed successfully with no output.{self.color_settings['reset']}\n"
+            
+        return result
         
     def _get_detailed_system_specs(self):
         """Get detailed system hardware specifications using the AI handler."""
@@ -1587,10 +1941,16 @@ class CommandProcessor:
                 # Default to notes.txt in test_files if mentioned
                 filename = "test_files/notes.txt"
         
+        # Initialize result string with thinking
+        result = ""
+        if thinking:
+            result += thinking + "\n\n"
+        
         if not filename:
             # If no filename could be detected
-            return f"{thinking}\n\n{self.color_settings['error']}❌ Unable to determine which file to delete from your request.{self.color_settings['reset']}\n" + \
-                   f"Please specify a filename, for example: 'delete myfile.txt' or 'احذف ملف myfile.txt'"
+            error_text = f"{self.color_settings['error']}❌ Unable to determine which file to delete from your request.{self.color_settings['reset']}\n" + \
+                       f"Please specify a filename, for example: 'delete myfile.txt' or 'احذف ملف myfile.txt'"
+            return result + error_text
         
         # Step 2: Check if file exists before deleting
         if not os.path.exists(filename):
@@ -1618,8 +1978,9 @@ class CommandProcessor:
             
             if not found:
                 # If file not found anywhere
-                return f"{thinking}\n\n{self.color_settings['error']}❌ File '{filename}' not found.{self.color_settings['reset']}\n" + \
+                error_text = f"{self.color_settings['error']}❌ File '{filename}' not found.{self.color_settings['reset']}\n" + \
                        f"Please check if the file exists and provide the correct path."
+                return result + error_text
         
         # Step 3: Delete the file
         try:
@@ -1628,7 +1989,8 @@ class CommandProcessor:
                 print(f"\nAre you sure you want to delete '{filename}'? (y/n)")
                 confirmation = input("> ").lower().strip()
                 if confirmation != 'y' and confirmation != 'yes':
-                    return f"{thinking}\n\n{self.color_settings['important']}ℹ️ File deletion cancelled.{self.color_settings['reset']}"
+                    cancel_text = f"{self.color_settings['important']}ℹ️ File deletion cancelled.{self.color_settings['reset']}"
+                    return result + cancel_text
             
             # Determine the command based on OS
             if self.platform_commands.is_windows:
@@ -1636,22 +1998,39 @@ class CommandProcessor:
             else:  # Linux/macOS
                 command = f"rm {shlex.quote(filename)}"
             
+            # Format the command with duplicate prevention
+            command_text = f"Deleting file: {command}"
+            command_display = self._format_command(command_text)
+            
+            if command_display:
+                result += command_display + "\n\n"
+            
             # Execute the command
-            if not self.quiet_mode:
-                print(f"Executing: {command}")
-                
-            result = self.shell_handler.execute_command(command)
+            execution_result = self.shell_handler.execute_command(command)
             
             # Check if the file was actually deleted
             file_exists = os.path.exists(filename)
             
-            if not file_exists and (not result or "Error" not in result):
-                return f"{thinking}\n\n{self.color_settings['success']}✅ Successfully deleted file '{filename}'.{self.color_settings['reset']}"
+            if not file_exists and (not execution_result or "Error" not in execution_result):
+                success_text = f"{self.color_settings['success']}✅ Successfully deleted file '{filename}'.{self.color_settings['reset']}"
+                result_display = self._format_result(success_text, command)
+                if result_display:
+                    result += result_display
+                return result
             else:
-                if result:
-                    return f"{thinking}\n\n{self.color_settings['error']}❌ Error deleting file: {result}{self.color_settings['reset']}"
+                if execution_result:
+                    error_text = f"{self.color_settings['error']}❌ Error deleting file: {execution_result}{self.color_settings['reset']}"
+                    result_display = self._format_result(error_text, command)
+                    if result_display:
+                        result += result_display
+                    return result
                 else:
-                    return f"{thinking}\n\n{self.color_settings['error']}❌ Failed to delete file '{filename}'. The file still exists.{self.color_settings['reset']}"
+                    error_text = f"{self.color_settings['error']}❌ Failed to delete file '{filename}'. The file still exists.{self.color_settings['reset']}"
+                    result_display = self._format_result(error_text, command)
+                    if result_display:
+                        result += result_display
+                    return result
                 
         except Exception as e:
-            return f"{thinking}\n\n{self.color_settings['error']}❌ Error deleting file: {str(e)}{self.color_settings['reset']}"
+            error_text = f"{self.color_settings['error']}❌ Error deleting file: {str(e)}{self.color_settings['reset']}"
+            return result + error_text
