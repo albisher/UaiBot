@@ -1,11 +1,27 @@
 """
 Utility functions for UaiBot.
 Shared across different modules.
+
+This package provides various utility functions for:
+- Platform detection
+- Configuration handling
+- Output formatting
+- File operations
 """
 import os
 import platform
 from pathlib import Path
 import json
+
+# Optional imports to make formatting utilities available directly
+try:
+    from .output_formatter import (
+        EMOJI, format_header, format_table_row, format_box,
+        format_status_line, format_list, create_divider
+    )
+except ImportError:
+    # Output formatter not available, ignore
+    pass
 
 def get_platform_name():
     """

@@ -19,6 +19,9 @@ import warnings
 import urllib3
 import logging
 
+# Disable httpx INFO level logging to prevent duplicate request logs
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,

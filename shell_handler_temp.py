@@ -349,7 +349,7 @@ class ShellHandler:
             return "ERROR_ASSESSING"
             
         return "SAFE"
-     def get_usb_devices(self):
+    def get_usb_devices(self):
         """
         Get a list of available USB devices.
         

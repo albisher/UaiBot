@@ -605,3 +605,188 @@ class ShellHandler:
             # Log unexpected errors but continue
             if not self.quiet_mode:
                 print(f"Error searching directory {root_dir}: {str(e)}")
+    
+    def find_files(self, file_pattern, location="~", max_results=20):
+        """
+        Find files matching a given pattern using Python's native file system functions.
+        
+        Args:
+            file_pattern (str): Pattern to search for (e.g. "*.txt", "enha*.txt")
+            location (str): Root directory to start the search
+            max_results (int): Maximum number of results to return
+            
+        Returns:
+            str: Formatted search results
+        """
+        # Sanitize and expand user path
+        location = os.path.expanduser(location)
+        
+        # Check if location exists
+        if not os.path.exists(location):
+            return f"Error: The specified location '{location}' does not exist."
+        
+        try:
+            # Prepare results container
+            matching_files = []
+            
+            # Convert glob pattern to regex pattern for matching
+            import fnmatch
+            import re
+            
+            # Extract extension from pattern for better targeting
+            is_extension_search = False
+            target_extension = None
+            
+            # Check if this is a file extension search (*.ext pattern)
+            if file_pattern.startswith('*.'):
+                target_extension = file_pattern[2:].lower()
+                is_extension_search = True
+            
+            # Create regex pattern from glob pattern
+            if '*' in file_pattern or '?' in file_pattern:
+                regex_pattern = fnmatch.translate(file_pattern)
+                pattern_obj = re.compile(regex_pattern, re.IGNORECASE)
+            else:
+                # If no wildcards, do a simple substring search
+                pattern_obj = None
+            
+            # Determine search depth based on mode
+            max_depth = 3 if self.fast_mode else 5
+            
+            # First, search in common document locations for any type of file
+            # This provides faster results for common file locations
+            common_paths = []
+            home = os.path.expanduser('~')
+            
+            for common_dir in ['Documents', 'Downloads', 'Desktop']:
+                path = os.path.join(home, common_dir)
+                if os.path.exists(path):
+                    common_paths.append(path)
+            
+            # If location is not home or a custom path, add it to common paths
+            # to ensure we search the user's specified location first
+            if location != home and location not in common_paths:
+                common_paths.insert(0, location)
+            
+            # Search in all designated locations
+            for path in common_paths:
+                self._search_files_directory(path, file_pattern, pattern_obj, 
+                                           matching_files, max_results, 0, max_depth,
+                                           target_extension=target_extension)
+                # Stop if we've found enough files
+                if len(matching_files) >= max_results:
+                    break
+            
+            # If we haven't found enough results and location wasn't in common paths,
+            # search the specified location (to be thorough)
+            if len(matching_files) < max_results and location not in common_paths:
+                self._search_files_directory(location, file_pattern, pattern_obj, 
+                                          matching_files, max_results, 0, max_depth,
+                                          target_extension=target_extension)
+            
+            # Format the results
+            if not matching_files:
+                return f"No files matching '{file_pattern}' were found in {location}."
+            
+            formatted_result = f"I found these files matching '{file_pattern}':\n\n"
+            formatted_result += "💻 Local Filesystem:\n\n"
+            
+            for file_path in matching_files:
+                # Get file size in human-readable format
+                try:
+                    size = os.path.getsize(file_path)
+                    if size < 1024:
+                        size_str = f"{size} B"
+                    elif size < 1024 * 1024:
+                        size_str = f"{size/1024:.1f} KB"
+                    else:
+                        size_str = f"{size/(1024*1024):.1f} MB"
+                except:
+                    size_str = "unknown size"
+                    
+                # Add file info to results
+                formatted_result += f"  • {file_path} ({size_str})\n"
+                
+            if len(matching_files) >= max_results:
+                formatted_result += f"\n⚠️  Showing first {max_results} results. To see more, specify a narrower search."
+            
+            return formatted_result
+            
+        except Exception as e:
+            # In fast mode, show a simple error
+            if self.fast_mode:
+                return f"Error searching for files: Could not search for '{file_pattern}' files."
+            return f"Error searching for files: {str(e)}"
+    
+    def _search_files_directory(self, directory, file_pattern, pattern_obj, result_list, max_results, current_depth, max_depth, target_extension=None):
+        """
+        Recursively search a directory for files matching a pattern.
+        
+        Args:
+            directory (str): Directory to search in
+            file_pattern (str): Original glob pattern (for simple comparisons)
+            pattern_obj: Compiled regex pattern object for matching
+            result_list (list): List to populate with results
+            max_results (int): Maximum number of results
+            current_depth (int): Current recursion depth
+            max_depth (int): Maximum recursion depth
+            target_extension (str, optional): Specific file extension to look for
+        """
+        # Stop if we have enough results or reached max depth
+        if len(result_list) >= max_results or current_depth > max_depth:
+            return
+            
+        try:
+            # List all entries in the directory
+            entries = os.listdir(directory)
+            
+            # Process all files first
+            for entry in entries:
+                # Skip hidden files
+                if entry.startswith('.'):
+                    continue
+                    
+                full_path = os.path.join(directory, entry)
+                
+                # Process regular files
+                if os.path.isfile(full_path):
+                    # Fast path: if target_extension is specified, check extension first
+                    if target_extension:
+                        _, ext = os.path.splitext(entry)
+                        if ext.lower() != f'.{target_extension}' and ext.lower() != target_extension:
+                            continue
+                    
+                    # Match against the pattern
+                    if pattern_obj:
+                        # Use regex pattern for wildcard matching
+                        if pattern_obj.match(entry):
+                            result_list.append(full_path)
+                            if len(result_list) >= max_results:
+                                return
+                    else:
+                        # Use simple substring matching
+                        if file_pattern.lower() in entry.lower():
+                            result_list.append(full_path)
+                            if len(result_list) >= max_results:
+                                return
+            
+            # Then recurse into subdirectories
+            if current_depth < max_depth:
+                for entry in entries:
+                    if entry.startswith('.'):
+                        continue
+                        
+                    full_path = os.path.join(directory, entry)
+                    if os.path.isdir(full_path):
+                        self._search_files_directory(full_path, file_pattern, pattern_obj,
+                                                  result_list, max_results, current_depth + 1, max_depth,
+                                                  target_extension=target_extension)
+                        if len(result_list) >= max_results:
+                            return
+        except (PermissionError, FileNotFoundError):
+            # Skip directories we can't access
+            pass
+        except Exception as e:
+            # Log unexpected errors but continue searching
+            if not self.quiet_mode:
+                print(f"Error searching directory {directory}: {str(e)}")
