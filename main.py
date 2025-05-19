@@ -262,11 +262,11 @@ def main():
                                 fast_mode=fast_mode)
     
     # Initialize the command processor with our new implementation
-    # Use the command_processor.py in the main directory, not the command_processor module
+    # Use the command_processor_main.py in the command_processor directory
     # This is to ensure we're using the updated version with direct execution
     from importlib.machinery import SourceFileLoader
     cp_module = SourceFileLoader("command_processor_main", 
-                            os.path.join(os.path.dirname(os.path.abspath(__file__)), "command_processor.py")).load_module()
+                            os.path.join(os.path.dirname(os.path.abspath(__file__)), "command_processor/command_processor_main.py")).load_module()
     command_processor = cp_module.CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode)
     
     # Debug log showing which command processor we're using
