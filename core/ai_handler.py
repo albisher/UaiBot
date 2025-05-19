@@ -353,20 +353,20 @@ class AIHandler:
                             config = json.load(f)
                             self.api_key = config.get("google_api_key")
                     elif not self.quiet_mode:
-                        print("Warning: config/settings.json not found in current or parent directory.")
+                        self._log("Warning: config/settings.json not found in current or parent directory.")
                 except FileNotFoundError:
                     if not self.quiet_mode:
-                        print("Warning: config/settings.json not found.")
+                        self._log("Warning: config/settings.json not found.")
                 except json.JSONDecodeError:
                     if not self.quiet_mode:
-                        print("Warning: Could not decode config/settings.json.")
+                        self._log("Warning: Could not decode config/settings.json.")
 
             if not self.api_key:
                 raise ValueError("Google API Key not provided or found. Please set GOOGLE_API_KEY environment variable or add 'google_api_key' to config/settings.json.")
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(self.google_model_name)
             if not self.quiet_mode:
-                print(f"Google AI Handler initialized with model: {self.google_model_name}")
+                self._log(f"Google AI Handler initialized with model: {self.google_model_name}")
 
         elif self.model_type == "ollama" or self.model_type == "local":
             if not ollama:
@@ -380,8 +380,9 @@ class AIHandler:
                 if self.ollama_base_url.endswith('/'):
                     self.ollama_base_url = self.ollama_base_url[:-1]
                 
-                if not self.quiet_mode:
-                    print(f"Connecting to Ollama at: {self.ollama_base_url}")
+                # Use debug logging instead of direct print for connection message
+                self._log_debug(f"Connecting to Ollama at: {self.ollama_base_url}")
+                
                 self.client = ollama.Client(host=self.ollama_base_url)
                 
                 # Test connection with a simple API call
@@ -389,8 +390,6 @@ class AIHandler:
                     models_list = self.client.list()
                     available_models = [m['name'] for m in models_list.get('models', [])]
                 except Exception as conn_err:
-                    # Suppress model listing error message as it's not critical
-                    # print(f"Failed to list models: {conn_err}")
                     # Try an alternative approach by directly using httpx
                     import httpx
                     with httpx.Client() as client:
@@ -402,9 +401,7 @@ class AIHandler:
                             raise ConnectionError(f"Failed to connect to Ollama API: Status code {response.status_code}")
                 
                 if not available_models:
-                    if not self.quiet_mode:
-                        print(f"No Ollama models found at {self.ollama_base_url}. Please ensure Ollama is running and models are installed.")
-                    # You might want to raise an error here or handle it differently
+                    self._log_debug(f"No Ollama models found at {self.ollama_base_url}. Please ensure Ollama is running and models are installed.")
                 elif self.ollama_model_name not in available_models and ":" not in self.ollama_model_name: # if model name doesn't specify version
                     # try to find a version of the model
                     found_model = next((m for m in available_models if m.startswith(self.ollama_model_name + ":")), None)
@@ -413,27 +410,64 @@ class AIHandler:
                     else:
                         # Use the configured model even if not immediately found in the list
                         if available_models:
-                            if not self.quiet_mode:
-                                print(f"Using first available model: {available_models[0]}")
+                            self._log_debug(f"Using first available model: {available_models[0]}")
                             self.ollama_model_name = available_models[0]
 
-                if not self.quiet_mode:
-                    print(f"Ollama AI Handler initialized. Using model: {self.ollama_model_name} from {self.ollama_base_url}")
+                # Using debug logging for initialization messages
+                self._log_debug(f"Ollama AI Handler initialized. Using model: {self.ollama_model_name} from {self.ollama_base_url}")
+                self._log_debug(f"Ollama model set to: {self.ollama_model_name}")
             except Exception as e:
                 raise ConnectionError(f"Failed to connect to Ollama at {self.ollama_base_url}. Ensure Ollama is running. Error: {e} - {e.__class__.__name__}")
         else:
             raise ValueError(f"Unsupported model_type: {self.model_type}. Choose 'google' or 'ollama'.")
 
-    def get_ai_response(self, prompt):
-        """
-        Public method for getting AI responses. Delegates to query_ai.
-        This method ensures API compatibility with existing code.
-        """
-        return self.query_ai(prompt)
-        
+    # Helper method to handle logging with quiet_mode awareness
+    def _log(self, message):
+        """Print a message if not in quiet mode"""
+        # Only log if not in quiet mode
+        if not self.quiet_mode:
+            # Check if we're running in main.py context where a log function might be available
+            import sys
+            main_module = sys.modules.get('__main__')
+            if main_module and hasattr(main_module, 'log'):
+                # Use the main module's log function
+                main_module.log(message, debug_only=False)
+            else:
+                # Fall back to print but only in non-quiet mode
+                print(message)
+                
+    # Helper method for debug-level messages
+    def _log_debug(self, message):
+        """Log debug messages if not in quiet mode"""
+        # Debug messages should be even more restricted
+        if not self.quiet_mode:
+            # Check if we're running in main.py context
+            import sys
+            main_module = sys.modules.get('__main__')
+            if main_module and hasattr(main_module, 'log'):
+                # Use the main module's log function with debug flag
+                main_module.log(message, debug_only=True)
+            # For debug messages, we don't print directly even if log function is not available
+                
     def query_ai(self, prompt):
+        """Query the AI with a prompt and return the response.
+        This is a unified method that works across different model types."""
+        try:
+            if self.model_type == "ollama":
+                return self._query_ollama(prompt)
+            elif self.model_type == "google":
+                return self._query_google(prompt)
+            else:
+                return "Error: Unsupported model type"
+        except Exception as e:
+            return f"Error querying AI: {str(e)}"
+            
+    # Alias for backward compatibility
+    get_ai_response = query_ai
+
+    def _query_google(self, prompt):
         """
-        Queries the configured AI model with the provided prompt.
+        Queries the Google AI model with the provided prompt.
         Returns the AI's response as a string.
         """
         try:
@@ -444,67 +478,57 @@ class AIHandler:
             else:
                 enhanced_prompt = prompt
             
-            if self.model_type == "google":
-                if not self.model:
-                    raise ValueError("Google AI model not initialized")
-                
-                response = self.model.generate_content(enhanced_prompt)
-                if response.text:
-                    return response.text.strip()
-                else:
-                    return "Error: Google AI returned empty response"
-                    
-            elif self.model_type == "ollama" or self.model_type == "local":
-                if not hasattr(self, 'client') or not self.client:
-                    raise ValueError("Ollama client not initialized")
-                
-                response = self.client.generate(model=self.ollama_model_name, prompt=enhanced_prompt)
-                if response and "response" in response:
-                    return response["response"].strip()
-                else:
-                    return "Error: Ollama returned invalid response format"
+            if not self.model:
+                raise ValueError("Google AI model not initialized")
+            
+            response = self.model.generate_content(enhanced_prompt)
+            if response.text:
+                return response.text.strip()
             else:
-                return f"Error: Unsupported AI provider: {self.model_type}"
-                
+                return "Error: Google AI returned empty response"
+        except Exception as e:
+            return f"Error: Failed to get AI response: {str(e)}"
+
+    def _query_ollama(self, prompt):
+        """
+        Queries the Ollama AI model with the provided prompt.
+        Returns the AI's response as a string.
+        """
+        try:
+            # Add system information to the prompt if not already included
+            if "You are running on" not in prompt:
+                system_info = get_system_info()
+                enhanced_prompt = f"System Information: You are running on {system_info}.\n\nWhen possible, prefer using Terminal/Shell commands to accomplish tasks. If a user is asking about files, folders, or system operations, try to provide actual commands they can run.\n\n{prompt}"
+            else:
+                enhanced_prompt = prompt
+            
+            if not hasattr(self, 'client') or not self.client:
+                raise ValueError("Ollama client not initialized")
+            
+            response = self.client.generate(model=self.ollama_model_name, prompt=enhanced_prompt)
+            if response and "response" in response:
+                return response["response"].strip()
+            else:
+                return "Error: Ollama returned invalid response format"
         except Exception as e:
             return f"Error: Failed to get AI response: {str(e)}"
 
     def set_ollama_model(self, model_name):
         if self.model_type == "ollama" or self.model_type == "local":
             self.ollama_model_name = model_name
-            if not self.quiet_mode:
-                print(f"Ollama model set to: {self.ollama_model_name}")
+            # Use debug logging instead of direct print
+            self._log_debug(f"Ollama model set to: {self.ollama_model_name}")
             # Optionally, verify model exists with self.client.list()
-        elif not self.quiet_mode:
-            print("Warning: Cannot set Ollama model. Current model_type is not 'ollama' or 'local'.")
+        else:
+            self._log_debug("Warning: Cannot set Ollama model. Current model_type is not 'ollama' or 'local'.")
 
     def set_google_model(self, model_name):
         if self.model_type == "google":
             self.google_model_name = model_name
             try:
                 self.model = genai.GenerativeModel(self.google_model_name)
-                if not self.quiet_mode:
-                    print(f"Google AI model set to: {self.google_model_name}")
+                self._log_debug(f"Google AI model set to: {self.google_model_name}")
             except Exception as e:
-                if not self.quiet_mode:
-                    print(f"Error setting Google AI model: {e}")
-        elif not self.quiet_mode:
-            print("Warning: Cannot set Google model. Current model_type is not 'google'.")
-
-# Example usage (for testing purposes, remove or comment out for production):
-# if __name__ == '__main__':
-#     # Test Ollama
-#     try:
-#         ollama_handler = AIHandler(model_type="ollama")
-#         ollama_response = ollama_handler.query_ai("Why is the sky blue?")
-#         print(f"Ollama Response: {ollama_response}")
-#     except Exception as e:
-#         print(f"Ollama test failed: {e}")
-
-    # Test Google AI (ensure GOOGLE_API_KEY is set or in config/settings.json)
-    # try:
-    #     google_handler = AIHandler(model_type="google") # api_key will be auto-loaded
-    #     google_response = google_handler.query_ai("What is the capital of France?")
-    #     print(f"Google Response: {google_response}")
-    # except Exception as e:
-    #     print(f"Google AI test failed: {e}")
+                self._log(f"Error setting Google AI model: {e}")
+        else:
+            self._log_debug("Warning: Cannot set Google model. Current model_type is not 'google'.")

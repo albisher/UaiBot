@@ -7,6 +7,7 @@ import shlex
 import os
 import platform
 import json
+import enum
 from core.utils import get_platform_name, run_command
 from device_manager.usb_detector import USBDetector
 from core.browser_handler import BrowserHandler
@@ -17,6 +18,16 @@ except ImportError:
     # Define a placeholder if the module is not available
     def get_platform_command(platform, command_type, subtype=None):
         return None
+
+# Define CommandSafetyLevel enumeration to fix the import error
+class CommandSafetyLevel(enum.Enum):
+    """Safety levels for shell commands."""
+    SAFE = "SAFE"
+    NOT_IN_WHITELIST = "NOT_IN_WHITELIST" 
+    POTENTIALLY_DANGEROUS = "POTENTIALLY_DANGEROUS"
+    REQUIRES_SHELL_TRUE = "REQUIRES_SHELL_TRUE"
+    EMPTY = "EMPTY"
+    UNKNOWN = "UNKNOWN"
 
 # Basic list of commands that are generally safe.
 SAFE_COMMAND_WHITELIST = [
@@ -54,7 +65,7 @@ POTENTIALLY_DANGEROUS_COMMANDS = [
 ]
 
 class ShellHandler:
-    def __init__(self, safe_mode=True, enable_dangerous_command_check=True, suppress_prompt=False, quiet_mode=False):
+    def __init__(self, safe_mode=True, enable_dangerous_command_check=True, suppress_prompt=False, quiet_mode=False, fast_mode=False):
         """
         Initializes the ShellHandler.
         Args:
@@ -62,11 +73,13 @@ class ShellHandler:
             enable_dangerous_command_check (bool): If True, checks commands against POTENTIALLY_DANGEROUS_COMMANDS.
             suppress_prompt (bool): If True, does not prompt for confirmation.
             quiet_mode (bool): If True, reduces unnecessary terminal output.
+            fast_mode (bool): If True, doesn't wait for feedback on errors, exits immediately.
         """
         self.safe_mode = safe_mode
         self.enable_dangerous_command_check = enable_dangerous_command_check
         self.suppress_prompt = suppress_prompt
         self.quiet_mode = quiet_mode
+        self.fast_mode = fast_mode
         self.system_platform = platform.system().lower()
         self.platform_name = get_platform_name()
         
@@ -79,8 +92,33 @@ class ShellHandler:
         # Create a browser handler
         self.browser_handler = BrowserHandler(shell_handler=self)
         
+        # Use log method instead of direct print
+        self._log_debug(f"ShellHandler initialized. Safe mode: {self.safe_mode}, Dangerous command check: {self.enable_dangerous_command_check}, Fast mode: {self.fast_mode}")
+    
+    def _log(self, message):
+        """Print a message if not in quiet mode"""
         if not self.quiet_mode:
-            print(f"ShellHandler initialized. Safe mode: {self.safe_mode}, Dangerous command check: {self.enable_dangerous_command_check}")
+            # Check if we're running in main.py context where a log function might be available
+            import sys
+            main_module = sys.modules.get('__main__')
+            if main_module and hasattr(main_module, 'log'):
+                # Use the main module's log function
+                main_module.log(message, debug_only=False)
+            else:
+                # Fall back to print but only in non-quiet mode
+                print(message)
+
+    def _log_debug(self, message):
+        """Log debug messages if not in quiet mode"""
+        if not self.quiet_mode:
+            # Check if we're running in main.py context
+            import sys
+            main_module = sys.modules.get('__main__')
+            if main_module and hasattr(main_module, 'log'):
+                # Use the main module's log function with debug flag
+                main_module.log(message, debug_only=True)
+            # For debug messages, we don't print directly even if log function is not available
+            # This change ensures debug messages like initialization don't appear unless logged by main
     
     def log(self, message):
         """Print a message if not in quiet mode"""
@@ -129,153 +167,88 @@ class ShellHandler:
         # Simple pass-through for now, can be extended in the future
         return command_string
     
-    def execute_command(self, command_string, force_shell=False, require_confirmation_for_shell=True):
-        """Execute a shell command and return the output"""
-        try:
-            # Clean up the command string
-            command_string = command_string.strip()
-            
-            # Remove markdown code block markers and backticks
-            if command_string.startswith('```'):
-                while command_string.startswith('`'):
-                    command_string = command_string[1:]
-                end_pos = command_string.rfind('```')
-                if end_pos != -1:
-                    command_string = command_string[:end_pos]
-            elif command_string.startswith('`') and command_string.endswith('`'):
-                command_string = command_string[1:-1]
-                
-            # Remove language hints from the start
-            first_line_end = command_string.find('\n')
-            if first_line_end != -1:
-                first_line = command_string[:first_line_end].strip().lower()
-                if first_line in ['bash', 'shell', 'zsh', 'sh', 'cmd', 'powershell']:
-                    command_string = command_string[first_line_end + 1:]
-            
-            # Remove any remaining backticks
-            command_string = command_string.replace('`', '').strip()
-            
-            if not command_string.strip():
-                return "Error: No command provided after processing."
-
-            # Check for and fix platform-specific commands
-            command_string = self._fix_platform_command(command_string)
-            self.log(f"Attempting to execute: {command_string}")
-
-            # Special handling for commands that need shell=True
-            if ('*' in command_string or '?' in command_string or 
-                '|' in command_string or '>' in command_string or 
-                '<' in command_string or ';' in command_string or  
-                '&&' in command_string or '`' in command_string or '$(' in command_string):
-                self.log(f"Using shell=True for command with special syntax: {command_string}")
-                force_shell = True
-
-            # Special handling for device path commands
-            if (command_string.startswith('ls /dev') or 
-                any(cmd in command_string for cmd in ['screen /dev', 'cat /dev', 'echo > /dev', 'stty -f /dev'])):
-                self.log(f"Using shell=True for command with device paths: {command_string}")
-                force_shell = True
-
-            # Special handling for screen command
-            if command_string.startswith('screen '):
-                self.log("Using special handling for screen command")
-                result = run_command(command_string, text=True, shell=True, capture_output=True)
-                return result['stderr'] or "Screen command executed"
-                
-            # Special handling for USB device queries
-            if ('usb' in command_string.lower() or 'dev/tty' in command_string.lower() or 'dev/cu' in command_string.lower()) and \
-               any(cmd in command_string.lower() for cmd in ['list', 'show', 'check', 'find']):
-                self.log("Using USB detector for device query")
-                return self.usb_detector.get_usb_devices()
-                
-            # Special handling for 'cd' command
-            if command_string.strip().startswith('cd '):
-                parts = shlex.split(command_string)
-                if len(parts) > 1:
-                    path_to_change = os.path.expanduser(parts[1])
-                    try:
-                        os.chdir(path_to_change)
-                        return f"Changed directory to {os.getcwd()}"
-                    except Exception as e:
-                        return f"Error changing directory: {str(e)}"
-                else: # just 'cd' often means go to home directory
-                    try:
-                        home_dir = os.path.expanduser('~')
-                        os.chdir(home_dir)
-                        return f"Changed directory to {os.getcwd()}"
-                    except Exception as e:
-                        return f"Error changing to home directory: {str(e)}"
-
-            # Execute command
-            if not force_shell:
-                try:
-                    # Split command and execute
-                    command_parts = shlex.split(command_string)
-                    if not command_parts:
-                        return "Error: Command is empty after parsing."
-
-                    command_name = command_parts[0]
-
-                    if self.safe_mode and not self._is_command_safe(command_parts):
-                        return f"Error: Command '{command_name}' is not in the allowed list in safe mode."
-
-                    if self.enable_dangerous_command_check and self._is_potentially_dangerous(command_parts):
-                        if self.safe_mode:
-                            return f"Error: Execution of potentially dangerous command '{command_string}' blocked in safe mode."
-                        self.log(f"Warning: Command '{command_string}' is potentially dangerous.")
-
-                    # Execute without shell=True
-                    self.log(f"Executing with shlex: {command_parts}")
-                    result = run_command(command_parts, capture_output=True, text=True, check=False)
-                except ValueError as e:
-                    # If shlex can't parse the command, try with shell=True if permitted
-                    self.log(f"Error parsing command with shlex: {str(e)}")
-                    if not self.safe_mode or force_shell:
-                        self.log(f"Falling back to shell=True for: {command_string}")
-                        result = run_command(command_string, shell=True, capture_output=True, text=True, check=False)
-                    else:
-                        return f"Error: Could not parse command '{command_string}'. Try simplifying or using quotes properly."
-            else: # force_shell is True
-                if require_confirmation_for_shell and not self.suppress_prompt and self.safe_mode:
-                    self.log(f"Warning: Executing command '{command_string}' with shell=True.")
-                    if self.safe_mode:
-                        self.log("Shell=True allowed without confirmation due to special command needs.")
-                
-                self.log(f"Executing with shell=True: {command_string}")
-                result = run_command(command_string, shell=True, capture_output=True, text=True, check=False)
-
-            # Process command output
-            if isinstance(result, dict):  # Using run_command directly
-                returncode = result['returncode']
-                stdout = result.get('stdout', '')
-                stderr = result.get('stderr', '')
-                
-                if returncode != 0:
-                    error_message = f"Error executing command: {command_string}"
-                    error_message += f"\nReturn Code: {returncode}"
-                    if stdout:
-                        error_message += f"\nStdout:\n{stdout.strip()}"
-                    if stderr:
-                        error_message += f"\nStderr:\n{stderr.strip()}"
-                    self.log(error_message)
-                    return stderr.strip() if stderr else f"Command failed with return code {returncode}"
-                
-                return stdout.strip()
-            else:  # Legacy subprocess.CompletedProcess object - for backwards compatibility
-                if result.returncode != 0:
-                    error_message = f"Error executing command: {command_string}"
-                    error_message += f"\nReturn Code: {result.returncode}"
-                    if hasattr(result, 'stdout') and result.stdout:
-                        error_message += f"\nStdout:\n{result.stdout.strip()}"
-                    if hasattr(result, 'stderr') and result.stderr:
-                        error_message += f"\nStderr:\n{result.stderr.strip()}"
-                    self.log(error_message)
-                    return result.stderr.strip() if hasattr(result, 'stderr') and result.stderr else f"Command failed with return code {result.returncode}"
-                
-                return result.stdout.strip() if hasattr(result, 'stdout') else ""
+    def execute_command(self, command, force_shell=False):
+        """Execute a shell command safely and return the output."""
+        if self.safe_mode and not force_shell:
+            # In safe mode, apply more stringent checks
+            if not self.is_command_safe(command):
+                return f"Error: Command '{command}' is potentially unsafe. Run with --no-safe-mode to override."
         
+        # Special handling for common file search patterns
+        if command.startswith("cat ") and ".txt" in command:
+            # If trying to cat a non-existent file like "cat .txt", convert to a file search
+            if command == "cat .txt" or command.endswith("cat *.txt"):
+                # Convert to proper file search
+                if self.system_platform in ["linux", "darwin"]:
+                    command = "find ~ -type f -name '*.txt' -not -path '*/\\.*' 2>/dev/null | head -n 15"
+                else:  # Windows
+                    command = 'dir /s /b "%USERPROFILE%\\*.txt"'
+        
+        try:
+            # Prefer using shlex.split for secure command execution without shell=True
+            if not force_shell and "|" not in command and ">" not in command and "<" not in command and "*" not in command:
+                # Can use more secure execution
+                args = shlex.split(command)
+                
+                if not self.quiet_mode:
+                    print(f"Executing with shlex: {args}")
+                
+                process = subprocess.run(
+                    args,
+                    capture_output=True,
+                    text=True,
+                    check=False  # Don't raise exception on non-zero return code
+                )
+            else:
+                # Need to use shell=True for commands with special shell syntax
+                if not self.quiet_mode:
+                    print(f"Using shell=True for command with special syntax: {command}")
+                
+                if not self.quiet_mode:
+                    print(f"Executing with shell=True: {command}")
+                
+                process = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    check=False  # Don't raise exception on non-zero return code
+                )
+                
+            # Handle the command output
+            if process.returncode != 0:
+                # Command failed
+                if not self.quiet_mode:
+                    print(f"Error executing command: {command}")
+                    print(f"Return Code: {process.returncode}")
+                    print(f"Stderr:\n{process.stderr}")
+                
+                # For certain search-related commands, provide better alternatives on failure
+                if "find" in command and "file" in command.lower():
+                    # If a file search failed, provide a more targeted search
+                    # This helps when the user asks for txt files but the command fails
+                    if ".txt" in command.lower() or "text" in command.lower():
+                        if self.system_platform in ["linux", "darwin"]:
+                            fallback_cmd = "find ~ -type f -name '*.txt' 2>/dev/null | head -n 10"
+                            fallback_process = subprocess.run(fallback_cmd, shell=True, capture_output=True, text=True)
+                            if fallback_process.returncode == 0 and fallback_process.stdout.strip():
+                                return f"Found text files:\n{fallback_process.stdout}"
+                
+                # Standard error handling
+                if process.stderr:
+                    return process.stderr
+                else:
+                    return f"Command failed with return code {process.returncode}"
+            else:
+                # Command succeeded
+                return process.stdout
+                
+        except FileNotFoundError:
+            return f"Command not found: {command}"
+        except PermissionError:
+            return f"Permission denied when running: {command}"
         except Exception as e:
-            return f"An unexpected error occurred: {str(e)}"
+            return f"Error executing command: {command}\n{str(e)}"
     
     def detect_command_target(self, command, context=""):
         """
@@ -328,50 +301,52 @@ class ShellHandler:
         # If we can't determine, default to LOCAL for safety
         return "LOCAL"
     
+    def assess_command_safety(self, command_string):
+        """
+        Assesses the safety level of a command string.
+        Returns:
+            CommandSafetyLevel: The safety level enum value
+        """
+        if not command_string.strip():
+            return CommandSafetyLevel.EMPTY
+
+        try:
+            command_parts = shlex.split(command_string)
+            if not command_parts:
+                return CommandSafetyLevel.EMPTY
+        except ValueError:
+            # If shlex cannot split (e.g. unmatched quotes)
+            # Consider it potentially requiring shell=True
+            return CommandSafetyLevel.REQUIRES_SHELL_TRUE
+
+        if self.enable_dangerous_command_check and self._is_potentially_dangerous(command_parts):
+            return CommandSafetyLevel.POTENTIALLY_DANGEROUS
+        
+        if self.safe_mode and not self._is_command_safe(command_parts):
+            return CommandSafetyLevel.NOT_IN_WHITELIST
+            
+        # Check for shell operators which indicate a complex command
+        shell_operators = ['|', '>', '<', '>>', '<<', '&&', '||', ';']
+        if any(operator in command_string for operator in shell_operators):
+            return CommandSafetyLevel.REQUIRES_SHELL_TRUE
+            
+        return CommandSafetyLevel.SAFE
+        
+    # Alias the older method to use the new one for backwards compatibility
     def check_command_safety_level(self, command_string):
         """
-        Checks the safety level of a command string.
-        
+        Legacy method that returns the string representation of the safety level.
         Returns:
-            str: Safety level
+            str: 'SAFE', 'NOT_IN_WHITELIST', 'POTENTIALLY_DANGEROUS', 'REQUIRES_SHELL_TRUE_ASSESSMENT', or 'EMPTY'.
         """
-        try:
-            # Quick pass to see if command is empty
-            if not command_string or not command_string.strip():
-                return "EMPTY"
-                
-            # Check for special characters that might need shell=True
-            contains_wildcards = '*' in command_string or '?' in command_string
-            special_operators = ['|', '>', '<', ';', '&&', '||', '`', '$(']
-            contains_special = any(op in command_string for op in special_operators)
-            
-            if contains_wildcards or contains_special:
-                return "REQUIRES_SHELL_TRUE_ASSESSMENT"
-            
-            # Parse command with shlex
-            try:
-                command_parts = shlex.split(command_string)
-                if not command_parts:
-                    return "EMPTY"
-                    
-                # Check against our safe and dangerous lists
-                if self._is_command_safe(command_parts):
-                    if self._is_potentially_dangerous(command_parts):
-                        return "POTENTIALLY_DANGEROUS"
-                    else:
-                        return "SAFE"
-                else:
-                    return "NOT_IN_WHITELIST"
-                    
-            except ValueError:
-                return "REQUIRES_SHELL_TRUE_ASSESSMENT"
-                
-        except Exception as e:
-            self.log(f"Error in check_command_safety_level: {str(e)}")
-            return "ERROR_ASSESSING"
-            
-        return "SAFE"
-    
+        safety_level = self.assess_command_safety(command_string)
+        
+        # Map the enum value to the old string format
+        if safety_level == CommandSafetyLevel.REQUIRES_SHELL_TRUE:
+            return 'REQUIRES_SHELL_TRUE_ASSESSMENT'  # Match the old naming
+        
+        return safety_level.value
+
     def get_usb_devices(self):
         """
         Get a list of available USB devices.
@@ -407,128 +382,31 @@ class ShellHandler:
         Returns:
             str: Formatted search results
         """
-        folder_name = folder_name.replace('"', '\"').replace("'", "\'")  # Escape quotes
+        # Sanitize input and expand user path
+        folder_name = folder_name.replace('"', '\\"').replace("'", "\\'")  # Escape quotes properly
         location = os.path.expanduser(location)
+        
+        # Check if location exists
+        if not os.path.exists(location):
+            return f"Error: The specified location '{location}' does not exist."
         
         try:
             # Prepare results containers
             all_folders = []
             cloud_folders = []
             
-            # First check for platform-specific notes folders
+            # First check for platform-specific notes folders directly without using find command
             if include_cloud and folder_name.lower() in ["notes", "note", "notes app", "apple notes"]:
-                if self.system_platform == "darwin":
-                    # Try to find iCloud Notes folders
-                    icloud_path = os.path.expanduser("~/Library/Mobile Documents/com~apple~Notes")
-                    
-                    # Also check for alternate iCloud Notes locations
-                    alternate_paths = [
-                        os.path.expanduser("~/Library/Group Containers/group.com.apple.notes"),
-                        os.path.expanduser("~/Library/Containers/com.apple.Notes"),
-                        "/Applications/Notes.app"
-                    ]
-                    
-                    # Always add Apple Notes app entry
-                    # This ensures we always return something for Apple Notes requests
-                    cloud_folders.append({
-                        "name": "Apple Notes App", 
-                        "path": "/Applications/Notes.app", 
-                        "type": "Application", 
-                        "items": "Apple Notes"
-                    })
-                    
-                    if os.path.exists(icloud_path):
-                        try:
-                            # Count total notes in root
-                            notes_count = 0
-                            for root, dirs, files in os.walk(icloud_path):
-                                # Count just files in the root iCloud notes folder
-                                if root == icloud_path:
-                                    for file in files:
-                                        if file.endswith('.icloud') or file.endswith('.notesdata'):
-                                            notes_count += 1
-                            
-                            cloud_folders.append({"name": "Notes", "path": "iCloud/Notes", "type": "iCloud", "items": str(notes_count)})
-                            
-                            # Check for actual iCloud folders
-                            cloud_subfolders = []
-                            notes_dirs = os.path.join(icloud_path, "Notes")
-                            if os.path.exists(notes_dirs):
-                                try:
-                                    for item in os.listdir(notes_dirs):
-                                        subfolder_path = os.path.join(notes_dirs, item)
-                                        if os.path.isdir(subfolder_path):
-                                            # Count notes in this subfolder
-                                            items_count = 0
-                                            for root, dirs, files in os.walk(subfolder_path):
-                                                items_count += len(files)
-                                            
-                                            cloud_subfolders.append({
-                                                "name": item, 
-                                                "items": str(items_count)
-                                            })
-                                except Exception as e:
-                                    if not self.quiet_mode:
-                                        print(f"Error scanning Notes subfolders: {e}")
-                            
-                            for subfolder in cloud_subfolders:
-                                cloud_folders.append({
-                                    "name": subfolder["name"], 
-                                    "path": f"iCloud/Notes/{subfolder['name']}", 
-                                    "type": "iCloud", 
-                                    "items": subfolder["items"]
-                                })
-                        except Exception as e:
-                            if not self.quiet_mode:
-                                print(f"Error scanning iCloud Notes folders: {e}")
-                            # Fallback for Notes folder if scanning fails
-                            cloud_folders.append({"name": "Notes", "path": "iCloud/Notes", "type": "iCloud", "items": "Unknown"})
-                        
-                        # Also check for local Notes container
-                        local_notes = os.path.expanduser("~/Library/Containers/com.apple.Notes")
-                        if os.path.exists(local_notes):
-                            cloud_folders.append({"name": "Notes App", "path": "Notes App (Local)", "type": "Local", "items": "Notes App Data"})
+                self._get_notes_folders(cloud_folders)
                 
-                elif self.system_platform == "windows":
-                    # Try to identify common Windows Notes locations
-                    note_locations = [
-                        os.path.expanduser("~/Documents/OneNote Notebooks"),
-                        os.path.expanduser("~/OneDrive/Documents/OneNote Notebooks"),
-                        "C:/Program Files (x86)/Microsoft Office/Office16/ONENOTE.EXE",
-                        "C:/Program Files/Microsoft Office/Office16/ONENOTE.EXE",
-                        os.path.expanduser("~/AppData/Local/Packages/Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe")
-                    ]
-                    
-                    for note_path in note_locations:
-                        if os.path.exists(note_path):
-                            if "OneNote" in note_path:
-                                cloud_folders.append({"name": "OneNote Notebooks", "path": note_path, "type": "Microsoft", "items": "OneNote"})
-                            elif "StickyNotes" in note_path:
-                                cloud_folders.append({"name": "Sticky Notes", "path": note_path, "type": "Microsoft", "items": "Sticky Notes"})
-                            elif "ONENOTE.EXE" in note_path:
-                                cloud_folders.append({"name": "OneNote Application", "path": note_path, "type": "Microsoft", "items": "OneNote App"})
-                
-                elif self.system_platform == "linux":
-                    # Check for GNOME Notes (Bijiben)
-                    note_locations = [
-                        os.path.expanduser("~/.local/share/bijiben"),
-                        "/usr/bin/bijiben",
-                        os.path.expanduser("~/.var/app/org.gnome.Notes")
-                    ]
-                    
-                    for note_path in note_locations:
-                        if os.path.exists(note_path):
-                            cloud_folders.append({"name": "GNOME Notes", "path": note_path, "type": "Linux", "items": "Notes App"})
-            
-            # Construct the find command with error redirection for filesystem folders
-            command = f'find {location} -type d -name "*{folder_name}*" 2>/dev/null | grep -v "Library/|.Trash" | head -n {max_results}'
-            
-            # Execute the command
-            result = self.execute_command(command, force_shell=True)
-            
-            # Process filesystem results
-            if result and result.strip() != "":
-                all_folders = result.strip().split("\n")
+            # If we're just looking for notes specifically, we might already have what we need
+            if folder_name.lower() in ["notes", "note", "notes app", "apple notes"] and cloud_folders:
+                # Skip file system search if we already found what was requested
+                pass
+            else:
+                # Use Python's built-in file system functions for safer, more controlled folder search
+                # This avoids shell command issues and works better cross-platform
+                self._find_folders_natively(folder_name, location, max_results, all_folders)
             
             # Format the output with emojis according to enhancement guidelines
             if not all_folders and not cloud_folders:
@@ -539,7 +417,7 @@ class ShellHandler:
             # First show cloud folders (if any)
             if cloud_folders:
                 if self.system_platform == "darwin":
-                    formatted_result += "🌥️  iCloud:\n\n"
+                    formatted_result += "🌥️  iCloud/macOS:\n\n"
                 elif self.system_platform == "windows":
                     formatted_result += "📝  Note Applications:\n\n"
                 else:
@@ -551,7 +429,7 @@ class ShellHandler:
                         
                 formatted_result += "\n"
             
-            # Then show filesystem folders if we have any and they're requested
+            # Then show filesystem folders if we have any
             if all_folders:
                 formatted_result += "💻 Local Filesystem:\n\n"
                 for folder in all_folders:
@@ -562,4 +440,168 @@ class ShellHandler:
             
             return formatted_result
         except Exception as e:
+            # In fast mode, show a simple error and exit
+            if self.fast_mode:
+                return f"Error searching for folders: Could not search for '{folder_name}' folders."
             return f"Error searching for folders: {str(e)}"
+            
+    def _get_notes_folders(self, cloud_folders):
+        """
+        Helper method to get platform-specific notes folders without using find command.
+        
+        Args:
+            cloud_folders (list): List to be populated with note folder information.
+        """
+        if self.system_platform == "darwin":
+            # Add Apple Notes app entry directly - hardcoded path
+            if os.path.exists("/Applications/Notes.app"):
+                cloud_folders.append({
+                    "name": "Apple Notes App", 
+                    "path": "/Applications/Notes.app", 
+                    "type": "Application", 
+                    "items": "Apple Notes"
+                })
+                
+            # Add common macOS Notes locations
+            for notes_path in [
+                "~/Library/Mobile Documents/com~apple~Notes",
+                "~/Library/Group Containers/group.com.apple.notes",
+                "~/Library/Containers/com.apple.Notes"
+            ]:
+                path = os.path.expanduser(notes_path)
+                if os.path.exists(path):
+                    cloud_folders.append({
+                        "name": os.path.basename(path), 
+                        "path": path, 
+                        "type": "macOS", 
+                        "items": "Notes"
+                    })
+        
+        elif self.system_platform == "windows":
+            # Add Windows Notes locations
+            for notes_path in [
+                "~/Documents/OneNote Notebooks",
+                "~/OneDrive/Documents/OneNote Notebooks",
+                "~/AppData/Local/Packages/Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe"
+            ]:
+                path = os.path.expanduser(notes_path)
+                if os.path.exists(path):
+                    note_type = "OneNote" if "OneNote" in notes_path else "Sticky Notes"
+                    cloud_folders.append({
+                        "name": note_type, 
+                        "path": path, 
+                        "type": "Windows", 
+                        "items": note_type
+                    })
+        
+        elif self.system_platform == "linux":
+            # Add Linux Notes locations
+            for notes_path in [
+                "~/.local/share/bijiben",
+                "~/.var/app/org.gnome.Notes",
+                "~/.config/joplin-desktop"
+            ]:
+                path = os.path.expanduser(notes_path)
+                if os.path.exists(path):
+                    note_type = "Joplin" if "joplin" in notes_path.lower() else "GNOME Notes"
+                    cloud_folders.append({
+                        "name": note_type, 
+                        "path": path, 
+                        "type": "Linux", 
+                        "items": "Notes App"
+                    })
+                    
+    def _find_folders_natively(self, folder_name, location, max_results, result_list):
+        """
+        Find folders using Python's native file system functions instead of shell commands.
+        This is safer, more reliable, and works cross-platform.
+        
+        Args:
+            folder_name (str): Pattern to search for in folder names
+            location (str): Root directory to search in
+            max_results (int): Maximum number of results to return
+            result_list (list): List to be populated with found folders
+        """
+        # Convert wildcards to lowercase for case-insensitive matching
+        folder_pattern = folder_name.lower()
+        
+        # Handle wildcard cases specially
+        is_wildcard = folder_pattern in ["*", "**"]
+        
+        # Determine search depth based on mode and pattern
+        max_depth = 2 if (is_wildcard or self.fast_mode) else 4
+        
+        # Keep track of results count
+        count = 0
+        
+        # If searching in home, focus on common directories first
+        if location == os.path.expanduser("~"):
+            common_dirs = ['Documents', 'Downloads', 'Desktop', 'Pictures', 'Music', 'Videos']
+            for common_dir in common_dirs:
+                common_path = os.path.join(location, common_dir)
+                if os.path.exists(common_path) and count < max_results:
+                    self._search_directory(common_path, folder_pattern, max_depth, 1, result_list, max_results, is_wildcard)
+                    count = len(result_list)
+        
+        # If we need more results, perform general search
+        if count < max_results:
+            self._search_directory(location, folder_pattern, max_depth, 0, result_list, max_results, is_wildcard)
+    
+    def _search_directory(self, root_dir, pattern, max_depth, current_depth, result_list, max_results, is_wildcard=False):
+        """
+        Recursively search a directory for folders matching a pattern.
+        
+        Args:
+            root_dir (str): Directory to search in
+            pattern (str): Pattern to match folder names against
+            max_depth (int): Maximum recursion depth
+            current_depth (int): Current recursion depth
+            result_list (list): List to populate with results
+            max_results (int): Maximum number of results
+            is_wildcard (bool): Whether this is a wildcard search
+        """
+        # Stop if we have enough results or reached max depth
+        if len(result_list) >= max_results or current_depth > max_depth:
+            return
+            
+        try:
+            # List all entries in the directory
+            entries = os.listdir(root_dir)
+            
+            # Process all directories first (breadth-first approach)
+            for entry in entries:
+                # Skip hidden entries
+                if entry.startswith('.'):
+                    continue
+                    
+                full_path = os.path.join(root_dir, entry)
+                
+                # Only process directories
+                if os.path.isdir(full_path):
+                    # For wildcard searches, add all directories
+                    # For specific searches, check if pattern is in the name
+                    if is_wildcard or pattern in entry.lower():
+                        result_list.append(full_path)
+                        if len(result_list) >= max_results:
+                            return
+            
+            # Then recurse into subdirectories if we haven't reached max depth
+            if current_depth < max_depth:
+                for entry in entries:
+                    if entry.startswith('.'):
+                        continue
+                        
+                    full_path = os.path.join(root_dir, entry)
+                    if os.path.isdir(full_path):
+                        self._search_directory(full_path, pattern, max_depth, 
+                                              current_depth + 1, result_list, 
+                                              max_results, is_wildcard)
+                        if len(result_list) >= max_results:
+                            return
+        except (PermissionError, FileNotFoundError) as e:
+            # Skip directories we can't access
+            pass
+        except Exception as e:
+            # Log unexpected errors but continue
+            if not self.quiet_mode:
+                print(f"Error searching directory {root_dir}: {str(e)}")

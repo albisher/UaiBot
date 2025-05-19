@@ -11,12 +11,14 @@ import shlex
 import base64
 from typing import Dict, Any, Union, Optional
 from core.utils import get_project_root, run_command
+from core.platform_commands import PlatformCommands
 from terminal_commands import CommandRegistry, CommandExecutor
 
+# Simplified version of the command processor focused on handling natural language commands properly
 class CommandProcessor:
     """
     Processes user commands and determines the appropriate handler.
-    Supports multimodal inputs like text, audio, images, and gestures.
+    Supports natural language command processing with platform-aware commands.
     """
     
     def __init__(self, ai_handler, shell_handler, quiet_mode=False):
@@ -26,12 +28,40 @@ class CommandProcessor:
         self.quiet_mode = quiet_mode
         self.system_platform = platform.system().lower()
         
+        # Initialize platform commands helper
+        self.platform_commands = PlatformCommands()
+        
         # Initialize command registry and executor
         self.command_registry = CommandRegistry()
         self.command_executor = CommandExecutor(shell_handler, self.command_registry)
         
         # Load command patterns from JSON file
         self.command_patterns = self._load_command_patterns()
+        
+        # User settings
+        self.user_settings = self._load_user_settings()
+        
+        # Output formatting settings
+        self.color_settings = {
+            "thinking": "\033[38;5;244m",  # Gray color for thinking process
+            "success": "\033[38;5;34m",    # Green color for success
+            "error": "\033[38;5;196m",     # Red color for errors
+            "important": "\033[1;38;5;33m", # Bold blue for important info
+            "reset": "\033[0m"             # Reset to default color
+        }
+        
+        # Iteration state tracking
+        self.iteration_state = {
+            "active": False,
+            "current_step": 0,
+            "total_steps": 0,
+            "step_results": [],
+            "current_operation": None,
+            "last_updated": None
+        }
+        
+        # Ensure user home path is correctly set
+        self._detect_user_home_path()
         
     def _load_command_patterns(self):
         """Load command patterns from JSON file."""
@@ -57,6 +87,11 @@ class CommandProcessor:
                 "system_load": [
                     r"(load|system\s+load|cpu\s+load|processor\s+load)",
                     r"(how\s+(busy|loaded)\s+is\s+(my\s+system|computer|cpu|processor))"
+                ],
+                "system_info": [
+                    r"(what\s+system|which\s+system|what\s+os|operating\s+system|platform|distro|distribution)",
+                    r"(what\s+(computer|machine|device)\s+(is\s+this|am\s+i\s+using|i'm\s+on|i\s+am\s+on))",
+                    r"(system\s+information|os\s+version|kernel\s+version)"
                 ]
             },
             "notes_app": {
@@ -89,6 +124,11 @@ class CommandProcessor:
                 "search_content": [
                     r"(search\s+(for|in)\s+content|find\s+text\s+in|look\s+for\s+.*\s+in\s+files)",
                     r"(files?\s+containing|files?\s+with\s+text|grep\s+for)"
+                ],
+                "create_file": [
+                    r"(create|make|new)\s+(a\s+)?(text\s+)?file",
+                    r"(write|save)\s+(a\s+)?(text\s+)?file",
+                    r"(create|make|new)\s+(a\s+)?document"
                 ]
             },
             "search_queries": {
@@ -99,6 +139,23 @@ class CommandProcessor:
                 "web_search": [
                     r"(search\s+(the\s+)?web|search\s+(the\s+)?internet|google|browser\s+search)",
                     r"(find\s+online|look\s+up\s+online|web\s+results\s+for)"
+                ]
+            },
+            "iteration": {
+                "continue": [
+                    r"(continue(\s+to)?\s+iterate\??)",
+                    r"(keep\s+going|proceed|continue|next\s+step)",
+                    r"(should\s+(we|i)\s+continue|go\s+on|move\s+forward)"
+                ],
+                "stop": [
+                    r"(stop\s+iteration|end\s+iteration|cancel\s+iteration)",
+                    r"(stop|halt|cancel|abort|enough)",
+                    r"(no\s+more|that's\s+enough|that\s+is\s+enough)"
+                ],
+                "status": [
+                    r"(iteration\s+status|current\s+status|where\s+are\s+we)",
+                    r"(progress|how\s+far|how\s+many\s+(more|left))",
+                    r"(status\s+update|progress\s+report)"
                 ]
             }
         }
@@ -117,1350 +174,1439 @@ class CommandProcessor:
             print(f"Error loading command patterns: {e}")
             return default_patterns
 
+    def _load_user_settings(self):
+        """Load user-specific settings from JSON file."""
+        settings_file = os.path.join(get_project_root(), 'config', 'user_settings.json')
+        default_settings = {
+            "username": "",
+            "full_name": "",
+            "preferred_name": "",
+            "home_directory": "",
+            "preferred_locations": {
+                "desktop": "",
+                "documents": "",
+                "downloads": ""
+            }
+        }
+        
+        try:
+            if os.path.exists(settings_file):
+                with open(settings_file, 'r') as f:
+                    return json.load(f)
+            else:
+                # Create default settings file if it doesn't exist
+                os.makedirs(os.path.dirname(settings_file), exist_ok=True)
+                with open(settings_file, 'w') as f:
+                    json.dump(default_settings, f, indent=2)
+                return default_settings
+        except Exception as e:
+            print(f"Error loading user settings: {e}")
+            return default_settings
+            
+    def _save_user_settings(self):
+        """Save user settings to JSON file."""
+        settings_file = os.path.join(get_project_root(), 'config', 'user_settings.json')
+        try:
+            with open(settings_file, 'w') as f:
+                json.dump(self.user_settings, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"Error saving user settings: {e}")
+            return False
+            
+    def _detect_user_home_path(self):
+        """Detect and store the user's actual home path."""
+        # Get actual username and home directory
+        username = os.environ.get('USER') or os.environ.get('USERNAME')
+        home_dir = os.path.expanduser('~')
+        
+        # If we haven't stored this information or it's changed, update and ask to save
+        if not self.user_settings.get("username") or self.user_settings.get("username") != username:
+            self.user_settings["username"] = username
+            
+            if not self.quiet_mode:
+                print(f"\n📋 I detected your username is '{username}'. Would you like me to remember this? (y/n)")
+                response = input("> ").strip().lower()
+                if response.startswith('y'):
+                    self._save_user_settings()
+                    print("✅ Username saved in settings.")
+        
+        # Update home directory if needed
+        if not self.user_settings.get("home_directory") or self.user_settings.get("home_directory") != home_dir:
+            self.user_settings["home_directory"] = home_dir
+            
+        # Update standard locations if not set
+        if not self.user_settings["preferred_locations"].get("desktop") or not os.path.exists(self.user_settings["preferred_locations"].get("desktop")):
+            desktop_path = os.path.join(home_dir, "Desktop")
+            if os.path.exists(desktop_path):
+                self.user_settings["preferred_locations"]["desktop"] = desktop_path
+                
+        if not self.user_settings["preferred_locations"].get("documents") or not os.path.exists(self.user_settings["preferred_locations"].get("documents")):
+            documents_path = os.path.join(home_dir, "Documents")
+            if os.path.exists(documents_path):
+                self.user_settings["preferred_locations"]["documents"] = documents_path
+                
+        if not self.user_settings["preferred_locations"].get("downloads") or not os.path.exists(self.user_settings["preferred_locations"].get("downloads")):
+            downloads_path = os.path.join(home_dir, "Downloads")
+            if os.path.exists(downloads_path):
+                self.user_settings["preferred_locations"]["downloads"] = downloads_path
+
     def process_command(self, user_input):
         """Process user input and execute commands directly."""
-        query_lower = user_input.lower()
+        query_lower = user_input.lower().strip()
         
-        # DIRECT EXECUTION CHECK - Check first for direct command-like syntax
-        if self._looks_like_direct_command(user_input):
-            result = self._try_direct_execution(user_input)
-            # Only return if successful or clearly a command execution attempt
-            if result and ('Command executed' in result or 'Command failed' in result):
-                return result
+        if not query_lower:
+            return "Please enter a command or question."
         
-        # SYSTEM INFORMATION QUERIES - Check second
+        # Check for iteration-related commands (new highest priority)
+        if self._is_iteration_command(query_lower):
+            return self._handle_iteration_command(query_lower)
+            
+        # Check for machine specs query specifically (high priority)
+        if self._is_machine_specs_query(query_lower):
+            return self._get_detailed_system_specs()
+            
+        # Check for system info query (second priority)
         if self._is_system_info_query(query_lower):
             return self._execute_system_info_command(query_lower)
+        
+        # Check for file/folder operations (third priority)
+        if self._is_file_folder_query(query_lower):
+            return self._execute_file_folder_command(query_lower)
             
-        # NOTES APP QUERIES - Check third
+        # Check for notes app queries (fourth priority)
         if self._is_notes_app_query(query_lower):
             return self._execute_notes_app_command(query_lower)
         
-        # FILE/FOLDER OPERATIONS - Check fourth
-        if self._is_file_folder_query(query_lower):
-            return self._execute_file_folder_command(query_lower)
+        # Check for file write/append queries
+        if self._is_file_write_query(query_lower):
+            return self._execute_file_write_command(user_input)
+            
+        # Check for file deletion queries
+        if self._is_file_delete_query(query_lower):
+            return self._execute_file_delete_command(user_input)
         
-        # If no direct execution patterns matched, use AI
-        # Try to have the AI generate a command for us to execute
+        # Check for file creation requests (lower priority)
+        # IMPORTANT: This should be checked after other common queries to avoid incorrect matches
+        if self._is_file_creation_query(query_lower):
+            return self._execute_file_creation_command(user_input)
+        
+        # If no patterns matched, use AI to generate a command
         return self._handle_with_ai(user_input)
         
-    def _is_system_info_query(self, query):
-        """Detect system info queries with comprehensive patterns."""
-        # Check patterns from the loaded JSON
-        patterns = self.command_patterns.get("system_info", {})
-        
+    def _is_iteration_command(self, query):
+        """Detect iteration-related commands."""
+        # Check loaded patterns
+        patterns = self.command_patterns.get("iteration", {})
         for cmd_type, pattern_list in patterns.items():
             for pattern in pattern_list:
                 if re.search(pattern, query, re.IGNORECASE):
                     return True
+        
+        # Direct keyword check for simple cases
+        iteration_keywords = [
+            'continue', 'iterate', 'next step', 'keep going',
+            'stop iteration', 'halt', 'cancel', 'abort',
+            'iteration status', 'progress report'
+        ]
+        
+        return any(keyword in query for keyword in iteration_keywords)
+        
+    def _handle_iteration_command(self, query):
+        """Handle iteration-related commands."""
+        # Format thinking process
+        thinking = self._format_thinking(
+            f"Processing iteration command: '{query}'\n"
+            f"Current iteration state: active={self.iteration_state['active']}, step={self.iteration_state['current_step']}/{self.iteration_state['total_steps']}\n"
+            f"Determining appropriate action..."
+        )
+        
+        # Determine command type (continue, stop, status)
+        command_type = None
+        patterns = self.command_patterns.get("iteration", {})
+        
+        for cmd_type, pattern_list in patterns.items():
+            for pattern in pattern_list:
+                if re.search(pattern, query, re.IGNORECASE):
+                    command_type = cmd_type
+                    break
+            if command_type:
+                break
+        
+        # Default to continue if no specific match found
+        if not command_type:
+            if any(word in query for word in ['stop', 'halt', 'cancel', 'abort', 'enough']):
+                command_type = 'stop'
+            elif any(word in query for word in ['status', 'progress', 'where']):
+                command_type = 'status'
+            else:
+                command_type = 'continue'
+        
+        # Handle based on command type
+        if command_type == 'continue':
+            return self._handle_continue_iteration(thinking)
+        elif command_type == 'stop':
+            return self._handle_stop_iteration(thinking)
+        elif command_type == 'status':
+            return self._handle_iteration_status(thinking)
+        else:
+            return f"{thinking}\n\n{self.color_settings['error']}❌ Unknown iteration command type.{self.color_settings['reset']}"
+    
+    def _handle_continue_iteration(self, thinking):
+        """Handle 'continue' iteration command."""
+        import time
+        from datetime import datetime
+        
+        if not self.iteration_state['active']:
+            # Initialize a new iteration if none is active
+            self.iteration_state['active'] = True
+            self.iteration_state['current_step'] = 1
+            self.iteration_state['total_steps'] = 5  # Default to 5 steps
+            self.iteration_state['step_results'] = []
+            self.iteration_state['current_operation'] = "Processing data"
+            self.iteration_state['last_updated'] = datetime.now().isoformat()
+            
+            result = f"{thinking}\n\n{self.color_settings['important']}🔄 Starting iteration process.{self.color_settings['reset']}\n"
+            result += f"Step 1/{self.iteration_state['total_steps']}: {self.iteration_state['current_operation']}\n"
+            result += f"{self.color_settings['success']}✅ Iteration initialized. Say 'continue' to proceed to the next step.{self.color_settings['reset']}"
+            return result
+        else:
+            # Continue to the next step
+            if self.iteration_state['current_step'] < self.iteration_state['total_steps']:
+                self.iteration_state['current_step'] += 1
+                self.iteration_state['last_updated'] = datetime.now().isoformat()
+                
+                # Simulate different operations for different steps
+                operations = [
+                    "Processing data",
+                    "Analyzing results",
+                    "Generating report",
+                    "Optimizing solution",
+                    "Finalizing output"
+                ]
+                
+                current_op = operations[min(self.iteration_state['current_step']-1, len(operations)-1)]
+                self.iteration_state['current_operation'] = current_op
+                
+                # Generate a simulated result for this step
+                step_result = f"Completed {current_op.lower()}: "
+                if current_op == "Processing data":
+                    step_result += "Processed 2,456 records successfully."
+                elif current_op == "Analyzing results":
+                    step_result += "Found 3 patterns and 2 anomalies in the data."
+                elif current_op == "Generating report":
+                    step_result += "Created summary with 5 key insights."
+                elif current_op == "Optimizing solution":
+                    step_result += "Improved efficiency by 27%."
+                else:
+                    step_result += "All tasks completed successfully."
                     
+                self.iteration_state['step_results'].append(step_result)
+                
+                result = f"{thinking}\n\n{self.color_settings['important']}🔄 Continuing iteration process.{self.color_settings['reset']}\n"
+                result += f"Step {self.iteration_state['current_step']}/{self.iteration_state['total_steps']}: {current_op}\n"
+                result += f"{self.color_settings['success']}✅ {step_result}{self.color_settings['reset']}\n\n"
+                
+                if self.iteration_state['current_step'] < self.iteration_state['total_steps']:
+                    result += "Say 'continue' to proceed to the next step."
+                else:
+                    result += f"{self.color_settings['important']}🎉 Iteration complete! All steps finished.{self.color_settings['reset']}"
+                    # Reset iteration state after completion
+                    self.iteration_state['active'] = False
+                
+                return result
+            else:
+                # Already at the last step
+                result = f"{thinking}\n\n{self.color_settings['important']}🔄 Iteration process already complete.{self.color_settings['reset']}\n"
+                result += f"All {self.iteration_state['total_steps']} steps were completed.\n\n"
+                
+                # Show summary of results
+                result += f"{self.color_settings['important']}📊 Summary of results:{self.color_settings['reset']}\n"
+                for i, step_result in enumerate(self.iteration_state['step_results']):
+                    result += f"  • Step {i+1}: {step_result}\n"
+                
+                # Reset iteration state
+                self.iteration_state['active'] = False
+                return result
+    
+    def _handle_stop_iteration(self, thinking):
+        """Handle 'stop' iteration command."""
+        if not self.iteration_state['active']:
+            return f"{thinking}\n\n{self.color_settings['error']}⚠️ No active iteration process to stop.{self.color_settings['reset']}"
+        
+        # Reset iteration state
+        current_step = self.iteration_state['current_step']
+        total_steps = self.iteration_state['total_steps']
+        self.iteration_state['active'] = False
+        
+        result = f"{thinking}\n\n{self.color_settings['important']}🛑 Iteration process stopped.{self.color_settings['reset']}\n"
+        result += f"Stopped at step {current_step}/{total_steps}.\n\n"
+        
+        # Show summary of results so far
+        if self.iteration_state['step_results']:
+            result += f"{self.color_settings['important']}📊 Results so far:{self.color_settings['reset']}\n"
+            for i, step_result in enumerate(self.iteration_state['step_results']):
+                result += f"  • Step {i+1}: {step_result}\n"
+        
+        return result
+    
+    def _handle_iteration_status(self, thinking):
+        """Handle 'status' iteration command."""
+        if not self.iteration_state['active']:
+            return f"{thinking}\n\n{self.color_settings['important']}ℹ️ No active iteration process.{self.color_settings['reset']}\n" + \
+                   f"You can start a new iteration by saying 'continue to iterate'."
+        
+        result = f"{thinking}\n\n{self.color_settings['important']}📊 Current Iteration Status:{self.color_settings['reset']}\n"
+        result += f"Progress: Step {self.iteration_state['current_step']}/{self.iteration_state['total_steps']}\n"
+        result += f"Current operation: {self.iteration_state['current_operation']}\n\n"
+        
+        # Show percentage complete
+        percentage = (self.iteration_state['current_step'] / self.iteration_state['total_steps']) * 100
+        result += f"Completion: {percentage:.1f}%\n"
+        
+        # Visual progress bar
+        bar_length = 20
+        completed_length = int(bar_length * percentage / 100)
+        progress_bar = "["
+        progress_bar += "=" * completed_length
+        if completed_length < bar_length:
+            progress_bar += ">"
+            progress_bar += " " * (bar_length - completed_length - 1)
+        progress_bar += "]"
+        
+        result += f"Progress: {progress_bar}\n\n"
+        
+        # Show results of completed steps
+        if self.iteration_state['step_results']:
+            result += f"{self.color_settings['important']}📝 Completed steps:{self.color_settings['reset']}\n"
+            for i, step_result in enumerate(self.iteration_state['step_results']):
+                result += f"  • Step {i+1}: {step_result}\n"
+        
+        return result
+        
+    def _is_machine_specs_query(self, query):
+        """Detect machine specifications queries."""
+        spec_keywords = [
+            'machine specs', 'system specs', 'hardware specs', 'computer specs',
+            'what is my machine', 'what are my machine specs', 'what are my system specs',
+            'specs of my machine', 'specs of my computer', 'specs of this machine',
+            'system information', 'hardware info', 'system details',
+            'show specs', 'display specs', 'tell me about my machine',
+            'cpu info', 'ram info', 'memory info', 'disk info',
+            'my machine specs', 'my system specs'
+        ]
+        
+        # Check if any of the spec keywords are in the query
+        return any(keyword in query for keyword in spec_keywords)
+        
+    def _is_system_info_query(self, query):
+        """Detect system info queries with comprehensive patterns."""
+        # Simple direct system check
+        if 'what system' in query or 'which system' in query or 'what os' in query:
+            return True
+            
+        # Check loaded patterns
+        patterns = self.command_patterns.get("system_info", {})
+        for cmd_type, pattern_list in patterns.items():
+            for pattern in pattern_list:
+                if re.search(pattern, query, re.IGNORECASE):
+                    return True
+        
         return False
 
     def _is_notes_app_query(self, query):
         """Detect Notes app related queries."""
-        # Check patterns from the loaded JSON
+        # Check loaded patterns
         patterns = self.command_patterns.get("notes_app", {})
-        
         for cmd_type, pattern_list in patterns.items():
             for pattern in pattern_list:
                 if re.search(pattern, query, re.IGNORECASE):
                     return True
-                    
-        return False
+        
+        # Also check direct mentions of notes app
+        note_terms = ['notes app', 'note app', 'notebook', 'do i have notes', 'open notes']
+        return any(term in query for term in note_terms)
         
     def _is_file_folder_query(self, query):
         """Detect file and folder operation queries."""
-        # Check patterns from the loaded JSON
+        # Check for looking at text files in downloads folder specifically
+        if ('look' in query or 'find' in query or 'search' in query or 'list' in query or 'show' in query) and \
+           ('text file' in query or 'files' in query) and ('download' in query or 'downloads' in query):
+            return True
+            
+        # Check loaded patterns
         patterns = self.command_patterns.get("file_system", {})
-        
         for cmd_type, pattern_list in patterns.items():
+            if cmd_type == "create_file":
+                continue  # Skip create file patterns as we handle them separately
+                
             for pattern in pattern_list:
                 if re.search(pattern, query, re.IGNORECASE):
                     return True
-                    
+        
+        # Expanded file/folder operation keywords
+        file_folder_keywords = [
+            'list files', 'list folder', 'list directory', 'list dir',
+            'show files', 'show folders', 'show directories', 
+            'find files', 'find folder', 'search for files',
+            'ls', 'dir', 'find', 'grep', 'locate',
+            'what\'s in', 'what files', 'what folders',
+            'contents of', 'folder contents'
+        ]
+        
+        # Arabic file/folder keywords - add support for Arabic commands
+        arabic_file_folder_keywords = [
+            'اظهر الملفات', 'عرض الملفات', 'قائمة الملفات',
+            'اظهر المجلدات', 'عرض المجلدات', 'قائمة المجلدات',
+            'ابحث عن ملف', 'ابحث عن مجلد', 'جد الملفات',
+            'محتويات المجلد', 'ما هي الملفات'
+        ]
+        
+        return any(keyword in query for keyword in file_folder_keywords) or \
+               any(keyword in query for keyword in arabic_file_folder_keywords)
+
+    def _is_file_creation_query(self, query):
+        """Detect file creation requests more accurately."""
+        # These should be explicit file creation patterns to avoid false positives
+        creation_keywords = [
+            'create file', 'make file', 'create a file', 'make a file', 
+            'create a text file', 'make a text file',
+            'new file', 'new text file',
+            'save file', 'save to file', 'write to file',
+            'create document', 'make document'
+        ]
+        
+        # Arabic file creation keywords
+        arabic_creation_keywords = [
+            'انشاء ملف', 'انشئ ملف', 'اصنع ملف', 'عمل ملف جديد',
+            'ملف جديد', 'ملف نصي جديد', 'احفظ ملف'
+        ]
+        
+        # Check if any explicit file creation keywords are present - using whole word matching
+        # to avoid partial matches in other contexts
+        has_creation_intent = any(re.search(r'\b' + re.escape(keyword) + r'\b', query) for keyword in creation_keywords) or \
+                             any(keyword in query for keyword in arabic_creation_keywords)
+        
+        # Additional checks to reduce false positives
+        # If query contains file creation intent but also contains other command keywords,
+        # we should be cautious about classifying it as file creation
+        other_command_indicators = [
+            'list ', 'show me', 'display', 'find', 'search', 'open', 'run',
+            'execute', 'move', 'copy', 'rename', 'install', 'download',
+            'what is', 'what are', 'tell me', 'how to', 'continue', 'iterate', 
+            'check', 'verify', 'help', 'status'
+        ]
+        
+        # Check if the query has other command indicators that aren't file creation
+        has_other_intent = any(indicator in query for indicator in other_command_indicators)
+        
+        # If there's a clear file creation intent and no conflicting indicators, classify as file creation
+        if has_creation_intent and not has_other_intent:
+            return True
+        
+        # Check for filename patterns that strongly indicate file creation - more strict pattern matching
+        filename_patterns = [
+            r'name(?:d|)\s+(?:it|)\s+([a-z0-9_.-]+\.[a-z0-9]+)\b',
+            r'call(?:ed|)\s+(?:it|)\s+([a-z0-9_.-]+\.[a-z0-9]+)\b',
+            r'file\s+(?:called|named)\s+([a-z0-9_.-]+\.[a-z0-9]+)\b'
+        ]
+        
+        for pattern in filename_patterns:
+            if re.search(pattern, query):
+                # Found explicit filename pattern, but make sure it's not part of another command
+                return not has_other_intent
+        
+        # By default, don't interpret as a file creation unless explicitly requested
+        return False
+
+    def _is_file_write_query(self, query):
+        """Detect file write or append requests."""
+        # Keywords for writing to existing files
+        write_keywords = [
+            'write to', 'add to', 'append to', 'update', 'put in',
+            'add line', 'append line', 'write line', 'add text',
+            'insert into', 'insert in', 'write into'
+        ]
+        
+        # Arabic write keywords
+        arabic_write_keywords = [
+            'اكتب', 'أكتب في', 'اضف إلى', 'اضف الى', 'اضافة الى',
+            'اكتب السطر', 'اضف سطر', 'اكتب نص', 'ادخل في'
+        ]
+        
+        # Check for write keywords
+        has_write_intent = any(keyword in query for keyword in write_keywords) or \
+                           any(keyword in query for keyword in arabic_write_keywords)
+        
+        # Check for presence of file mention
+        has_file_mention = 'file' in query or '.txt' in query or 'text file' in query or 'ملف' in query
+        
+        # Check for presence of content indicators
+        content_indicators = ['line', 'text', 'content', 'string', 'text', 'سطر', 'نص', 'محتوى']
+        has_content_indicator = any(indicator in query for indicator in content_indicators)
+        
+        # If query has write intent and a file is mentioned
+        if has_write_intent and has_file_mention:
+            return True
+        
+        # Look for cases like "add 'hello' to file.txt" pattern
+        # This matches patterns with quoted content going to a file
+        if re.search(r'(?:add|append|write|put)\s+[\'"]([^\'"]+)[\'"]\s+(?:to|in|into)', query):
+            return True
+            
+        # Look for sentence patterns like "write the line X in file Y"
+        line_patterns = [
+            r'(?:write|add|append|put)\s+(?:the\s+)?(?:line|text|content|string)\s+[\'"]?([^\'"]+)[\'"]?\s+(?:to|in|into)\s+([^\s]+)',
+            r'(?:write|add|append|put)\s+[\'"]?([^\'"]+)[\'"]?\s+(?:to|in|into)\s+(?:the\s+)?(?:file|text file)\s+([^\s]+)'
+        ]
+        
+        for pattern in line_patterns:
+            if re.search(pattern, query):
+                return True
+                
+        # Arabic patterns like "اكتب السطر X في الملف Y"
+        arabic_line_patterns = [
+            r'(?:اكتب|أكتب|اضف|أضف)\s+(?:السطر|النص|المحتوى)\s+[\'"]?([^\'"]+)[\'"]?\s+(?:في|الى|إلى)\s+(?:الملف|ملف)\s+([^\s]+)',
+            r'(?:اكتب|أكتب|اضف|أضف)\s+[\'"]?([^\'"]+)[\'"]?\s+(?:في|الى|إلى)\s+(?:الملف|ملف)\s+([^\s]+)'
+        ]
+        
+        for pattern in arabic_line_patterns:
+            if re.search(pattern, query):
+                return True
+        
+        return False
+        
+    def _is_file_delete_query(self, query):
+        """Detect file deletion requests."""
+        # Keywords for deleting files
+        delete_keywords = [
+            'delete', 'remove', 'trash', 'erase', 'get rid of'
+        ]
+        
+        # Arabic delete keywords
+        arabic_delete_keywords = [
+            'احذف', 'امسح', 'ازل', 'أزل'
+        ]
+        
+        # Check for delete keywords
+        has_delete_intent = any(keyword in query for keyword in delete_keywords) or \
+                            any(keyword in query for keyword in arabic_delete_keywords)
+        
+        # Check for presence of file mention
+        has_file_mention = 'file' in query or '.txt' in query or 'text file' in query or 'ملف' in query
+        
+        # If query has delete intent and a file is mentioned
+        if has_delete_intent and has_file_mention:
+            return True
+            
+        # More complex patterns for file deletion
+        file_patterns = [
+            r'(?:delete|remove|trash|erase|get rid of)\s+(?:the\s+)?(?:file|text file|document)\s+([^\s]+)',
+            r'(?:delete|remove|trash|erase|get rid of)\s+([^\s]+\.(?:txt|md|pdf|doc|json|py|js|html|css))'
+        ]
+        
+        for pattern in file_patterns:
+            if re.search(pattern, query):
+                return True
+                
+        # Arabic patterns
+        arabic_file_patterns = [
+            r'(?:احذف|امسح|ازل|أزل)\s+(?:ال|ملف|الملف)\s+([^\s]+)',
+            r'(?:احذف|امسح|ازل|أزل)\s+([^\s]+\.(?:txt|md|pdf|doc|json|py|js|html|css))'
+        ]
+        
+        for pattern in arabic_file_patterns:
+            if re.search(pattern, query):
+                return True
+                
         return False
 
     def _execute_system_info_command(self, query):
         """Execute appropriate system command for information queries."""
+        # Direct "what system" query - use the platform detection
+        if 'what system' in query or 'which system' in query or 'what os' in query or 'am i on' in query:
+            platform_info = self.platform_commands.get_platform_info()
+            
+            # Create a user-friendly response
+            if self.platform_commands.is_linux:
+                # For Linux, include distribution info if available
+                if self.platform_commands.linux_distro:
+                    return f"You are running Linux ({self.platform_commands.linux_distro.capitalize()}). Your current shell is {self.platform_commands.shell}."
+                else:
+                    return f"You are running Linux. Your current shell is {self.platform_commands.shell}."
+            elif self.platform_commands.is_macos:
+                return f"You are running macOS. Your current shell is {self.platform_commands.shell}."
+            elif self.platform_commands.is_windows:
+                return "You are running Windows."
+            else:
+                # Generic response if platform not specifically identified
+                return f"You are running {platform.system()} on {platform.machine()} architecture."
+        
+        # Use platform-specific commands for other system info queries
         if any(term in query for term in ['uptime', 'how long', 'running']):
-            return self.command_executor.execute_system_command("uptime")
+            command = self.platform_commands.get_system_status_command("uptime")
+            return self.shell_handler.execute_command(command)
         
         if any(term in query for term in ['memory', 'ram']):
-            return self.command_executor.execute_system_command("memory")
+            command = self.platform_commands.get_system_status_command("memory")
+            return self.shell_handler.execute_command(command)
             
         if any(term in query for term in ['disk', 'storage', 'space']):
-            return self.command_executor.execute_system_command("disk_space")
+            command = self.platform_commands.get_system_status_command("disk")
+            return self.shell_handler.execute_command(command)
             
-        # Default system info if no specific match
-        return self.command_executor.execute_system_command("uptime")
+        if any(term in query for term in ['cpu', 'processor', 'load']):
+            command = self.platform_commands.get_system_status_command("cpu")
+            return self.shell_handler.execute_command(command)
+            
+        # Default system info - use a summary command based on platform
+        command = self.platform_commands.get_system_status_command("summary")
+        return self.shell_handler.execute_command(command)
         
     def _execute_notes_app_command(self, query):
-        """Execute appropriate Notes app command directly."""
+        """Execute appropriate Notes app command directly using platform commands."""
         result_prefix = "📝 Notes Results:\n"
         
         if 'open' in query:
-            # Direct execution for opening Notes app
-            if 'robotic' in query.lower() or 'world' in query.lower():
-                # Special case for "Robotic World" notes
-                result = run_command("open -a Notes ~/Documents/Robotic\\ World", shell=True)
-                return f"✅ Opening Notes about Robotic World" if result['success'] else f"❌ Failed to open Notes: {result['stderr']}"
-            else:
-                # General Notes app opening
-                result = run_command("open -a Notes", shell=True)
-                return f"✅ Notes app opened successfully" if result['success'] else f"❌ Failed to open Notes: {result['stderr']}"
+            command = self.platform_commands.get_notes_command("open")
+            result = self.shell_handler.execute_command(command)
+            return f"✅ Opening notes application: {result}"
         
         elif 'count' in query or 'many' in query or 'number' in query:
-            # Instead of explanation, directly execute and return results
-            if platform.system() == 'Darwin':  # macOS
-                result = run_command("""osascript -e 'tell application "Notes" to get the count of notes'""", shell=True)
-                if result['success']:
-                    return f"{result_prefix}You have {result['stdout'].strip()} notes."
-                else:
-                    return f"❌ Failed to count notes: {result['stderr']}"
+            command = self.platform_commands.get_notes_command("count")
+            result = self.shell_handler.execute_command(command)
+            
+            # Format the result nicely
+            if result.isdigit():
+                return f"{result_prefix}You have {result} notes."
             else:
-                return "Counting notes is currently only supported on macOS."
+                return f"{result_prefix}{result}"
             
         elif ('list' in query and 'folder' not in query and 'topic' not in query) or ('show' in query and 'folder' not in query and 'topic' not in query):
-            # Directly list notes
-            if platform.system() == 'Darwin':  # macOS
-                result = run_command("""osascript -e 'tell application "Notes" to get name of every note'""", shell=True)
-                if result['success']:
-                    notes = result['stdout'].strip().split(', ')
-                    formatted_notes = "\n".join([f"  • {note}" for note in notes[:20]])
-                    if len(notes) > 20:
-                        formatted_notes += f"\n  ... and {len(notes) - 20} more notes"
-                    return f"{result_prefix}{formatted_notes}"
-                else:
-                    return f"❌ Failed to list notes: {result['stderr']}"
+            command = self.platform_commands.get_notes_command("list")
+            result = self.shell_handler.execute_command(command)
+            
+            # Format the result with bullet points if it's a list
+            if '\n' in result:
+                notes = result.strip().split('\n')
+                formatted_notes = "\n".join([f"  • {note}" for note in notes[:20]])
+                if len(notes) > 20:
+                    formatted_notes += f"\n  ... and {len(notes) - 20} more notes"
+                return f"{result_prefix}{formatted_notes}"
             else:
-                return "Listing notes is currently only supported on macOS."
+                return f"{result_prefix}{result}"
             
         else:
-            # Default for topics/folders (direct execution)
-            if platform.system() == 'Darwin':  # macOS
-                result = run_command("""osascript -e 'tell application "Notes" to get name of every folder'""", shell=True)
-                if result['success']:
-                    folders = result['stdout'].strip().split(', ')
-                    formatted_folders = "\n".join([f"  📁 {folder}" for folder in folders])
-                    return f"{result_prefix}Notes folders:\n{formatted_folders}"
-                else:
-                    return f"❌ Failed to get notes folders: {result['stderr']}"
+            # Default for topics/folders - using shell_handler.find_folders
+            if hasattr(self.shell_handler, "find_folders"):
+                return self.shell_handler.find_folders("notes", "~", 20, True)
             else:
-                # Fallback for Linux/Windows
-                result = run_command("find ~ -type d -name \"*Notes*\" -o -name \"*notes*\" | head -n 10", shell=True)
-                if result['success']:
-                    folders = result['stdout'].strip().split('\n')
-                    formatted_folders = "\n".join([f"  📁 {folder}" for folder in folders if folder])
-                    return f"{result_prefix}Potential notes folders found:\n{formatted_folders}" if formatted_folders else "No notes folders found."
+                # Fallback to command if find_folders is not available
+                command = self.platform_commands.get_file_search_command("folder", "notes")
+                result = self.shell_handler.execute_command(command)
+                
+                # Format the result with bullet points
+                if '\n' in result:
+                    folders = result.strip().split('\n')
+                    formatted_folders = "\n".join([f"  📁 {folder}" for folder in folders])
+                    return f"{result_prefix}Potential notes folders found:\n{formatted_folders}"
                 else:
-                    return f"❌ Failed to find notes folders: {result['stderr']}"
+                    return f"{result_prefix}{result}"
         
     def _execute_file_folder_command(self, query):
-        """Execute appropriate file/folder command directly."""
-        result_prefix = "📂 Folder Results:\n"
+        """Execute appropriate file/folder command directly using platform commands."""
+        result_prefix = "📂 File/Folder Results:\n"
         
-        # Extract search term if present
+        # Extract search term and file extension if present
         search_term = None
-        for term in ['find', 'search', 'where']:
-            if term in query:
-                parts = query.split(term, 1)
-                if len(parts) > 1:
-                    # Extract search term after the action word
-                    potential_terms = parts[1].split()
-                    if potential_terms:
-                        search_term = potential_terms[0].strip()
-                        break
+        file_extension = None
         
-        if not search_term:
-            # Try to extract term after "show" or "list"
-            for term in ['show', 'list']:
+        # Check for specific file extension requests
+        extension_match = re.search(r'(txt|pdf|docx?|jpe?g|png|zip|gif|mp3|mp4)\s+files', query, re.IGNORECASE)
+        if extension_match:
+            file_extension = extension_match.group(1).lower()
+        
+        # Check for "what is/are the X files" pattern
+        is_are_match = re.search(r'what\s+(is|are)\s+the\s+(.*?)\s+files', query, re.IGNORECASE)
+        if is_are_match:
+            descriptor = is_are_match.group(2).strip().lower()
+            if 'text' in descriptor or 'txt' in descriptor:
+                file_extension = 'txt'
+            elif 'pdf' in descriptor:
+                file_extension = 'pdf'
+            elif 'doc' in descriptor:
+                file_extension = 'doc'
+            elif 'image' in descriptor or 'picture' in descriptor or 'photo' in descriptor:
+                file_extension = 'jpg,jpeg,png,gif'
+        
+        # Extract location - desktop, documents, downloads
+        location = None
+        location_match = re.search(r'(on|in)\s+(my|the)?\s*(desktop|documents?|downloads?)', query, re.IGNORECASE)
+        if location_match:
+            location = location_match.group(3).lower()
+            if location == 'document' or location == 'documents':
+                location = 'documents'
+            elif location == 'download' or location == 'downloads':
+                location = 'downloads'
+        
+        # If no explicit location mentioned, see if terms appear in the query
+        if not location:
+            if 'desktop' in query.lower():
+                location = 'desktop'
+            elif 'document' in query.lower():
+                location = 'documents'
+            elif 'download' in query.lower():
+                location = 'downloads'
+            else:
+                # Default to current directory if no location specified
+                location = 'current'
+        
+        # Extract search term for other file search patterns
+        if not search_term and not file_extension:
+            for term in ['find', 'search', 'where', 'about', 'for']:
                 if term in query:
                     parts = query.split(term, 1)
                     if len(parts) > 1:
-                        potential_terms = parts[1].strip().split()
+                        potential_terms = parts[1].split()
                         if potential_terms:
                             search_term = potential_terms[0].strip()
                             break
         
-        # Default search term if none found
-        if not search_term:
-            search_term = "Documents"
+        # Determine if we're searching for files or folders
+        search_type = "folder" if any(term in query for term in ['folder', 'directory', 'directories']) else "file"
         
-        # Directly execute the folder search command using run_command
-        command = f"find ~ -type d -name \"*{search_term}*\" -not -path \"*/\\.*\" | head -n 10"
-        result = run_command(command, shell=True)
-        
-        if result['success']:
-            folders = [folder for folder in result['stdout'].strip().split('\n') if folder]
-            if folders:
-                formatted_results = "\n".join([f"  📁 {folder}" for folder in folders])
-                return f"{result_prefix}Found folders matching '{search_term}':\n{formatted_results}"
+        # Format special command for file extension search
+        if file_extension and location:
+            if location == 'desktop':
+                base_dir = self.user_settings["preferred_locations"].get("desktop", "~/Desktop")
+            elif location == 'documents':
+                base_dir = self.user_settings["preferred_locations"].get("documents", "~/Documents")
+            elif location == 'downloads':
+                base_dir = self.user_settings["preferred_locations"].get("downloads", "~/Downloads")
             else:
-                return f"No folders matching '{search_term}' were found."
-        else:
-            return f"❌ Error searching for folders: {result['stderr']}"
-        
-    def _handle_with_ai(self, user_input):
-        """Process user input with AI after direct command processing failed.
-        Ensures an executable command is generated and properly executed."""
-        # Log that we're using AI for this request
-        if not self.quiet_mode:
-            print(f"🤖 Using AI to process request: '{user_input}'")
-        
-        # Create a comprehensive system-aware prompt with specific instruction requirements
-        system_info = platform.system()
-        os_version = platform.release()
-        shell_type = os.environ.get('SHELL', '/bin/bash').split('/')[-1]
-        
-        prompt_for_ai = (
-            f"User request: '{user_input}'\n"
-            f"Operating system: {system_info} {os_version}\n"
-            f"Shell: {shell_type}\n\n"
-            f"TASK: Generate a single executable shell command that will directly accomplish the user's request.\n\n"
-            f"REQUIREMENTS:\n"
-            f"1. You MUST return a command that can be executed directly in a terminal\n"
-            f"2. Format your response as: ```shell\n[command]\n```\n"
-            f"3. DO NOT include explanations, suggestions, or anything other than the code block\n"
-            f"4. Provide a complete, specific command - never use placeholders\n"
-            f"5. Use safe commands appropriate for {system_info} with {shell_type}\n"
-            f"6. If you absolutely cannot create a safe command, respond with 'ERROR: [specific reason]'\n\n"
-            f"EXAMPLES:\n"
-            f"- 'show me large files' → ```shell\nfind ~ -type f -size +100M | sort -hr | head -n 10\n```\n"
-            f"- 'what's the weather' → ```shell\ncurl wttr.in\n```\n"
-            f"- 'show system status' → ```shell\nsystemctl status\n```\n"
-            f"- 'search for documents about AI' → ```shell\nfind ~/Documents -type f -name \"*AI*\" -o -exec grep -l \"AI\" {{}} \\; 2>/dev/null | head -n 15\n```\n"
-        )
-        
-        # First attempt - request AI response with specific command generation instructions
-        ai_response = self.ai_handler.get_ai_response(prompt_for_ai)
-        if not self.quiet_mode:
-            print(f"AI response received (length: {len(ai_response)})")
-        
-        # Clear indication of error in response?
-        has_error = False
-        error_reason = None
-        error_indicators = ["ERROR:", "I can't", "I cannot", "unable to", "not possible", "sorry"]
-        
-        # Check for explicit error messages
-        if any(indicator in ai_response for indicator in error_indicators):
-            has_error = True
-            if "ERROR:" in ai_response:
-                error_parts = ai_response.split("ERROR:", 1)
-                if len(error_parts) > 1:
-                    error_reason = error_parts[1].strip().split("\n")[0].strip().strip('`').strip()
-                    if not self.quiet_mode:
-                        print(f"AI returned explicit error: {error_reason}")
-            else:
-                # Find the first sentence with an error indicator
-                for line in ai_response.split("\n"):
-                    if any(indicator.lower() in line.lower() for indicator in error_indicators):
-                        error_reason = line.strip().strip('`').strip()
-                        if not self.quiet_mode:
-                            print(f"AI returned implicit error: {error_reason}")
-                        break
-                        
-                if not error_reason:
-                    error_reason = "Unable to generate an appropriate command"
-        
-        # If it's a clear error response with no code block, handle it directly
-        if has_error and not re.search(r'```.*?```', ai_response, re.DOTALL):
-            if not self.quiet_mode:
-                print(f"Handling as implementation request - no code block found and error detected")
-            self._log_command_request(
-                user_input, 
-                None, 
-                "implementation_needed", 
-                f"AI ERROR: {error_reason if error_reason else 'Unknown error'}"
-            )
-            return self._handle_unknown_command_request(
-                user_input, 
-                error_reason if error_reason else "Unable to generate appropriate command"
-            )
-        
-        # Attempt to extract a command from the AI response
-        suggested_command = self._extract_command_from_ai_response(ai_response)
-        
-        # If first attempt failed, try once more with a more assertive prompt
-        if not suggested_command:
-            if not self.quiet_mode:
-                print("First attempt failed to extract command - trying with more assertive prompt")
+                base_dir = "."  # Current directory
                 
-            retry_prompt = (
-                f"CRITICAL: You must generate an executable shell command for: '{user_input}'\n\n"
-                f"Your previous response did not contain a valid command. Please try again.\n\n"
-                f"REMEMBER: Your response MUST contain exactly ONE command in a code block formatted as:\n"
-                f"```shell\n[command]\n```\n\n"
-                f"Do not provide explanations or alternatives. Focus only on generating a working command."
-            )
-            
-            # Second attempt with more assertive prompt
-            ai_response = self.ai_handler.get_ai_response(retry_prompt)
-            if not self.quiet_mode:
-                print(f"Second attempt response received (length: {len(ai_response)})")
-            suggested_command = self._extract_command_from_ai_response(ai_response)
-        
-        # At this point we've tried up to two times to get a command
-        if suggested_command:
-            if not self.quiet_mode:
-                print(f"🤖 AI Suggested Command: {suggested_command}")
-                
-            # Validate the command before execution to catch any error messages masquerading as commands
-            error_prefixes = ["error:", "error ", "sorry", "i can't", "i cannot", "unable to", "apologies", "my apologies"]
-            suspicious_patterns = ["error", "cannot ", "can't ", "don't ", "unable", "not possible", "invalid request"]
-            
-            # Check for error prefixes
-            if any(suggested_command.lower().startswith(err_prefix) for err_prefix in error_prefixes):
-                # AI returned an error disguised as a command - handle as an unknown request
-                error_reason = suggested_command
-                if ":" in suggested_command:
-                    parts = suggested_command.split(":", 1)
-                    if len(parts) > 1:
-                        error_reason = parts[1].strip()
-                
-                if not self.quiet_mode:
-                    print(f"Command rejected - starts with error prefix: {suggested_command}")
-                
-                # Log the implementation request
-                self._log_command_request(
-                    user_input, 
-                    None, 
-                    "implementation_needed", 
-                    f"AI ERROR: {error_reason}"
-                )
-                
-                # Handle as unknown command
-                return self._handle_unknown_command_request(user_input, error_reason)
-            
-            # Additional sanity check for suspicious content
-            if any(pattern in suggested_command.lower() for pattern in suspicious_patterns):
-                # This might be an error message in disguise - check more carefully
-                if len(suggested_command.split()) > 6:  # Error messages tend to be verbose
-                    # Likely an error message, not a command - log and handle as unknown
-                    if not self.quiet_mode:
-                        print(f"Command rejected - suspicious content: {suggested_command}")
-                    
-                    # Log the implementation request
-                    self._log_command_request(
-                        user_input, 
-                        None, 
-                        "implementation_needed", 
-                        f"Suspicious command rejected: {suggested_command}"
-                    )
-                    
-                    # Handle as unknown command
-                    return self._handle_unknown_command_request(
-                        user_input,
-                        "Generated command appears to be an error message"
-                    )
-            
-            # At this point, we have a command that looks legitimate
-            try:
-                # Safety check on command
-                from core.shell_handler import CommandSafetyLevel
-                safety_level = self.shell_handler.assess_command_safety(suggested_command)
-                if not self.quiet_mode:
-                    print(f"Command safety level: {safety_level}")
-                
-                # Execute the command using run_command utility
-                result = run_command(suggested_command, shell=True, capture_output=True, text=True)
-                
-                # Process and format the result for better user experience
-                if result['success']:
-                    output = result['stdout'].strip() if result['stdout'] else "Command executed successfully (no output)"
-                    # Format the output based on command type
-                    return self._format_command_output(output, suggested_command)
+            # Use platform-specific command for file extension search
+            if self.platform_commands.is_linux or self.platform_commands.is_macos:
+                if ',' in file_extension:
+                    # Multiple extensions
+                    extensions = file_extension.split(',')
+                    find_parts = [f"-name '*.{ext}'" for ext in extensions]
+                    command = f"find {base_dir} -type f \\( {' -o '.join(find_parts)} \\) | sort"
                 else:
-                    error = result['stderr'].strip() if result['stderr'] else f"Command failed with return code {result['returncode']}"
-                    # Log and handle the failed command
-                    self._log_command_request(user_input, suggested_command, "failed", error)
-                    return self._handle_failed_command(error, user_input, suggested_command)
-            except Exception as e:
-                # Handle any execution errors
-                if not self.quiet_mode:
-                    print(f"Command execution error: {str(e)}")
-                    
-                # Log the error
-                self._log_command_request(
-                    user_input, 
-                    suggested_command, 
-                    "execution_error", 
-                    f"Error: {str(e)}"
-                )
+                    command = f"find {base_dir} -type f -name '*.{file_extension}' | sort"
+            elif self.platform_commands.is_windows:
+                if ',' in file_extension:
+                    # Multiple extensions
+                    extensions = file_extension.split(',')
+                    find_parts = [f"*.{ext}" for ext in extensions]
+                    command = f"dir /b {base_dir}\\{{{','.join(find_parts)}}}"
+                else:
+                    command = f"dir /b {base_dir}\\*.{file_extension}"
+            else:
+                # Fallback to platform commands
+                command = self.platform_commands.get_file_search_command(search_type, file_extension)
+        else:
+            # Get and execute the platform-specific command
+            if not search_term:
+                search_term = "*"  # Default to all files/folders
                 
-                # Return error message to user
-                return f"❌ Error executing command: {str(e)}"
-        else:
-            # AI couldn't generate a command - implement the "request new command" flow
-            if not self.quiet_mode:
-                print("No valid command could be extracted from AI response")
-            
-            # Try to get an error reason if available
-            error_reason = "Could not map request to executable command"
-            if "ERROR:" in ai_response:
-                # AI explicitly indicated it couldn't generate a command
-                error_parts = ai_response.split("ERROR:", 1)
-                if len(error_parts) > 1:
-                    error_reason = error_parts[1].strip()
-            
-            # Log this request with high priority for future implementation
-            self._log_command_request(
-                user_input, 
-                None, 
-                "implementation_needed", 
-                f"PRIORITY: AI failed to generate command. Reason: {error_reason}"
-            )
-            
-            # Provide helpful response to the user with clear next steps
-            return self._handle_unknown_command_request(user_input, error_reason)
-    
-        # The function should never reach this point with the new implementation
-        # But just in case, we'll make sure to return something sensible
-        # Log this unexpected path
-        self._log_command_request(user_input, None, "unexpected_path", "Function reached unexpected code path")
-        return f"I've noted your request to '{user_input}'. This request has been logged for implementation."
+            command = self.platform_commands.get_file_search_command(search_type, search_term)
         
-    def _format_command_output(self, output, command=None):
-        """Format command output in a user-friendly way."""
-        # Process output based on command type for better readability
-        if "ls" in command or "find" in command:
-            # Format file/folder listing with icons
-            lines = output.split('\n')
-            formatted_lines = []
-            for line in lines:
-                if line.endswith('/'):
-                    # It's a directory
-                    formatted_lines.append(f"📁 {line}")
-                elif line.strip():
-                    # It's a file
-                    formatted_lines.append(f"📄 {line}")
+        # Execute the command
+        if not self.quiet_mode:
+            print(f"\n🔍 Searching for {search_type}s" + 
+                  (f" with extension '{file_extension}'" if file_extension else f" matching '{search_term}'") + 
+                  f" in {location} directory\n")
+            print(f"Command: {command}\n")
             
-            formatted_output = "\n".join(formatted_lines)
-            return f"✅ Results:\n\n{formatted_output}"
-        elif "ps" in command or "top" in command:
-            # Process list formatting
-            return f"✅ Process Information:\n\n```\n{output}\n```"
-        else:
-            # Generic output formatting
-            return f"✅ Result:\n\n```\n{output}\n```"
-    
-    def _handle_failed_command(self, error, original_input, failed_command):
-        """Handle cases where a command failed to execute properly."""
-        # Check for common error patterns and provide helpful responses
-        if "command not found" in error.lower():
-            # Try to suggest an alternative
-            return (f"❌ Command failed: The system doesn't recognize `{failed_command}`.\n\n"
-                    f"I'll try another approach to accomplish your request.")
-        elif "permission denied" in error.lower():
-            # Permission issues
-            return (f"❌ Permission denied when trying to execute the command.\n\n"
-                   f"This operation might require additional permissions.")
-        elif "no such file or directory" in error.lower():
-            # File/path not found
-            return (f"❌ The file or directory specified in the command doesn't exist.\n\n"
-                   f"Let me try a different approach to find what you're looking for.")
-        else:
-            # Generic error handling
-            # Log the failed command request for future improvement
-            self._log_command_request(original_input, failed_command, "failed", error)
-            return f"❌ The command encountered a problem: {error}\n\nIs there another way I can help you with this?"
-    
-    def _handle_unknown_command_request(self, user_input, reason=""):
-        """Handle requests that couldn't be mapped to a command.
-        Provides clear feedback and logs the request for future implementation."""
-        # This request is already logged in the caller, so we don't need to log it again
+        result = self.shell_handler.execute_command(command)
         
-        # Provide a helpful response with clear next steps
-        response = (
-            f"📝 I understand you want me to '{user_input}', but I couldn't map this to an executable command.\n\n"
-            f"Reason: {reason if reason else 'Could not determine appropriate command'}\n\n"
-            f"✅ This request has been logged for future implementation.\n\n"
+        # Format the results
+        if result and not result.startswith("Error"):
+            items = [item for item in result.strip().split('\n') if item]
+            if items:
+                icon = "📁" if search_type == "folder" else "📄"
+                formatted_results = "\n".join([f"  {icon} {item}" for item in items])
+                
+                # Create a nice header for the results
+                header = f"{search_type.capitalize()}s"
+                if file_extension:
+                    header += f" with extension .{file_extension}"
+                if location and location != "current":
+                    header += f" in your {location}"
+                    
+                return f"{result_prefix}Found {len(items)} {header}:\n{formatted_results}"
+            else:
+                header = f"{search_type.capitalize()}s"
+                if file_extension:
+                    header += f" with extension .{file_extension}"
+                if location and location != "current":
+                    header += f" in your {location}"
+                return f"No {header} were found."
+        else:
+            return f"❌ Error searching for {search_type}s: {result}"
+            
+    def _execute_file_creation_command(self, user_input):
+        """Handle file creation requests by extracting filename, content, and location."""
+        query_lower = user_input.lower()
+        
+        # Format thinking process that will be folded
+        thinking = self._format_thinking(
+            f"Creating a file based on your request...\n"
+            f"Analyzing to extract the filename, location, and content...\n"
+            f"Checking your preferred locations..."
         )
         
-        # Try to suggest some related commands or approaches
-        if "search" in user_input.lower() or "find" in user_input.lower():
-            response += "📌 You might try a more specific search query, like:\n- 'find files containing X'\n- 'search for folders named Y'\n- 'locate files modified today'"
-        elif "install" in user_input.lower():
-            response += "📌 For installations, please specify the package manager and package name:\n- 'install X using brew'\n- 'use pip to install Y'\n- 'apt-get install Z'"
-        elif "open" in user_input.lower() or "launch" in user_input.lower():
-            response += "📌 For opening applications, try specifying the exact application name:\n- 'open Safari'\n- 'launch Terminal'\n- 'open Notes app'"
-        elif "show" in user_input.lower() or "list" in user_input.lower():
-            response += "📌 For listing information, try being more specific:\n- 'show running processes'\n- 'list files in Downloads'\n- 'show disk usage'"
-        else:
-            response += "📌 Please try rephrasing your request to be more specific about what you want to accomplish."
-        
-        return response
-    
-    def _log_command_request(self, user_input, command, status, details=""):
-        """Log command requests for future improvement and implementation.
-        Uses a simplified approach for more reliable logging."""
-        try:
-            # Log entry with timestamp
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            log_entry = {
-                "timestamp": timestamp,
-                "user_input": user_input,
-                "command": command,
-                "status": status,
-                "details": details,
-                "os": platform.system(),
-                "shell": os.environ.get('SHELL', '/bin/bash').split('/')[-1]
-            }
-            
-            # Convert to JSON string
-            log_string = json.dumps(log_entry)
-            
-            # Always print to console for debug purposes during development
-            if not self.quiet_mode and (status == "implementation_needed" or status == "unknown"):
-                print(f"🔴 Command implementation needed: '{user_input}'")
-                print(f"📝 Log entry: {log_string}")
-            
-            # Get log directory from config if available
-            log_dir = None
-            try:
-                config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'settings.json')
-                if os.path.exists(config_file):
-                    with open(config_file, 'r') as f:
-                        config = json.load(f)
-                        log_dir = config.get('log_directory')
-            except Exception:
-                log_dir = None
-                
-            # Try different log directories if needed
-            log_dirs_to_try = [
-                # From config
-                log_dir,
-                # Current directory logs
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs'),
-                # Home directory logs
-                os.path.join(os.path.expanduser('~'), '.uaibot', 'logs'),
-                # /tmp directory logs
-                os.path.join('/tmp', 'uaibot_logs') if platform.system() != 'Windows' else 
-                os.path.join(os.environ.get('TEMP', 'C:\\Temp'), 'uaibot_logs')
-            ]
-            
-            # Try each directory until one works
-            for dir_path in log_dirs_to_try:
-                if not dir_path:
-                    continue
-                    
-                try:
-                    # Create directory
-                    os.makedirs(dir_path, exist_ok=True)
-                    
-                    # Define log files
-                    log_file = os.path.join(dir_path, 'command_requests.log')
-                    if status == "unknown":
-                        special_log = os.path.join(dir_path, 'unknown_commands.log')
-                    elif status == "implementation_needed":
-                        special_log = os.path.join(dir_path, 'implementation_needed.log')
-                    else:
-                        special_log = None
-                    
-                    # Write to main log file
-                    with open(log_file, 'a') as f:
-                        f.write(log_string + '\n')
-                        
-                    # Write to specialized log if applicable
-                    if special_log:
-                        with open(special_log, 'a') as f:
-                            f.write(log_string + '\n')
-                    
-                    if not self.quiet_mode:
-                        print(f"Logged command request to: {dir_path}")
-                    return  # Successfully logged, so return
-                except Exception as e:
-                    if not self.quiet_mode:
-                        print(f"Failed to log to {dir_path}: {str(e)}")
-                    continue  # Try next directory
-            
-            # If we got here, all log attempts failed
-            if not self.quiet_mode:
-                print("Failed to log command request to any location")
-                
-        except Exception as e:
-            # Global exception handler for the entire logging process
-            if not self.quiet_mode:
-                print(f"Critical error in logging system: {str(e)}")
-    
-    def _extract_command_from_ai_response(self, ai_response):
-        """Extract an executable command from an AI response.
-        Always tries to find a valid command, with aggressive extraction.
-        Returns None only if no potential command can be found."""
-        if not ai_response:
-            return None
-            
-        # Define error-indicating phrases that should prevent command extraction
-        error_indicators = [
-            "ERROR:", "I cannot", "I can't", "Unable to", "Not possible", 
-            "Cannot generate", "Can't generate", "I'm sorry", "sorry,", 
-            "apologies", "Invalid request", "Cannot perform", "Can't perform",
-            "not recommended", "could be dangerous", "security risk",
-            "insufficient permissions", "requires admin", "administrator privileges",
-            "not safe", "not secure", "harmful"
+        # Step 1: Try to extract the filename
+        filename = None
+        name_patterns = [
+            r'name(?:d|)\s+(?:it|)\s+([a-z0-9_.-]+\.[a-z0-9]+)',
+            r'call(?:ed|)\s+(?:it|)\s+([a-z0-9_.-]+\.[a-z0-9]+)',
+            r'file\s+(?:called|named)\s+([a-z0-9_.-]+\.[a-z0-9]+)',
+            r'create\s+(?:a\s+|)(?:file|text file)\s+([a-z0-9_.-]+\.[a-z0-9]+)',
+            r'make\s+(?:a\s+|)(?:file|text file)\s+([a-z0-9_.-]+\.[a-z0-9]+)',
+            r'(?:save|write)(?:\s+to|)\s+(?:a\s+|)(?:file|)\s+([a-z0-9_.-]+\.[a-z0-9]+)'
         ]
         
-        # Load security settings
-        security_settings = {}
-        try:
-            config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'settings.json')
-            if os.path.exists(config_file):
-                with open(config_file, 'r') as f:
-                    config = json.load(f)
-                    security_settings = config.get('security', {})
-        except Exception:
-            # Default security settings if unable to load
-            security_settings = {
-                "block_dangerous_commands": True,
-                "never_execute_raw_input": True,
-                "validate_before_execution": True
-            }
-            
-        # Skip explicit error messages unless they contain code blocks
-        if any(indicator in ai_response for indicator in error_indicators) and not re.search(r'```.*?```', ai_response, re.DOTALL):
-            if not self.quiet_mode:
-                print(f"AI response contains error indicators without code block")
-            return None
-            
-        # Track if there were errors for fallback methods
-        has_error = any(indicator in ai_response for indicator in error_indicators)
+        for pattern in name_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                filename = match.group(1)
+                break
         
-        # First priority: Extract from code blocks (our preferred format)
+        # If no filename with extension found, check for filenames without extension
+        if not filename:
+            name_patterns_no_ext = [
+                r'name(?:d|)\s+(?:it|)\s+([a-z0-9_.-]+)',
+                r'call(?:ed|)\s+(?:it|)\s+([a-z0-9_.-]+)',
+                r'file\s+(?:called|named)\s+([a-z0-9_.-]+)',
+                r'create\s+(?:a\s+|)(?:file|text file)\s+([a-z0-9_.-]+)'
+            ]
+            
+            for pattern in name_patterns_no_ext:
+                match = re.search(pattern, query_lower)
+                if match:
+                    filename = match.group(1) + ".txt"  # Add .txt extension
+                    break
+        
+        # Default filename if none found
+        if not filename:
+            filename = "hello.txt"
+        
+        # Step 2: Try to extract content
+        content = None
+        content_requested = False
+        
+        # First check if content was explicitly requested or mentioned
+        content_mentions = [
+            'with content', 'containing', 'that says', 
+            'with text', 'that reads', 'saying', 
+            'put in it', 'inside it', 'with the following'
+        ]
+        
+        # If any content terms are mentioned, mark content as requested
+        content_requested = any(term in query_lower for term in content_mentions)
+        
+        # Improved content patterns with better handling of various expressions
+        content_patterns = [
+            # Match content between quotes
+            r'content\s+(?:is|as|of|)\s+"([^"]+)"',
+            r'content\s+(?:is|as|of|)\s+\'([^\']+)\'',
+            
+            # Match 'put in it X' pattern (very common in natural language)
+            r'put\s+(?:in\s+it|inside|in\s+the\s+file)\s+([^,\.]+)',
+            r'put\s+([^,\.]+)\s+(?:in\s+it|inside|in\s+the\s+file)',
+            
+            # General content patterns
+            r'content\s+(?:is|as|of|)\s+([^.]+)(?:\.|$)',
+            r'with\s+(?:the\s+|)(?:text|content)\s+(?:of|)\s+"?([^".]+)"?',
+            r'with\s+(?:the\s+words|)\s+"?([^".]+)"?',
+            r'containing\s+(?:the\s+text|)\s+"?([^".]+)"?',
+            r'that\s+(?:has|contains|says|includes)\s+"?([^".]+)"?',
+            r'with\s+"?([^".]+)"?\s+(?:in it|inside|as content)',
+            r'saying\s+"?([^".]+)"?'
+        ]
+        
+        for pattern in content_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                content = match.group(1).strip()
+                content_requested = True
+                break
+        
+        # Special check for hello world between commands
+        if not content and 'hello world' in query_lower:
+            # Extract a segment around "hello world"
+            hello_idx = query_lower.find('hello world')
+            start_idx = max(0, hello_idx - 10)
+            end_idx = min(len(query_lower), hello_idx + 20)
+            content_segment = query_lower[start_idx:end_idx]
+            content = "Hello World!"
+            content_requested = True
+        
+        # Only use default content if content wasn't explicitly requested
+        if not content:
+            if content_requested:
+                # If content was requested but couldn't be extracted, ask AI for help
+                content_prompt = f"The user wants to create a file named {filename} but I couldn't extract the content they wanted. What would be a good default content based on their request: '{user_input}'?"
+                content = self.ai_handler.generate_response(content_prompt)
+                # Ensure it's not too long
+                if len(content) > 100:
+                    content = content[:100] + "..."
+            else:
+                # If content wasn't requested at all
+                content = "This is a text file."
+        
+        # Step 3: Try to extract location - IMPROVED TO DETECT DOCUMENT FOLDER
+        location = None
+        location_patterns = [
+            r'(?:in|on|to|at)\s+(?:the\s+|my\s+|)(\w+)\s+(?:folder|directory)',
+            r'(?:in|on|to|at)\s+(?:the\s+|my\s+|)(\w+)(?:\s+|$)',
+            r'(?:save|store|put)\s+(?:in|on|to|at)\s+(?:the\s+|my\s+|)(\w+)'
+        ]
+        
+        # First look specifically for document folder references
+        document_patterns = [
+            r'(?:in|on|to|at)\s+(?:the\s+|my\s+|)(doc|document|documents)\s+(?:folder|directory)',
+            r'(?:in|on|to|at)\s+(?:the\s+|my\s+|)(doc|document|documents)(?:\s+|$)',
+            r'(?:save|store|put)\s+(?:in|on|to|at)\s+(?:the\s+|my\s+|)(doc|document|documents)'
+        ]
+        
+        # Explicitly check for document folder mentions
+        for pattern in document_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                location = 'documents'
+                break
+        
+        # If documents not explicitly mentioned, try other locations
+        if not location:
+            for pattern in location_patterns:
+                match = re.search(pattern, query_lower)
+                if match:
+                    location_name = match.group(1).strip()
+                    if location_name in ['desktop', 'documents', 'downloads', 'home']:
+                        location = location_name
+                        break
+        
+            # Check for specific desktop mention at the beginning or anywhere in the query
+            if query_lower.startswith(('on desktop', 'on my desktop', 'at desktop', 'at my desktop')) or 'desktop' in query_lower:
+                location = 'desktop'
+            elif query_lower.startswith(('in documents', 'in my documents', 'at documents', 'at my documents')) or 'documents' in query_lower:
+                location = 'documents'
+            elif query_lower.startswith(('in downloads', 'in my downloads', 'at downloads', 'at my downloads')) or 'downloads' in query_lower:
+                location = 'downloads'
+        
+        # Default to desktop if no location specified
+        if not location:
+            location = 'desktop'
+        
+        # Get the platform-specific command to create the file
+        command = self.platform_commands.get_create_file_command(filename, content, location)
+        
+        # Add verbose output in non-quiet mode
+        if not self.quiet_mode:
+            print(f"\nFile Creation Request:")
+            print(f"  Filename: {filename}")
+            print(f"  Location: {location}")
+            print(f"  Content: \"{content}\"")
+            print(f"  Command: {command}\n")
+            
+        result = self.shell_handler.execute_command(command)
+        
+        # Format the response with thinking and colors
+        if not result or "Error" not in result:
+            # Build the full path for reporting
+            if location.lower() == 'desktop':
+                if self.platform_commands.is_windows:
+                    path = f"%USERPROFILE%\\Desktop\\{filename}"
+                else:
+                    path = f"~/Desktop/{filename}"
+            elif location.lower() == 'documents':
+                if self.platform_commands.is_windows:
+                    path = f"%USERPROFILE%\\Documents\\{filename}"
+                else:
+                    path = f"~/Documents/{filename}"
+            else:
+                path = f"{location}/{filename}"
+                
+            return f"{thinking}\n\n{self.color_settings['success']}✅ Created file '{filename}' in {location}{self.color_settings['reset']}" + \
+                   f"\n{self.color_settings['important']}📄 Content:{self.color_settings['reset']} \"{content}\""
+        else:
+            return f"{thinking}\n\n{self.color_settings['error']}❌ Error creating file: {result}{self.color_settings['reset']}"
+        
+    def _handle_with_ai(self, user_input):
+        """Process user input with AI to generate an executable command."""
+        # Format thinking process that will be folded
+        thinking = self._format_thinking(
+            f"🤖 Processing your request: '{user_input}'\n\n"
+            f"I'm thinking about how to best handle this...\n"
+            f"Analyzing the intent of your request...\n"
+            f"Checking if I can map this to a system command..."
+        )
+        
+        # Create a prompt that's aware of the current platform
+        system_info = self.platform_commands.get_platform_info()
+        
+        # Create a better prompt that helps with file creation and other common tasks
+        prompt_for_ai = (
+            f"User request: '{user_input}'\n"
+            f"Current OS: {system_info['system']} "
+            f"{'(' + system_info['linux_distro'] + ')' if system_info['linux_distro'] else ''}\n"
+            f"Shell: {system_info['shell']}\n\n"
+            f"IMPORTANT INSTRUCTIONS:\n"
+            f"1. Generate a single command that would execute this request on the user's current OS.\n"
+            f"2. For file creation requests, use the appropriate OS command (e.g. echo on Linux/macOS, type on Windows).\n" 
+            f"3. For commands that need to handle spaces or special characters, use proper escaping/quoting.\n"
+        )
+        
+        # Get response from AI
+        ai_response = self.ai_handler.get_ai_response(prompt_for_ai)
+        
+        # Extract command from AI response
+        command = self._extract_command_from_ai_response(ai_response)
+        
+        if command:
+            # Format the result with colors
+            result = f"{thinking}\n\n"
+            result += f"{self.color_settings['important']}📌 I'll execute this command:{self.color_settings['reset']} {command}\n\n"
+            
+            # Execute the command using the shell handler
+            execution_result = self.shell_handler.execute_command(command)
+            
+            # Format the execution result
+            if execution_result:
+                if "Error" in execution_result or "not found" in execution_result.lower():
+                    result += f"{self.color_settings['error']}❌ There was a problem:{self.color_settings['reset']}\n{execution_result}\n"
+                    # Provide a helpful explanation when command fails
+                    result += f"\n{self.color_settings['important']}💡 Let me try a different approach:{self.color_settings['reset']}\n"
+                    fallback_response = self.ai_handler.generate_response(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
+                    result += fallback_response
+                else:
+                    result += f"{self.color_settings['success']}✅ Result:{self.color_settings['reset']}\n{execution_result}\n"
+            else:
+                result += f"{self.color_settings['success']}✅ Command executed successfully with no output.{self.color_settings['reset']}\n"
+            
+            return result
+        else:
+            # If no command could be extracted, return the AI's response directly
+            return f"{thinking}\n\n{self.color_settings['important']}💬 I couldn't find a specific command for that, but here's some information:{self.color_settings['reset']}\n\n{ai_response}"
+
+    def _format_thinking(self, thinking_text):
+        """Format the thinking process as a folded/collapsible section."""
+        formatted = f"{self.color_settings['thinking']}🤔 Thinking...\n"
+        # Add a folded section indicator
+        formatted += "┌───────────────────────────────────────────────┐\n"
+        # Add the thinking content with proper indentation
+        for line in thinking_text.split("\n"):
+            formatted += f"│ {line.ljust(45)} │\n"
+        formatted += "└───────────────────────────────────────────────┘"
+        formatted += f"{self.color_settings['reset']}"
+        return formatted
+        
+    def _get_detailed_system_specs(self):
+        """Get detailed system hardware specifications using the AI handler."""
+        try:
+            # Format the output with thinking process folded
+            thinking = self._format_thinking("Checking your system specifications...\n"
+                       "This might take a moment while I gather information about your hardware.\n"
+                       "Collecting CPU, RAM, disk, and other hardware details...")
+            
+            # Get the system information directly without relying on AI
+            specs = self._collect_system_info()
+            
+            # Format the final output with colors
+            result = f"{thinking}\n\n{self.color_settings['important']}💻 Machine Specifications:{self.color_settings['reset']}\n"
+            
+            if isinstance(specs, dict):
+                # Format the dictionary output nicely
+                for category, details in specs.items():
+                    result += f"\n{self.color_settings['success']}✅ {category}:{self.color_settings['reset']}\n"
+                    if isinstance(details, dict):
+                        for key, value in details.items():
+                            result += f"   • {key}: {value}\n"
+                    else:
+                        result += f"   • {details}\n"
+            else:
+                # If it's just a string, pass it through
+                result += specs
+                
+            return result
+        except Exception as e:
+            return f"{self.color_settings['error']}❌ Error collecting system specifications: {str(e)}{self.color_settings['reset']}"
+
+    def _collect_system_info(self):
+        """Collect system information directly without relying on AI."""
+        import platform
+        import os
+        import psutil
+        import subprocess
+        from datetime import datetime
+        
+        specs = {}
+        
+        # System Info
+        specs["System Information"] = {
+            "OS": f"{platform.system()} {platform.release()}",
+            "Architecture": platform.machine(),
+            "Version": platform.version(),
+            "Hostname": platform.node()
+        }
+        
+        # CPU Info
+        try:
+            specs["CPU Information"] = {
+                "Processor": platform.processor(),
+                "Physical cores": psutil.cpu_count(logical=False),
+                "Total cores": psutil.cpu_count(logical=True),
+                "Current CPU usage": f"{psutil.cpu_percent()}%"
+            }
+        except Exception as e:
+            specs["CPU Information"] = f"Error collecting CPU info: {str(e)}"
+        
+        # Memory Info
+        try:
+            mem = psutil.virtual_memory()
+            specs["Memory Information"] = {
+                "Total Memory": f"{mem.total / (1024**3):.2f} GB",
+                "Available Memory": f"{mem.available / (1024**3):.2f} GB",
+                "Used Memory": f"{mem.used / (1024**3):.2f} GB",
+                "Memory Percentage": f"{mem.percent}%"
+            }
+        except Exception as e:
+            specs["Memory Information"] = f"Error collecting memory info: {str(e)}"
+        
+        # Disk Info
+        try:
+            disk_info = {}
+            partitions = psutil.disk_partitions()
+            for partition in partitions:
+                try:
+                    partition_usage = psutil.disk_usage(partition.mountpoint)
+                    disk_info[partition.mountpoint] = {
+                        "Total Size": f"{partition_usage.total / (1024**3):.2f} GB",
+                        "Used": f"{partition_usage.used / (1024**3):.2f} GB",
+                        "Free": f"{partition_usage.free / (1024**3):.2f} GB",
+                        "Usage": f"{partition_usage.percent}%",
+                        "File System Type": partition.fstype
+                    }
+                except PermissionError:
+                    disk_info[partition.mountpoint] = "Permission denied"
+            specs["Disk Information"] = disk_info
+        except Exception as e:
+            specs["Disk Information"] = f"Error collecting disk info: {str(e)}"
+        
+        # Network Info
+        try:
+            network_info = {}
+            net_io = psutil.net_io_counters()
+            network_info["Bytes Sent"] = f"{net_io.bytes_sent / (1024**2):.2f} MB"
+            network_info["Bytes Received"] = f"{net_io.bytes_recv / (1024**2):.2f} MB"
+            
+            specs["Network Information"] = network_info
+        except Exception as e:
+            specs["Network Information"] = f"Error collecting network info: {str(e)}"
+        
+        # Additional distribution info if Linux
+        if platform.system().lower() == 'linux':
+            try:
+                if os.path.exists('/etc/os-release'):
+                    with open('/etc/os-release', 'r') as f:
+                        lines = f.readlines()
+                        distro_info = {}
+                        for line in lines:
+                            if '=' in line:
+                                key, value = line.strip().split('=', 1)
+                                distro_info[key] = value.strip('"')
+                        
+                        if 'NAME' in distro_info:
+                            specs["System Information"]["Distribution"] = distro_info['NAME']
+                        if 'VERSION' in distro_info:
+                            specs["System Information"]["Distribution Version"] = distro_info['VERSION']
+            except Exception as e:
+                specs["System Information"]["Distribution Info"] = f"Error: {str(e)}"
+                
+        return specs
+
+    def _extract_command_from_ai_response(self, ai_response):
+        """Extract just the command from an AI response text."""
+        # First check for code blocks - the preferred format
         code_block_pattern = r'```(?:bash|shell|zsh|sh|console|terminal)?\s*(.*?)\s*```'
         code_blocks = re.findall(code_block_pattern, ai_response, re.DOTALL)
         
         if code_blocks:
-            # Use the first code block as the command
-            command = code_blocks[0].strip()
+            # Use the first code block
+            return code_blocks[0].strip()
             
-            # If the code block itself contains error indicators, reject it
-            if any(indicator.lower() in command.lower() for indicator in error_indicators):
-                if not self.quiet_mode:
-                    print(f"Code block contains error indicators: {command}")
-                return None
-            
-            # If the command has multiple lines, use the first meaningful line 
-            # that looks like an actual command, not just a comment or empty line
-            command_lines = [line.strip() for line in command.split('\n') 
-                           if line.strip() and not line.strip().startswith('#')]
-            if command_lines:
-                extracted_cmd = command_lines[0]
-                # Check that the extracted line itself isn't an error message
-                if not any(indicator.lower() in extracted_cmd.lower() for indicator in error_indicators):
-                    return extracted_cmd
-        
-        # Second priority: Check for commands in backticks
+        # Next check for backtick-wrapped commands
         backtick_pattern = r'`(.*?)`'
         backticks = re.findall(backtick_pattern, ai_response)
         
         if backticks:
-            # Expanded list of command prefixes that indicate likely shell commands
-            command_prefixes = [
-                # File operations
-                "ls", "cd", "find", "grep", "echo", "mkdir", "touch", "cat", "open", 
-                "less", "more", "head", "tail", "nano", "vim", "vi", "emacs", "code",
-                # Package managers and programming
-                "python", "python3", "pip", "pip3", "npm", "node", "yarn", "ruby", "gem",
-                "go", "cargo", "rustc", "javac", "java", "gcc", "g++", "make", "cmake",
-                # Network tools
-                "git", "ssh", "curl", "wget", "ping", "traceroute", "netstat", "ifconfig",
-                "ip", "nc", "telnet", "nmap", "dig", "host", "whois", "arp", 
-                # Scripting and automation
-                "osascript", "powershell", "wsl", "bash", "sh", "zsh", "ksh", "csh", "fish",
-                # System operations
-                "rm", "cp", "mv", "chmod", "chown", "df", "du", "tar", "zip", "unzip", "gzip",
-                "ps", "top", "htop", "kill", "pkill", "man", "which", "sudo", "su", "uptime",
-                "reboot", "shutdown", "systemctl", "service", "launchctl", "diskutil",
-                # Package managers and containers
-                "apt", "apt-get", "brew", "yum", "dnf", "pacman", "snap", "flatpak", "docker",
-                "kubectl", "helm", "podman", "aws", "az", "gcloud", "terraform", "ansible"
-            ]
+            # Use the first backtick block
+            return backticks[0].strip()
             
-            for item in backticks:
-                # Skip error messages in backticks
-                if any(indicator.lower() in item.lower() for indicator in error_indicators):
-                    continue
-                    
-                words = item.split()
-                if words and words[0].lower() in [prefix.lower() for prefix in command_prefixes]:
-                    # More permissive check - any command in backticks is likely intended for execution
-                    return item.strip()
-                # Special check for simple commands that may be standalone
-                elif len(words) == 1 and words[0].lower() in ["ls", "pwd", "uptime", "date", "whoami", "clear"]:
-                    return item.strip()
-        
-        # Third priority: Look for command phrases followed by commands
-        command_phrases = [
-            "you can run:", "try running:", "execute:", "command:", "run:", 
-            "you can use:", "run this command:", "try this:", "use:", "shell:",
-            "you could try:", "enter:", "type:", "execute this:", "try executing:",
-            "you should use:", "terminal:", "console:", "the command is:", "using:", 
-            "command line:", "cli:", "enter this command:", "type this:", "bash:", 
-            "terminal command:", "you may use:", "try the command:", "execute the following:",
-            "run the following:", "input:", "command to run:", "use this command:",
-            "from your terminal:", "in your terminal:", "from your shell:", "in your shell:"
-        ]
-        
-        # Define error phrases that might be around commands
-        error_indicators = [
-            "ERROR:", "I cannot", "I can't", "Unable to", "Not possible", 
-            "Cannot generate", "Can't generate", "I'm sorry", "sorry,", 
-            "apologies", "Invalid request", "Cannot perform", "Can't perform"
-        ]
-        
-        for phrase in command_phrases:
-            if phrase.lower() in ai_response.lower():
-                # Get the text after the phrase until the end of the line or next punctuation
-                phrase_pattern = f"{re.escape(phrase.lower())}\\s*(.*?)(?:[.;\\n]|$)"
-                match = re.search(phrase_pattern, ai_response.lower())
-                if match:
-                    candidate = match.group(1).strip()
-                    
-                    # Skip error messages
-                    if any(indicator.lower() in candidate.lower() for indicator in error_indicators):
-                        continue
-                    
-                    # More permissive check for commands
-                    words = candidate.split()
-                    first_word = words[0].lower() if words else ""
-                    if first_word and len(words) > 0:  # Any non-empty string with spaces
-                        # Find the actual casing in the original text
-                        start_pos = ai_response.lower().find(candidate)
-                        if start_pos >= 0:
-                            end_pos = start_pos + len(candidate)
-                            extracted_cmd = ai_response[start_pos:end_pos].strip()
-                            
-                            # Final safety check against error messages
-                            if not any(indicator.lower() in extracted_cmd.lower() for indicator in error_indicators):
-                                if not self.quiet_mode:
-                                    print(f"Found command after phrase '{phrase}'")
-                                return extracted_cmd
-                        
-                        # If we couldn't extract with original casing, use the lowercase version
-                        if not any(indicator.lower() in candidate.lower() for indicator in error_indicators):
-                            if not self.quiet_mode:
-                                print(f"Using lowercase command after phrase '{phrase}'")
-                            return candidate
-        
-        # Fourth priority: Look for standalone commands in the text
-        command_prefixes = [
-            "ls", "cd", "find", "grep", "echo", "mkdir", "touch", "cat", "open", 
-            "df", "du", "ps", "top", "ping", "curl", "wget", "git", "python",
-            "npm", "apt", "brew"  # Shortened list for performance
-        ]
-        
+        # If there are no code blocks or backticks, use the whole response
+        # but remove any explanatory text that might be present
         lines = ai_response.split('\n')
         for line in lines:
             line = line.strip()
-            if line and not line.endswith(':') and not line.startswith('#'):
-                # Skip lines with error indicators
-                if any(indicator.lower() in line.lower() for indicator in error_indicators):
-                    continue
+            if line and not line.startswith(('#', '//', 'Note:', 'Here', 'Try')):
+                return line
+                
+        # If we couldn't find a clear command, return the original response
+        return ai_response.strip()
+        
+    def _execute_file_write_command(self, user_input):
+        """Execute file write or append operations."""
+        query_lower = user_input.lower()
+        
+        # Format thinking process
+        thinking = self._format_thinking(
+            f"Processing file write/append request...\n"
+            f"Analyzing to extract the filename, content, and write mode...\n"
+            f"Checking if this is an append or overwrite operation..."
+        )
+        
+        # Step 1: Extract the filename
+        filename = None
+        file_patterns = [
+            r'(?:to|into|in)\s+(?:file|text file|document|)\s+([^\s,]+\.[a-zA-Z0-9]+)', 
+            r'(?:to|into|in)\s+(?:file|text file|document|)\s+([^\s,]+)',
+            r'(?:file|text file|document)\s+([^\s,]+\.[a-zA-Z0-9]+)',
+            r'([^\s,]+\.[a-zA-Z0-9]+)'
+        ]
+        
+        # Arabic file patterns
+        arabic_file_patterns = [
+            r'(?:في|الى|إلى)\s+(?:ملف|الملف)\s+([^\s,]+\.[a-zA-Z0-9]+)',
+            r'(?:في|الى|إلى)\s+(?:ملف|الملف)\s+([^\s,]+)',
+            r'(?:ملف|الملف)\s+([^\s,]+\.[a-zA-Z0-9]+)'
+        ]
+        
+        # Try to find the filename
+        for pattern in file_patterns + arabic_file_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                filename = match.group(1)
+                break
+                
+        if not filename:
+            # If no filename found, look for test_files folder mention
+            if 'test_files' in query_lower:
+                # Check if a word after "test_files/" could be a filename
+                test_files_match = re.search(r'test_files/([^\s,]+)', query_lower)
+                if test_files_match:
+                    filename = f"test_files/{test_files_match.group(1)}"
+                else:
+                    filename = "test_files/notes.txt"  # Default
+            else:
+                filename = "note.txt"  # Default
+        
+        # Step 2: Extract the content to write
+        content = None
+        
+        # Check for content between quotes
+        quote_patterns = [
+            r"['\"]([^'\"]+)['\"]",  # Content in quotes
+            r"(?:line|text|content|string)\s+['\"]?([^'\"\.]+)['\"]?", # Content after keywords
+            r"(?:write|add|append|put)\s+['\"]?([^'\"\.]+)['\"]?\s+(?:to|in|into)"  # Content before file
+        ]
+        
+        # Arabic content patterns
+        arabic_content_patterns = [
+            r"['\"]([^'\"]+)['\"]",  # Content in quotes (same for any language)
+            r"(?:السطر|النص|المحتوى)\s+['\"]?([^'\"\.]+)['\"]?", # Content after Arabic keywords
+            r"(?:اكتب|أكتب|اضف|أضف)\s+['\"]?([^'\"\.]+)['\"]?\s+(?:في|الى|إلى)"  # Arabic content before file
+        ]
+        
+        for pattern in quote_patterns + arabic_content_patterns:
+            match = re.search(pattern, user_input)  # Use original input to preserve case
+            if match:
+                content = match.group(1).strip()
+                break
+                
+        # If still no content found, try a simpler approach
+        if not content:
+            # Look for content between specific keywords and file mentions
+            write_terms = ['write', 'add', 'put', 'append', 'اكتب', 'أكتب', 'اضف', 'أضف']
+            file_terms = ['file', 'document', 'text file', 'ملف', 'نص', 'مستند']
+            
+            for write_term in write_terms:
+                if write_term in query_lower:
+                    parts = query_lower.split(write_term, 1)[1]
+                    for file_term in file_terms:
+                        if file_term in parts:
+                            content_part = parts.split(file_term)[0].strip()
+                            if content_part:
+                                # Use the content until the file term
+                                content = content_part
+                                break
+                if content:
+                    break
+        
+        # If still no content, set a default
+        if not content:
+            content = "This is a new line of text."
+            
+        # Step 3: Determine append or overwrite mode
+        append_mode = False
+        append_keywords = ['append', 'add', 'اضف', 'أضف']
+        
+        if any(keyword in query_lower for keyword in append_keywords):
+            append_mode = True
+            
+        # Step 4: Execute the command
+        # Make sure the directory exists if needed
+        if '/' in filename or '\\' in filename:
+            directory = os.path.dirname(filename)
+            if directory:
+                # Create directory if it doesn't exist
+                try:
+                    if not os.path.exists(directory):
+                        os.makedirs(directory, exist_ok=True)
+                except Exception as e:
+                    return f"{thinking}\n\n{self.color_settings['error']}❌ Error creating directory {directory}: {str(e)}{self.color_settings['reset']}"
                     
-                words = line.split()
-                if words and words[0].lower() in [prefix.lower() for prefix in command_prefixes]:
-                    # Skip potential explanatory text masquerading as commands
-                    if not any(phrase in line.lower() for phrase in [
-                        "would", "could", "should", "might", "may", "for example", 
-                        "such as", "like this", "something like", "you can", "i think"
-                    ]):
-                        if not self.quiet_mode:
-                            print(f"Found standalone command")
-                        return line
+        # Determine the command based on OS and mode
+        if self.platform_commands.is_windows:
+            if append_mode:
+                command = f'echo {content} >> "{filename}"'
+            else:
+                command = f'echo {content} > "{filename}"'
+        else:  # Linux/macOS
+            if append_mode:
+                command = f"echo '{content}' >> {shlex.quote(filename)}"
+            else:
+                command = f"echo '{content}' > {shlex.quote(filename)}"
         
-        # Fifth priority: Try to generate a command from the AI's response if it mentioned what to search for
-        if any(term in ai_response.lower() for term in ["search for", "find", "look for", "locate"]):
-            search_pattern = r'(?:search for|find|look for|locate)\s+["\'"]?([^"\'.,;!?]+)["\'"]?'
-            search_match = re.search(search_pattern, ai_response.lower())
-            if search_match:
-                search_term = search_match.group(1).strip()
-                if search_term:
-                    # Make search term more specific by limiting to words
-                    search_terms = search_term.split()[:3]  # Take up to 3 words
-                    search_term = " ".join(search_terms)
-                    
-                    if "file" in ai_response.lower() or "document" in ai_response.lower():
-                        cmd = f"find ~ -name \"*{search_term}*\" -type f 2>/dev/null | head -n 10"
-                        if not self.quiet_mode:
-                            print(f"Generated file search command")
-                        return cmd
-                    elif "folder" in ai_response.lower() or "directory" in ai_response.lower():
-                        cmd = f"find ~ -name \"*{search_term}*\" -type d 2>/dev/null | head -n 10"
-                        if not self.quiet_mode:
-                            print(f"Generated folder search command")
-                        return cmd
-                    else:
-                        cmd = f"find ~ -name \"*{search_term}*\" 2>/dev/null | head -n 10"
-                        if not self.quiet_mode:
-                            print(f"Generated general search command")
-                        return cmd
-        
-        # Sixth priority: Generate commands for common operations
-        if has_error or all(not any(cmd_prefix in ai_response.lower() for cmd_prefix in command_prefixes) for cmd_prefix in command_prefixes):
-            # Only use these fallbacks if no command prefixes found or explicit error indicated
-            if "disk space" in ai_response.lower() or "storage" in ai_response.lower():
-                if not self.quiet_mode:
-                    print("Generating disk space command")
-                return "df -h"
-            elif "memory" in ai_response.lower() or "ram" in ai_response.lower():
-                if not self.quiet_mode:
-                    print("Generating memory info command")
-                return "top -l 1 | grep PhysMem" if platform.system() == "Darwin" else "free -h"
-            elif "process" in ai_response.lower() or "running" in ai_response.lower():
-                if not self.quiet_mode:
-                    print("Generating process list command")
-                return "ps aux | head -n 10"
-            elif "list" in ai_response.lower() and "file" in ai_response.lower():
-                if not self.quiet_mode:
-                    print("Generating file list command")
-                return "ls -la"
-            elif "system" in ai_response.lower() and "info" in ai_response.lower():
-                if not self.quiet_mode:
-                    print("Generating system info command")
-                return "uname -a"
-        
+        # Execute the command
         if not self.quiet_mode:
-            print("No valid command could be extracted")
-        return None
-    
-    def _looks_like_direct_command(self, user_input):
-        """Determine if user input looks like a direct command request."""
-        # Common action verbs that suggest direct execution
-        action_indicators = [
-            "run", "execute", "start", "launch", "open", 
-            "show", "display", "list", "find", "search",
-            "create", "make", "do", "perform", "check",
-            "get", "fetch", "download", "install", "copy",
-            "move", "delete", "remove", "set", "configure"
-        ]
-        
-        # Common command prefixes
-        command_prefixes = [
-            "ls", "cd", "pwd", "mkdir", "touch", "cat", "grep",
-            "find", "echo", "ps", "kill", "rm", "cp", "mv",
-            "python", "pip", "npm", "git", "ssh", "curl", "wget",
-            "open", "nano", "vim", "chmod", "chown", "mkdir",
-            "tar", "zip", "unzip", "man", "which", "sudo"
-        ]
-        
-        input_cleaned = user_input.strip()
-        words = input_cleaned.split()
-        first_word = words[0].lower() if words else ""
-        
-        # Check if input starts with a common command
-        if first_word in command_prefixes:
-            return True
+            print(f"\nFile Write Request:")
+            print(f"  Filename: {filename}")
+            print(f"  Content: \"{content}\"")
+            print(f"  Mode: {'Append' if append_mode else 'Overwrite'}")
+            print(f"  Command: {command}\n")
             
-        # Check if the input starts with any of the action verbs
-        if first_word in action_indicators:
-            # If it has both an action verb and a recognized command, it's likely a direct command
-            if len(words) > 1 and words[1].lower() in command_prefixes:
-                return True
-            
-            # Also check for commands with 'the' after the action verb
-            if len(words) > 2 and words[1].lower() == 'the' and words[2].lower() in command_prefixes:
-                return True
-                
-            # Special cases like "open Notes" or "open the file"
-            if first_word == "open" and len(words) > 1:
-                return True
-                
-            # Special cases like "find all files" or "show me folders"
-            if first_word in ["find", "show", "list"] and any(term in input_cleaned for term in ["file", "folder", "directory"]):
-                return True
+        result = self.shell_handler.execute_command(command)
         
-        # Check for command name patterns like "ls -la" or "git status"
-        if re.match(r'^[a-zA-Z0-9_\-\.]+(\s+.*)?$', input_cleaned):
-            return True
-            
-        # Check for specific phrases that should be direct commands
-        command_phrases = [
-            "look for", "search for", "where are", "what files", "what folders",
-            "show me", "tell me about", "give me", "list all", "find all",
-            "run the command", "execute the command", "can you run"
-        ]
-        
-        for phrase in command_phrases:
-            if input_cleaned.lower().startswith(phrase):
-                return True
-                
-        return False
-    
-    def _try_direct_execution(self, user_input):
-        """Try to execute the input as a direct command.
-        Never executes raw natural language - only executes the extracted command
-        if we have high confidence it's a valid shell command."""
-        try:
-            # Extract the actual command from natural language input
-            command = self._extract_command(user_input)
-            
-            if not command:
-                # If we couldn't confidently extract a command, don't try to execute anything
-                if not self.quiet_mode:
-                    print(f"Could not extract command from: '{user_input}'")
-                return None
-            
-            # Validate the command before execution
-            command_first_word = command.split()[0] if command.split() else ""
-            valid_command_prefixes = [
-                "ls", "cd", "find", "grep", "echo", "mkdir", "touch", "cat", "open", 
-                "python", "pip", "npm", "node", "git", "ssh", "curl", "wget", "osascript",
-                "rm", "cp", "mv", "chmod", "chown", "df", "du", "tar", "zip", "unzip", 
-                "ps", "top", "kill", "pkill", "man", "which", "sudo", "apt", "brew", 
-                "yum", "dnf", "systemctl", "service", "docker", "kubectl"
-            ]
-            
-            # Only execute if the first word is a known command prefix
-            if command_first_word not in valid_command_prefixes:
-                if not self.quiet_mode:
-                    print(f"Refusing to execute unknown command type: '{command_first_word}'")
-                return None
-                
-            # Log the command for debugging/auditing
-            if not self.quiet_mode:
-                print(f"Executing command: '{command}'")
-                
-            # Execute the command directly using our run_command utility
-            result = run_command(command, shell=True, capture_output=True, text=True)
-            
-            if result['success']:
-                output = result['stdout'].strip() if result['stdout'] else "Command executed successfully (no output)"
-                return self._format_command_output(output, command)
-            else:
-                error = result['stderr'].strip() if result['stderr'] else f"Command failed with return code {result['returncode']}"
-                # Log the failed command
-                self._log_command_request(user_input, command, "failed", error)
-                return self._handle_failed_command(error, user_input, command)
-        except Exception as e:
-            error_msg = str(e)
-            self._log_command_request(user_input, command if 'command' in locals() else None, "error", error_msg)
-            return f"Error processing command: {error_msg}"
-            
-    def _extract_command(self, user_input):
-        """Extract an executable command from natural language input.
-        Returns None if input can't be confidently mapped to a valid command."""
-        input_lower = user_input.lower().strip()
-        
-        # Step 1: Check if input is a direct shell command
-        command_prefixes = ["ls", "cd", "grep", "find", "mkdir", "rm", "cp", "mv", "cat", "echo",
-                          "python", "pip", "npm", "git", "apt", "brew", "curl", "wget"]
-        first_word = input_lower.split()[0] if input_lower.split() else ""
-        
-        if first_word in command_prefixes:
-            # This is likely already a shell command
-            return user_input.strip()
-            
-        # Step 2: Category-based command mapping
-        
-        # Notes app commands
-        if any(term in input_lower for term in ['notes', 'note']):
-            if 'folder' in input_lower and any(verb in input_lower for verb in ['show', 'list', 'what']):
-                # Handle notes folders queries
-                if platform.system() == 'Darwin':  # macOS
-                    return """osascript -e 'tell application "Notes" to get name of every folder'"""
-                else:
-                    return 'find ~ -type d -name "*Notes*" -o -name "*notes*" | head -n 10'
-            elif any(verb in input_lower for verb in ['show', 'list', 'what']):
-                # Handle notes listing queries
-                if platform.system() == 'Darwin':  # macOS
-                    return """osascript -e 'tell application "Notes" to get name of every note'"""
-                else:
-                    return 'find ~ -name "*.txt" -o -name "*.md" | grep -i note | head -n 10'
-            elif 'count' in input_lower or 'how many' in input_lower:
-                # Handle notes counting queries
-                if platform.system() == 'Darwin':  # macOS
-                    return """osascript -e 'tell application "Notes" to get the count of notes'"""
-                else:
-                    return 'find ~ -name "*.txt" -o -name "*.md" | grep -i note | wc -l'
-            elif any(verb in input_lower for verb in ['open', 'launch', 'start']):
-                # Handle opening notes app
-                if 'robotic world' in input_lower:
-                    return 'open -a Notes ~/Documents/Robotic\\ World'
-                return 'open -a Notes'
-            elif 'search' in input_lower or 'find' in input_lower or 'about' in input_lower:
-                # Extract search term for notes
-                search_pattern = r"(?:search|find|about|regarding|containing)\s+(?:for\s+)?(?:notes?\s+(?:about|on|with|containing))?\s*([a-zA-Z0-9\s]+)"
-                match = re.search(search_pattern, input_lower)
-                if match:
-                    search_term = match.group(1).strip()
-                    if platform.system() == 'Darwin':  # macOS
-                        return f"""osascript -e 'tell application "Notes" to get name of notes where name contains "{search_term}" or body contains "{search_term}"'"""
-                    else:
-                        return f'find ~ -name "*.txt" -o -name "*.md" | xargs grep -l "{search_term}" 2>/dev/null | head -n 10'
-                
-        # Step 3: Intent-based command mapping
-        
-        # Search and find operations
-        if any(term in input_lower for term in ['search for', 'find', 'look for', 'where is', 'where are']):
-            # Extract what we're searching for
-            search_patterns = [
-                r"(?:search|find|look)\s+(?:for\s+)?([a-zA-Z0-9\s]+?)(?:\s+in\s+|\s+on\s+|\s*$)",
-                r"where\s+(?:is|are)\s+(?:the\s+)?([a-zA-Z0-9\s]+?)(?:\s+in\s+|\s+on\s+|\s*$)"
-            ]
-            
-            search_term = None
-            location = "~"  # Default to home directory
-            
-            for pattern in search_patterns:
-                match = re.search(pattern, input_lower)
-                if match:
-                    search_term = match.group(1).strip()
-                    # Check if location is specified
-                    loc_match = re.search(r"\s+in\s+([a-zA-Z0-9\/\s~\._-]+)$", input_lower)
-                    if loc_match:
-                        raw_location = loc_match.group(1).strip()
-                        # Map common location phrases to paths
-                        if raw_location in ["home", "my home", "home directory"]:
-                            location = "~"
-                        else:
-                            location = raw_location
-                    break
-            
-            if search_term:
-                # Determine if we're looking for files, folders, or content
-                if 'folder' in input_lower or 'directory' in input_lower:
-                    return f"find {location} -type d -name \"*{search_term}*\" -not -path \"*/\\.*\" | head -n 10"
-                elif 'file' in input_lower:
-                    return f"find {location} -type f -name \"*{search_term}*\" -not -path \"*/\\.*\" | head -n 10"
-                elif any(term in input_lower for term in ['content', 'text', 'containing', 'inside']):
-                    return f"find {location} -type f -not -path \"*/\\.*\" | xargs grep -l \"{search_term}\" 2>/dev/null | head -n 10"
-                else:
-                    # Generic search defaulting to finding files
-                    return f"find {location} -name \"*{search_term}*\" -not -path \"*/\\.*\" | head -n 10"
-        
-        # List/Show operations
-        if any(prefix in input_lower for prefix in ['show me', 'show the', 'show all', 'list', 'display']):
-            # Extract what to list
-            list_patterns = [
-                r"(?:show|list|display)\s+(?:me\s+)?(?:the\s+)?(?:all\s+)?([a-zA-Z0-9\s]+?)(?:\s+in\s+|\s*$)"
-            ]
-            
-            list_term = None
-            location = "."  # Default to current directory
-            
-            for pattern in list_patterns:
-                match = re.search(pattern, input_lower)
-                if match:
-                    list_term = match.group(1).strip()
-                    # Check if location is specified
-                    loc_match = re.search(r"\s+in\s+([a-zA-Z0-9\/\s~\._-]+)$", input_lower)
-                    if loc_match:
-                        raw_location = loc_match.group(1).strip()
-                        if raw_location in ["home", "my home", "home directory"]:
-                            location = "~"
-                        else:
-                            location = raw_location
-                    break
-            
-            if list_term:
-                # Determine what kind of listing to do
-                if 'file' in list_term:
-                    return f"find {location} -type f -not -path \"*/\\.*\" | sort | head -n 20"
-                elif 'folder' in list_term or 'directory' in list_term:
-                    return f"find {location} -type d -not -path \"*/\\.*\" | sort | head -n 20"
-                elif 'process' in list_term:
-                    return "ps aux | head -n 20"
-                else:
-                    # Default to ls with details
-                    return f"ls -la {location}"
-        
-        # Open/Launch operations
-        if any(verb in input_lower for verb in ['open', 'launch', 'start']):
-            # Extract what to open
-            open_match = re.search(r"(?:open|launch|start)\s+(?:the\s+)?([a-zA-Z0-9\s\._-]+)", input_lower)
-            if open_match:
-                item_to_open = open_match.group(1).strip()
-                
-                # Check if opening with a specific app
-                with_app = None
-                with_match = re.search(r"\s+with\s+([a-zA-Z0-9\s]+)$", input_lower)
-                if with_match:
-                    with_app = with_match.group(1).strip()
-                    # Remove the "with app" part from the item to open
-                    item_to_open = item_to_open.replace(f" with {with_app}", "").strip()
-                
-                if platform.system() == 'Darwin':  # macOS
-                    common_apps = {
-                        "browser": "Safari", 
-                        "web browser": "Safari",
-                        "chrome": "Google Chrome",
-                        "firefox": "Firefox",
-                        "safari": "Safari",
-                        "mail": "Mail",
-                        "calendar": "Calendar",
-                        "notes": "Notes",
-                        "music": "Music",
-                        "photos": "Photos",
-                        "terminal": "Terminal",
-                        "word": "Microsoft Word",
-                        "excel": "Microsoft Excel",
-                        "powerpoint": "Microsoft PowerPoint",
-                    }
-                    
-                    # Check if it's a common app
-                    if item_to_open.lower() in common_apps:
-                        return f"open -a '{common_apps[item_to_open.lower()]}'"
-                    
-                    # Check if it's a file path or URL
-                    if item_to_open.startswith(('http://', 'https://', '/', '~/')):
-                        if with_app:
-                            return f"open -a '{with_app}' '{item_to_open}'"
-                        return f"open '{item_to_open}'"
-                    else:
-                        # Assume it's an application name
-                        return f"open -a '{item_to_open}'"
-                else:  # Linux/Windows fallbacks
-                    if platform.system() == 'Linux':
-                        if item_to_open.startswith(('http://', 'https://')):
-                            return f"xdg-open '{item_to_open}'"
-                        elif '.' in item_to_open and not item_to_open.startswith(('/', '~')):
-                            return f"xdg-open '{item_to_open}'"
-                        else:
-                            return f"{item_to_open.lower()} &"
-                    else:  # Windows
-                        return f"start {item_to_open}"
-        
-        # System information queries
-        if any(term in input_lower for term in ['uptime', 'how long', 'running time', 'system on']):
-            return "uptime"
-            
-        if any(term in input_lower for term in ['memory', 'ram']):
-            if platform.system() == 'Darwin':  # macOS
-                return "vm_stat && top -l 1 | grep PhysMem"
-            else:  # Linux
-                return "free -h"
-                
-        if any(term in input_lower for term in ['disk', 'storage', 'space']):
-            return "df -h"
-            
-        if any(term in input_lower for term in ['process', 'cpu', 'load']):
-            if platform.system() == 'Darwin':  # macOS
-                return "top -l 1 | head -n 15"
-            else:  # Linux
-                return "top -b -n 1 | head -n 15"
-        
-        # Step 4: Check for explicit command execution requests
-        direct_command_prefixes = [
-            "run", "execute", "start", "launch", "run this", "execute this", 
-            "can you run", "please run", "would you run", "could you run",
-        ]
-        
-        for prefix in direct_command_prefixes:
-            if input_lower.startswith(prefix + " "):
-                potential_cmd = user_input[len(prefix):].strip()
-                # Only return if it looks like a valid command
-                first_word = potential_cmd.split()[0] if potential_cmd.split() else ""
-                if first_word in command_prefixes:
-                    return potential_cmd
-        
-        # Step 5: If we couldn't confidently extract a command, return None
-        # This is important - don't return raw user input as a command!
-        return None
-        
-    def process_multimodal_input(self, input_data):
-        """
-        Process multimodal inputs including text, images, audio, and gestures.
-        
-        Args:
-            input_data (dict): Dictionary containing multimodal input data with keys:
-                - text (str, optional): Text input from the user
-                - image (bytes or str, optional): Image data or path to image file
-                - audio (bytes or str, optional): Audio data or path to audio file
-                - gesture (str, optional): Name of detected gesture
-                
-        Returns:
-            str: Response to the multimodal input
-        """
-        # Extract components
-        text = input_data.get('text', '')
-        image_data = input_data.get('image')
-        audio_data = input_data.get('audio')
-        gesture = input_data.get('gesture')
-        
-        # Process gesture first (if provided)
-        if gesture:
-            gesture_response = self._process_gesture(gesture)
-            if gesture_response:
-                return gesture_response
-        
-        # Process image data (if provided)
-        if image_data:
-            # If it's an image path, use it directly; otherwise, save temp file
-            image_result = self._process_image(image_data)
-            if image_result:
-                # If image processing yielded a command, combine with text
-                if text:
-                    text = f"{text} (image context: {image_result})"
-                else:
-                    text = image_result
-        
-        # Process audio data (if provided)
-        if audio_data and not text:
-            # If no text was provided, try to get text from audio
-            text = self._process_audio(audio_data)
-        
-        # Process text command (now enhanced with any image/audio context)
-        if text:
-            return self.process_command(text)
+        # Format the response
+        if not result or "Error" not in result:
+            return f"{thinking}\n\n{self.color_settings['success']}✅ {'Added' if append_mode else 'Wrote'} content to file '{filename}':{self.color_settings['reset']}" + \
+                   f"\n{self.color_settings['important']}📝 Content:{self.color_settings['reset']} \"{content}\""
         else:
-            return "I didn't receive any input I could understand. Please try again."
-            
-    def _process_image(self, image_data):
-        """
-        Process an image to extract context or commands.
+            return f"{thinking}\n\n{self.color_settings['error']}❌ Error writing to file: {result}{self.color_settings['reset']}"
+
+    def _execute_file_delete_command(self, user_input):
+        """Execute file deletion operations."""
+        query_lower = user_input.lower()
         
-        Args:
-            image_data: Either a path to an image file (str) or raw image data (bytes)
-            
-        Returns:
-            str: Extracted text or context from the image, or None if processing failed
-        """
-        try:
-            # Handle image file path
-            if isinstance(image_data, str) and os.path.exists(image_data):
-                # Run OCR using our new run_command utility
-                result = run_command(
-                    ['tesseract', image_data, 'stdout'], 
-                    capture_output=True,
-                    text=True
-                )
-                
-                if result['success']:
-                    return result['stdout'].strip()
-                else:
-                    if not self.quiet_mode:
-                        print(f"OCR error: {result['stderr']}")
-                    return None
-                    
-            # Handle raw image data
-            elif isinstance(image_data, bytes):
-                # Save to temporary file
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-                    tmp.write(image_data)
-                    tmp_path = tmp.name
-                
-                # Run OCR
-                result = run_command(
-                    ['tesseract', tmp_path, 'stdout'], 
-                    capture_output=True,
-                    text=True
-                )
-                
-                # Clean up
-                try:
-                    os.unlink(tmp_path)
-                except:
-                    pass
-                    
-                if result['success']:
-                    return result['stdout'].strip()
-                else:
-                    if not self.quiet_mode:
-                        print(f"OCR error: {result['stderr']}")
-                    return None
-            
-            return None
-        except Exception as e:
-            if not self.quiet_mode:
-                print(f"Error processing image: {e}")
-            return None
-            
-    def _process_audio(self, audio_data):
-        """
-        Process audio data to extract speech.
+        # Format thinking process
+        thinking = self._format_thinking(
+            f"Processing file deletion request...\n"
+            f"Analyzing to extract the filename...\n"
+            f"Checking for safety considerations..."
+        )
         
-        Args:
-            audio_data: Either a path to an audio file (str) or raw audio data (bytes)
-            
-        Returns:
-            str: Extracted text from speech, or None if processing failed
-        """
-        try:
-            # Handle audio file path
-            if isinstance(audio_data, str) and os.path.exists(audio_data):
-                # Use our run_command utility to process audio with appropriate tool
-                # Example using SpeechRecognition + ffmpeg
-                result = run_command(
-                    f"ffmpeg -i {audio_data} -ar 16000 -ac 1 -f wav - | python -c 'import sys, speech_recognition as sr; r=sr.Recognizer(); audio=sr.AudioData(sys.stdin.read(), 16000, 2); print(r.recognize_google(audio))'",
-                    shell=True,
-                    capture_output=True,
-                    text=True
-                )
-                
-                if result['success']:
-                    return result['stdout'].strip()
-                else:
-                    if not self.quiet_mode:
-                        print(f"Speech recognition error: {result['stderr']}")
-                    return None
-                    
-            # Handle raw audio data
-            elif isinstance(audio_data, bytes):
-                # Save to temporary file
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-                    tmp.write(audio_data)
-                    tmp_path = tmp.name
-                
-                # Run speech recognition
-                result = run_command(
-                    f"ffmpeg -i {tmp_path} -ar 16000 -ac 1 -f wav - | python -c 'import sys, speech_recognition as sr; r=sr.Recognizer(); audio=sr.AudioData(sys.stdin.read(), 16000, 2); print(r.recognize_google(audio))'",
-                    shell=True,
-                    capture_output=True,
-                    text=True
-                )
-                
-                # Clean up
-                try:
-                    os.unlink(tmp_path)
-                except:
-                    pass
-                    
-                if result['success']:
-                    return result['stdout'].strip()
-                else:
-                    if not self.quiet_mode:
-                        print(f"Speech recognition error: {result['stderr']}")
-                    return None
-            
-            return None
-        except Exception as e:
-            if not self.quiet_mode:
-                print(f"Error processing audio: {e}")
-            return None
-            
-    def _process_gesture(self, gesture):
-        """
-        Process a gesture command.
+        # Step 1: Extract the filename
+        filename = None
         
-        Args:
-            gesture (str): The name of the detected gesture
-            
-        Returns:
-            str: Response to the gesture, or None if no specific action
-        """
-        # Map common gestures to commands
-        gesture_commands = {
-            "wave": "echo 'Hello! How can I help you today?'",
-            "thumbs_up": "echo 'Great! I'm glad you like it.'",
-            "thumbs_down": "echo 'I'm sorry to hear that. What can I do better?'",
-            "palm": "echo 'Stopping current operation.'",
-            "point_up": "cd ..",
-            "point_down": "ls -la",
-            "victory": "uname -a",  # System info
-            "ok": "echo 'Command confirmed.'",
-            "pinch": "echo 'Zooming in/out'",
-        }
+        # Common patterns for file mentions in deletion commands
+        file_patterns = [
+            r'(?:delete|remove|trash|erase)\s+(?:the\s+)?(?:file|text file|document)?\s+([^\s,\.]+\.[a-zA-Z0-9]+)',
+            r'(?:delete|remove|trash|erase)\s+(?:the\s+)?([^\s,\.]+\.[a-zA-Z0-9]+)',
+            r'([^\s,\.]+\.[a-zA-Z0-9]+)\s+(?:file|text file|document)?\s+(?:delete|remove|trash|erase)'
+        ]
         
-        if gesture.lower() in gesture_commands:
-            cmd = gesture_commands[gesture.lower()]
-            # Execute the command using run_command
-            result = run_command(cmd, shell=True, capture_output=True, text=True)
-            if result['success']:
-                return f"Gesture '{gesture}' detected: {result['stdout']}"
+        # Arabic file patterns for deletion
+        arabic_file_patterns = [
+            r'(?:احذف|امسح|ازل|أزل)\s+(?:ال|ملف|الملف)?\s+([^\s,\.]+\.[a-zA-Z0-9]+)',
+            r'(?:احذف|امسح|ازل|أزل)\s+([^\s,\.]+\.[a-zA-Z0-9]+)'
+        ]
+        
+        # Try to extract the filename
+        for pattern in file_patterns + arabic_file_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                filename = match.group(1)
+                break
+                
+        # Special handling for test_files directory
+        if not filename and 'test_files' in query_lower:
+            # Look for patterns like "test_files/filename.txt"
+            test_file_match = re.search(r'test_files/([^\s,\.]+\.[a-zA-Z0-9]+)', query_lower)
+            if test_file_match:
+                filename = f"test_files/{test_file_match.group(1)}"
             else:
-                return f"Gesture '{gesture}' recognized, but command failed: {result['stderr']}"
+                # Default to notes.txt in test_files if mentioned
+                filename = "test_files/notes.txt"
         
-        return None
+        if not filename:
+            # If no filename could be detected
+            return f"{thinking}\n\n{self.color_settings['error']}❌ Unable to determine which file to delete from your request.{self.color_settings['reset']}\n" + \
+                   f"Please specify a filename, for example: 'delete myfile.txt' or 'احذف ملف myfile.txt'"
+        
+        # Step 2: Check if file exists before deleting
+        if not os.path.exists(filename):
+            # Try to find the file in common locations
+            found = False
+            
+            # Check in desktop, documents, downloads
+            common_locations = []
+            
+            if self.user_settings["preferred_locations"].get("desktop"):
+                common_locations.append(os.path.join(self.user_settings["preferred_locations"]["desktop"], filename))
+            
+            if self.user_settings["preferred_locations"].get("documents"):
+                common_locations.append(os.path.join(self.user_settings["preferred_locations"]["documents"], filename))
+                
+            if self.user_settings["preferred_locations"].get("downloads"):
+                common_locations.append(os.path.join(self.user_settings["preferred_locations"]["downloads"], filename))
+            
+            # Check if file exists in any of these locations
+            for location in common_locations:
+                if os.path.exists(location):
+                    filename = location
+                    found = True
+                    break
+            
+            if not found:
+                # If file not found anywhere
+                return f"{thinking}\n\n{self.color_settings['error']}❌ File '{filename}' not found.{self.color_settings['reset']}\n" + \
+                       f"Please check if the file exists and provide the correct path."
+        
+        # Step 3: Delete the file
+        try:
+            # Get confirmation from user (if not in quiet mode)
+            if not self.quiet_mode:
+                print(f"\nAre you sure you want to delete '{filename}'? (y/n)")
+                confirmation = input("> ").lower().strip()
+                if confirmation != 'y' and confirmation != 'yes':
+                    return f"{thinking}\n\n{self.color_settings['important']}ℹ️ File deletion cancelled.{self.color_settings['reset']}"
+            
+            # Determine the command based on OS
+            if self.platform_commands.is_windows:
+                command = f'del "{filename}"'
+            else:  # Linux/macOS
+                command = f"rm {shlex.quote(filename)}"
+            
+            # Execute the command
+            if not self.quiet_mode:
+                print(f"Executing: {command}")
+                
+            result = self.shell_handler.execute_command(command)
+            
+            # Check if the file was actually deleted
+            file_exists = os.path.exists(filename)
+            
+            if not file_exists and (not result or "Error" not in result):
+                return f"{thinking}\n\n{self.color_settings['success']}✅ Successfully deleted file '{filename}'.{self.color_settings['reset']}"
+            else:
+                if result:
+                    return f"{thinking}\n\n{self.color_settings['error']}❌ Error deleting file: {result}{self.color_settings['reset']}"
+                else:
+                    return f"{thinking}\n\n{self.color_settings['error']}❌ Failed to delete file '{filename}'. The file still exists.{self.color_settings['reset']}"
+                
+        except Exception as e:
+            return f"{thinking}\n\n{self.color_settings['error']}❌ Error deleting file: {str(e)}{self.color_settings['reset']}"

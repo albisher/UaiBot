@@ -44,6 +44,38 @@ def save_config(config_data):
         print(f"Error saving configuration: {e}")
         return False
 
+def format_output_with_thinking(thinking_content, final_result, thinking_emoji="🤔", result_color="#2E86C1"):
+    """
+    Format output with a collapsible thinking section and colored final result.
+    
+    Args:
+        thinking_content (str): The AI's thought process content to be folded
+        final_result (str): The final result to display prominently
+        thinking_emoji (str): Emoji to use for the thinking section
+        result_color (str): Hex color code for the final result
+        
+    Returns:
+        str: Formatted output with HTML/CSS for folding and colors
+    """
+    # Format the thinking section as a collapsible element
+    thinking_html = f"""
+    <details>
+        <summary style="cursor:pointer;color:#666;font-style:italic">{thinking_emoji} Thinking process (click to expand)</summary>
+        <div style="margin-left:20px;padding:10px;border-left:2px solid #ddd;color:#666">
+            {thinking_content.replace('\n', '<br>')}
+        </div>
+    </details>
+    """
+    
+    # Format the final result with the specified color
+    result_html = f"""
+    <div style="color:{result_color};font-weight:bold;margin-top:10px">
+        {final_result.replace('\n', '<br>')}
+    </div>
+    """
+    
+    return thinking_html + result_html
+
 def run_command(command, capture_output=True, text=True, shell=False, timeout=None, 
                 check=False, env=None, cwd=None, input=None, async_mode=False):
     """

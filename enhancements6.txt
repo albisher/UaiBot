@@ -1,0 +1,29 @@
+# UaiBot Log Formatting Guidelines
+
+## Visual Distinction for Logs
+
+To improve user experience and clearly distinguish between log messages and actual command output, the following guidelines should be implemented:
+
+### 1. Log Message Formatting
+- **Color**: All log messages should be displayed in mid-gray color (#888888) to visually separate them from normal output
+- **Prefix**: Each log message should start with a log emoji (📋) for immediate visual identification
+- **Format**: `📋 [LOG] Your log message here`
+
+### 2. Log Types and Their Visual Indicators
+- **Debug logs**: 🔍 Gray color (#888888) - Only shown when debug mode is activated
+- **Info logs**: 📋 Gray color (#888888) - Standard logging level
+- **Warning logs**: ⚠️ Light amber text - For potential issues
+- **Error logs**: 🚫 Should remain light fire text and visible (not gray) but clearly marked as errors
+
+### 3. Implementation Details
+- Use terminal color codes for console output (e.g., `\033[90m` for gray text)
+- For GUI interfaces, use appropriate styling methods of the UI framework
+- Set up a consistent logging utility function that handles these styles automatically
+- All debugging details should be hidden from users unless explicitly requested
+
+### 4. User-facing vs. Developer-facing Logs
+- User-facing messages should be concise, helpful, and free of technical jargon
+- Developer-focused logs should only appear in debug mode or in log files
+- Verbose technical output should be redirected to log files rather than terminal
+
+This standardized approach ensures that users can easily distinguish between system logs and actual command outputs, creating a cleaner, more professional user experience.

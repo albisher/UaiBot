@@ -17,6 +17,18 @@ import subprocess
 import platform
 import warnings
 import urllib3
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("uaibot.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Suppress the urllib3 LibreSSL warning
 warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
@@ -59,11 +71,13 @@ def main():
     parser.add_argument("-i", "--interactive", action="store_true", help="Force interactive mode, regardless of config")
     parser.add_argument("--non-interactive", action="store_true", help="Disable interactive mode")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
+    parser.add_argument("-f", "--fast", action="store_true", help="Fast mode - does not wait for user feedback on errors")
     parser.add_argument("--skip-license-check", action="store_true", help="Skip license validation (for development only)")
     args = parser.parse_args()
 
-    # Set quiet mode from command line args
+    # Set quiet mode and fast mode from command line args
     quiet_mode = args.quiet if hasattr(args, 'quiet') else False
+    fast_mode = args.fast if hasattr(args, 'fast') else False
     # Set debug mode from command line args
     debug_mode = args.debug if hasattr(args, 'debug') else False
     
@@ -73,18 +87,53 @@ def main():
         # We don't exit on invalid license, just warn - this could be changed if desired
     
     # Helper function for logging
-    def log(message, force=False, debug_only=False):
-        """Log a message based on quiet and debug mode settings.
+    def log(message, force=False, debug_only=False, log_type="info"):
+        """Log a message based on quiet and debug mode settings, with formatting.
         
         Args:
             message: The message to log
             force: If True, always print even in quiet mode
             debug_only: If True, only print when debug mode is enabled
+            log_type: Type of log - "info", "debug", "warning", or "error"
         """
         if debug_only and not debug_mode:
             return  # Skip debug-only messages when debug mode is off
-        if force or not quiet_mode:
-            print(message)
+            
+        # Define color codes for terminal output
+        GRAY = "\033[90m"  # Mid-gray color
+        YELLOW = "\033[93m"  # Light amber for warnings
+        RED = "\033[91m"    # Red for errors
+        RESET = "\033[0m"   # Reset to default color
+        
+        # Select emoji and color based on log type
+        if log_type.lower() == "debug":
+            prefix = f"{GRAY}🔍 [DEBUG] "
+            suffix = RESET
+        elif log_type.lower() == "warning":
+            prefix = f"{YELLOW}⚠️ [WARNING] "
+            suffix = RESET
+        elif log_type.lower() == "error":
+            prefix = f"{RED}🚫 [ERROR] "
+            suffix = RESET
+        else:  # Default to info
+            prefix = f"{GRAY}📋 [INFO] "
+            suffix = RESET
+            
+        # For user-facing non-debug logs, don't show the prefix in normal mode
+        if not debug_mode and not debug_only and log_type.lower() == "info":
+            # Regular user-facing messages shouldn't have log prefix
+            if force or not quiet_mode:
+                print(message)
+        else:
+            # Debug and other logs should have the formatted prefix
+            if force or not quiet_mode:
+                print(f"{prefix}{message}{suffix}")
+                
+        # Always log to file regardless of console output
+        logger.log(
+            logging.DEBUG if debug_only else logging.INFO,
+            message
+        )
 
     # Load configuration
     config_data = load_config()
@@ -206,7 +255,8 @@ def main():
     # Initialize components
     shell_handler = ShellHandler(safe_mode=shell_safe_mode, 
                                 enable_dangerous_command_check=shell_dangerous_check, 
-                                quiet_mode=quiet_mode)
+                                quiet_mode=quiet_mode,
+                                fast_mode=fast_mode)
     
     # Initialize the command processor with our new implementation
     # Use the command_processor.py in the main directory, not the command_processor module
@@ -298,21 +348,29 @@ def main():
     
     if interactive_mode:  # Enter interactive loop when enabled
         try:
-            log("UaiBot started. Enter your commands or 'exit' to quit.")
+            # Only show debug info in debug mode
+            log("UaiBot started. Enter your commands or 'x' to quit.", debug_only=True)
+            
             # Only show welcome message when NOT coming from a single command execution
             if not args.command:
-                log("\nWelcome to UaiBot!\nI'm your AI assistant.\nType commands or questions for help.\n")
+                # Clean, simple welcome message for the user
+                print("\nWelcome, I (UaiBot assistant) am ready to assist you.")
+                print("Type your request please:")
+            
             while True:
-                prompt = "Command: " if quiet_mode else "Enter your command (or type 'exit' to quit): "
-                user_input = input(prompt)
-                if user_input.lower() == 'exit':
+                # Get user input without showing "Request:" prompt
+                user_input = input()
+                if user_input.lower() in ['x', 'exit', 'quit']:
                     break
                 result = command_processor.process_command(user_input)
                 log(result)
+                
+                # Add a blank line and the prompt again after each response for better readability
+                print("\nType your request please:")
         except KeyboardInterrupt:
             log("\nExiting UaiBot.")
         finally:
-            log("UaiBot session ended.")
+            log("UaiBot session ended.", debug_only=True)
     else:
         log("Interactive mode is disabled. Exiting.")
 
