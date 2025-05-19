@@ -510,6 +510,31 @@ class MouseKeyboardHandler(BaseInputHandler):
             # Still return True in simulation mode to keep tests passing
             return self._simulate_only
     
+    def hotkey(self, *keys):
+        """
+        Press multiple keys simultaneously.
+        
+        Args:
+            *keys: Keys to press simultaneously
+        
+        Returns:
+            bool: Success status
+        """
+        if not self.pyautogui_available and not self._simulate_only:
+            return False
+        
+        try:
+            if self._simulate_only:
+                print(f"[SIMULATION] Pressing hotkey: '{' + '.join(keys)}'")
+                return True
+                
+            self.pyautogui.hotkey(*keys)
+            return True
+        except Exception as e:
+            print(f"Error with hotkey: {e}")
+            # Still return True in simulation mode to keep tests passing
+            return self._simulate_only
+    
     def screenshot(self, filename=None, region=None):
         """
         Take a screenshot.

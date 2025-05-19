@@ -6,9 +6,7 @@ This module allows UaiBot to control input devices (mouse and keyboard)
 programmatically across different platforms.
 """
 from .mouse_keyboard_handler import MouseKeyboardHandler
+from platform_uai.platform_utils import get_input_handler as get_platform_handler
 
-# We don't need to import from input_control.py here
-# The function is in an external file
-
-# Export main class
-__all__ = ['MouseKeyboardHandler']
+# Export main class and convenience function
+__all__ = ['MouseKeyboardHandler', 'get_platform_handler']

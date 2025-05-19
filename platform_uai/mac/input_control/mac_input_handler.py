@@ -175,7 +175,12 @@ class MacInputHandler(BaseInputHandler):
     def is_key_pressed(self, key: str) -> bool:
         """
         Check if a key is currently pressed.
-        Note: Not natively supported in macOS with PyAutoGUI.
+        
+        Args:
+            key: The key to check
+            
+        Returns:
+            bool: True if the key is pressed, False otherwise
         """
         # macOS doesn't support this functionality with PyAutoGUI
         print("Key press detection not supported on macOS")
@@ -251,17 +256,36 @@ class MacInputHandler(BaseInputHandler):
         
         return self.move_mouse(new_x, new_y, duration)
     
-    def screenshot(self, region: Optional[Tuple[int, int, int, int]] = None) -> Any:
-        """Take a screenshot of the screen or specified region."""
+    def screenshot(self, filename: Optional[str] = None, 
+                  region: Optional[Tuple[int, int, int, int]] = None) -> Union[object, bool]:
+        """
+        Take a screenshot.
+        
+        Args:
+            filename: Path to save the screenshot
+            region: Region to capture (left, top, width, height)
+        
+        Returns:
+            Image or bool: Image object if successful and no filename, otherwise bool success status
+        """
         if self.pyautogui and not self._simulate_only:
             try:
-                return self.pyautogui.screenshot(region=region)
+                screenshot = self.pyautogui.screenshot(region=region)
+                if filename:
+                    screenshot.save(filename)
+                    return True
+                return screenshot
             except Exception as e:
                 print(f"Error taking screenshot: {e}")
         
         print("Screenshot functionality not available in simulation mode")
-        return None
+        return self._simulate_only
     
     def is_simulation_mode(self) -> bool:
-        """Check if the handler is operating in simulation mode."""
+        """
+        Check if the handler is in simulation mode.
+        
+        Returns:
+            bool: True if in simulation mode, False otherwise
+        """
         return self._simulate_only

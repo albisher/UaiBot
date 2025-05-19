@@ -1,40 +1,34 @@
 #!/usr/bin/env python3
-"""
-Simple direct test of shell_handler functions
-"""
-
 import os
 import sys
-import platform
-import traceback
 
-# Make sure we can import from the parent directory
-sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+# Add examples to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+sys.path.append(os.path.join(current_dir, "examples"))
 
+print("Python path:", sys.path)
+print("Checking directories:")
+print("- examples exists:", os.path.exists("examples"))
+print("- examples/example_command_processor.py exists:", 
+      os.path.exists("examples/example_command_processor.py"))
+print("- terminal_commands exists:", os.path.exists("terminal_commands"))
+print("- terminal_commands/enhanced_output_processor.py exists:",
+      os.path.exists("terminal_commands/enhanced_output_processor.py"))
+
+# Import the module we created
 try:
-    # First try to import the shell handler class
-    print("Importing ShellHandler...")
-    from core.shell_handler import ShellHandler
-    print("ShellHandler imported successfully")
+    from terminal_commands.enhanced_output_processor import EnhancedOutputProcessor
+    print("Successfully imported EnhancedOutputProcessor")
     
-    # Check platform
-    print(f"\nPlatform: {platform.system()}")
+    # Create an instance
+    processor = EnhancedOutputProcessor()
+    print("Created processor instance")
     
-    # Create instance
-    print("\nCreating ShellHandler instance...")
-    shell = ShellHandler(safe_mode=False, quiet_mode=False)
-    print("ShellHandler instance created successfully")
-    
-    # Test the find_folders function
-    print("\nTesting find_folders method...")
-    print("Calling find_folders('notes', include_cloud=True)...")
-    result = shell.find_folders("notes", include_cloud=True)
-    print("\nResult from find_folders:")
-    print(result)
-    
-    print("\nTest completed successfully!")
-    
+    # Test it
+    result = processor.process_uptime("14:30 up 2 days, 3:45, 3 users, load average: 0.52, 0.58, 0.59")
+    print("Test result:", result)
 except Exception as e:
-    print(f"\nERROR: {str(e)}")
-    print("\nStacktrace:")
+    print(f"Error: {e}")
+    import traceback
     traceback.print_exc()

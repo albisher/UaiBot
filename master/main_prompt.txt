@@ -36,8 +36,13 @@ For example
 - You always keep the code well-documented and easy to read.
 - You always keep the code efficient and optimized.
 - You always keep the code secure and safe.
+- you always check libraries and dependencies for any needed updates.
+- you always check libraries usage and unify the usage of the libraries.
+
 - You always make sure the code is not huge and complex one file instead you make as many needed code files.
 - you always code with care about the easy of use and user experience.
+- you always start with files showing that they got a problem.
+- you always check the problems reported in the terminal output tab.
 
 We got this project to run on multiple platforms and we need to make sure the code is cross platform.
 - You always make sure the code is cross platform and works on all platforms.

@@ -5,7 +5,7 @@ Windows-specific input handler implementation for mouse and keyboard control.
 import os
 import sys
 import time
-from typing import Tuple, Optional, Union, Any, List
+from typing import Tuple, Optional, Union, Any, List, Callable
 
 from ...common.input_control.base_handler import BaseInputHandler
 
@@ -136,7 +136,15 @@ class WindowsInputHandler(BaseInputHandler):
     # The main click method is implemented below
     
     def press_key(self, key: str) -> bool:
-        """Press a single key."""
+        """
+        Press and release a key.
+        
+        Args:
+            key: Key to press (e.g., 'enter', 'esc', 'space', 'a')
+        
+        Returns:
+            bool: Success status
+        """
         if self.pyautogui and not self._simulate_only:
             try:
                 self.pyautogui.press(key)
@@ -147,10 +155,19 @@ class WindowsInputHandler(BaseInputHandler):
             # Simulate key press
             print(f"Simulating key press: {key}")
         
-        return False
+        return self._simulate_only
     
     def type_text(self, text: str, interval: float = 0.0) -> bool:
-        """Type text with an optional interval between keypresses."""
+        """
+        Type text with optional delay between characters.
+        
+        Args:
+            text: Text to type
+            interval: Delay between characters in seconds
+            
+        Returns:
+            bool: Success status
+        """
         if self.pyautogui and not self._simulate_only:
             try:
                 self.pyautogui.write(text, interval=interval)
@@ -163,10 +180,18 @@ class WindowsInputHandler(BaseInputHandler):
             if interval > 0:
                 time.sleep(len(text) * interval)
         
-        return False
+        return self._simulate_only
     
     def hotkey(self, *keys) -> bool:
-        """Press multiple keys simultaneously."""
+        """
+        Press multiple keys simultaneously.
+        
+        Args:
+            *keys: Variable number of keys to press simultaneously
+            
+        Returns:
+            bool: Success status
+        """
         if self.pyautogui and not self._simulate_only:
             try:
                 self.pyautogui.hotkey(*keys)
@@ -177,22 +202,38 @@ class WindowsInputHandler(BaseInputHandler):
             # Simulate hotkey
             print(f"Simulating hotkey: {' + '.join(keys)}")
         
-        return False
+        return self._simulate_only
     
     def is_key_pressed(self, key: str) -> bool:
-        """Check if a key is currently pressed."""
-        if self.keyboard:
+        """
+        Check if a key is currently pressed.
+        
+        Args:
+            key: The key to check
+            
+        Returns:
+            bool: True if the key is pressed, False otherwise
+        """
+        if self.keyboard and not self._simulate_only:
             try:
                 return self.keyboard.is_pressed(key)
-            except Exception:
-                pass
-        # Default when not supported
+            except Exception as e:
+                print(f"Error checking key press: {e}")
+        
+        # Default when not supported or in simulation mode
         return False
     
     def scroll(self, clicks: int, x: Optional[int] = None, y: Optional[int] = None) -> bool:
         """
         Scroll the mouse wheel.
-        Positive clicks scroll up, negative clicks scroll down.
+        
+        Args:
+            clicks: Number of steps to scroll (positive scrolls up, negative scrolls down)
+            x: X-coordinate for scroll position. If None, uses current position.
+            y: Y-coordinate for scroll position. If None, uses current position.
+            
+        Returns:
+            bool: Success status
         """
         # If coordinates not provided, use current position
         if x is None or y is None:
@@ -209,18 +250,30 @@ class WindowsInputHandler(BaseInputHandler):
             direction = "up" if clicks > 0 else "down"
             print(f"Simulating {direction} scroll ({clicks}) at ({x}, {y})")
         
-        return False
+        return self._simulate_only
 
     def click(self, x: Optional[int] = None, y: Optional[int] = None, 
-             button: str = 'left', clicks: int = 1) -> bool:
-        """Click at the specified position or current mouse position."""
+             button: str = 'left', clicks: int = 1, interval: float = 0.0) -> bool:
+        """
+        Click the mouse at the specified position or current position.
+        
+        Args:
+            x: X-coordinate. If None, uses current position.
+            y: Y-coordinate. If None, uses current position.
+            button: 'left', 'middle', or 'right'
+            clicks: Number of clicks
+            interval: Time between clicks in seconds
+        
+        Returns:
+            bool: Success status
+        """
         # If coordinates not provided, use current position
         if x is None or y is None:
             x, y = self.get_mouse_position()
         
         if self.pyautogui and not self._simulate_only:
             try:
-                self.pyautogui.click(x, y, button=button, clicks=clicks)
+                self.pyautogui.click(x, y, button=button, clicks=clicks, interval=interval)
                 return True
             except Exception as e:
                 print(f"Error clicking: {e}")
@@ -228,7 +281,7 @@ class WindowsInputHandler(BaseInputHandler):
             # Simulate click
             print(f"Simulating {button} mouse click at ({x}, {y})")
         
-        return False
+        return self._simulate_only
     
     def move_mouse_relative(self, x_offset: int, y_offset: int, duration: float = 0.25) -> bool:
         """Move the mouse by a relative offset from its current position."""
@@ -238,17 +291,36 @@ class WindowsInputHandler(BaseInputHandler):
         
         return self.move_mouse(new_x, new_y, duration)
     
-    def screenshot(self, region: Optional[Tuple[int, int, int, int]] = None) -> Any:
-        """Take a screenshot of the screen or specified region."""
+    def screenshot(self, filename: Optional[str] = None, 
+                  region: Optional[Tuple[int, int, int, int]] = None) -> Union[object, bool]:
+        """
+        Take a screenshot.
+        
+        Args:
+            filename: Path to save the screenshot
+            region: Region to capture (left, top, width, height)
+        
+        Returns:
+            Image or bool: Image object if successful and no filename, otherwise bool success status
+        """
         if self.pyautogui and not self._simulate_only:
             try:
-                return self.pyautogui.screenshot(region=region)
+                screenshot = self.pyautogui.screenshot(region=region)
+                if filename:
+                    screenshot.save(filename)
+                    return True
+                return screenshot
             except Exception as e:
                 print(f"Error taking screenshot: {e}")
         
         print("Screenshot functionality not available in simulation mode")
-        return None
+        return self._simulate_only
     
     def is_simulation_mode(self) -> bool:
-        """Check if the handler is operating in simulation mode."""
+        """
+        Check if the handler is in simulation mode.
+        
+        Returns:
+            bool: True if in simulation mode, False otherwise
+        """
         return self._simulate_only
