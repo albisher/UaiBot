@@ -696,22 +696,37 @@ class CommandProcessor:
             else:
                 command = f"echo '{content}' > {shlex.quote(filename)}"
         
-        # Execute the command
-        if not self.quiet_mode:
-            print(f"\nFile Write Request:")
-            print(f"  Filename: {filename}")
-            print(f"  Content: \"{content}\"")
-            print(f"  Mode: {'Append' if append_mode else 'Overwrite'}")
-            print(f"  Command: {command}\n")
-            
-        result = self.shell_handler.execute_command(command)
+        # Initialize result string with thinking
+        result = ""
+        if thinking:
+            result += thinking + "\n\n"
         
-        # Format the response
-        if not result or "Error" not in result:
-            return f"{thinking}\n\n{self.color_settings['success']}✅ {'Added' if append_mode else 'Wrote'} content to file '{filename}':{self.color_settings['reset']}" + \
-                   f"\n{self.color_settings['important']}📝 Content:{self.color_settings['reset']} \"{content}\""
+        # Format the command with duplicate prevention
+        command_text = f"{'Appending' if append_mode else 'Writing'} to file '{filename}' with content: \"{content}\"\nCommand: {command}"
+        command_display = self._format_command(command_text)
+        
+        if command_display:
+            result += command_display + "\n\n"
+        
+        # Execute the command
+        execution_result = self.shell_handler.execute_command(command)
+        
+        # Format the result with duplicate prevention
+        if not execution_result or "Error" not in execution_result:
+            success_text = f"{self.color_settings['success']}✅ {'Added' if append_mode else 'Wrote'} content to file '{filename}':{self.color_settings['reset']}" + \
+                          f"\n{self.color_settings['important']}📝 Content:{self.color_settings['reset']} \"{content}\""
+            result_display = self._format_result(success_text, command)
+            
+            if result_display:
+                result += result_display
         else:
-            return f"{thinking}\n\n{self.color_settings['error']}❌ Error writing to file: {result}{self.color_settings['reset']}"
+            error_text = f"{self.color_settings['error']}❌ Error writing to file: {execution_result}{self.color_settings['reset']}"
+            result_display = self._format_result(error_text, command)
+            
+            if result_display:
+                result += result_display
+        
+        return result
 
     def _execute_file_delete_command(self, user_input):
         """Execute file deletion operations."""
