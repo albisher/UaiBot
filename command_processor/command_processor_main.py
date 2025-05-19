@@ -27,6 +27,11 @@ class CommandProcessor:
         self.shell_handler = shell_handler
         self.quiet_mode = quiet_mode
         self.fast_mode = fast_mode  # Add fast_mode flag to control termination behavior
+        
+        # Pass fast_mode to AI handler if possible
+        if hasattr(ai_handler, 'fast_mode'):
+            ai_handler.fast_mode = fast_mode
+        
         self.system_platform = platform.system().lower()
         
         # Initialize platform commands helper
@@ -50,6 +55,11 @@ class CommandProcessor:
             "important": "\033[1;38;5;33m", # Bold blue for important info
             "reset": "\033[0m"             # Reset to default color
         }
+        
+        # Initialize output state tracking to prevent duplication
+        self._thinking_shown = False
+        self._command_shown = False
+        self._result_shown = False
         
         # Iteration state tracking
         self.iteration_state = {
@@ -920,6 +930,15 @@ class CommandProcessor:
                   (f" with extension '{file_extension}'" if file_extension else f" matching '{search_term}'") + 
                   f" in {location} directory\n")
             print(f"Command: {command}\n")
+        
+        # Fix for wildcard pattern "**" which is causing issues
+        if search_term == "**":
+            # Use a safer alternative search pattern
+            search_term = "*"
+            # Get revised command with the safer pattern
+            command = self.platform_commands.get_file_search_command(search_type, search_term)
+            if not self.quiet_mode:
+                print(f"Using safer search pattern: {command}\n")
             
         result = self.shell_handler.execute_command(command)
         
@@ -1162,11 +1181,24 @@ class CommandProcessor:
             f"3. For commands that need to handle spaces or special characters, use proper escaping/quoting.\n"
         )
         
-        # Get response from AI
-        ai_response = self.ai_handler.get_ai_response(prompt_for_ai)
+        # Get response from AI with timeout handling in fast mode
+        try:
+            # In fast mode, we'll use a shorter internal timeout
+            ai_response = self.ai_handler.get_ai_response(prompt_for_ai)
+        except Exception as e:
+            if self.fast_mode:
+                # In fast mode, provide a simple error and let the program continue to exit
+                return f"{thinking}\n\nError: Failed to get AI response: {str(e)}"
+            else:
+                # In normal mode, re-raise the exception
+                raise
         
-        # Extract command from AI response
+        # Extract command from AI response with special handling for fast mode
         command = self._extract_command_from_ai_response(ai_response)
+        
+        # If we're in fast mode and this is an AI error response, use the raw response as a command
+        if self.fast_mode and command is None and ai_response and ai_response.startswith("Error:"):
+            command = ai_response  # This allows the error to propagate properly in fast mode
         
         if command:
             # Format the result with colors
@@ -1201,6 +1233,13 @@ class CommandProcessor:
 
     def _format_thinking(self, thinking_text):
         """Format the thinking process as a folded/collapsible section."""
+        # Check if thinking has already been shown to prevent duplication
+        if hasattr(self, '_thinking_shown') and self._thinking_shown:
+            return ""
+            
+        # Mark thinking as shown
+        self._thinking_shown = True
+        
         formatted = f"{self.color_settings['thinking']}🤔 Thinking...\n"
         # Add a folded section indicator
         formatted += "┌───────────────────────────────────────────────┐\n"

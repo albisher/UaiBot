@@ -1,204 +1,182 @@
 #!/usr/bin/env python3
 """
-Output Formatter - Utility functions for formatting UaiBot's output consistently.
-
-This module implements the formatting guidelines from enhance_output.txt
-to create an intuitive, visually pleasing, and accessible user experience.
+Output formatter for UaiBot.
+Provides consistent formatting for all UaiBot outputs.
 """
 
+import os
 import shutil
+import json
+from pathlib import Path
 
-# Emoji dictionary for consistent usage across the application
+# Define emoji constants for consistent usage across the application
 EMOJI = {
-    # Status emojis
     "success": "✅",
-    "warning": "⚠️", 
+    "warning": "⚠️",
     "error": "❌",
     "info": "ℹ️",
-    "loading": "🔄",
-    
-    # System emojis
     "robot": "🤖",
-    "settings": "⚙️",
-    "security": "🔐",
     "stats": "📊",
-    
-    # Device emojis
-    "computer": "💻",
-    "mobile": "📱",
-    "printer": "🖨️",
-    "camera": "📷",
-    "controller": "🎮",
-    
-    # File emojis
     "folder": "📁",
     "file": "📄",
-    "document": "📝",
-    "code": "📜",
-    
-    # Network emojis
-    "web": "🌐",
-    "signal": "📡",
-    "wifi": "📶",
-    "lock": "🔒",
-    
-    # Status indicators
+    "time": "🕒",
     "green": "🟢",
     "yellow": "🟡",
     "red": "🔴",
-    "blue": "🔵",
-    
-    # Action emojis
+    "document": "📝",
+    "computer": "💻",
+    "mobile": "📱",
     "search": "🔍",
-    "play": "▶️",
-    "pause": "⏸️",
-    "stop": "⏹️",
-    
-    # Miscellaneous
     "tip": "💡",
-    "time": "🕒",
-    "question": "❓",
-    "thinking": "🤔",
+    "question": "❓"
 }
 
-def format_header(text, emoji=""):
-    """Format a section header with optional emoji"""
+def get_terminal_width():
+    """Get the terminal width with fallback."""
+    try:
+        return shutil.get_terminal_size().columns
+    except:
+        return 80
+
+def format_header(text, emoji=None):
+    """Format a section header with optional emoji."""
     if emoji:
-        return f"{emoji} {text}\n{'-' * (len(text) + 3)}\n"
-    return f"{text}\n{'-' * len(text)}\n"
+        if isinstance(emoji, str) and emoji in EMOJI:
+            emoji = EMOJI[emoji]
+        header = f"{emoji} {text}"
+    else:
+        header = text
+        
+    return f"{header}\n{'-' * len(header)}\n"
 
 def format_table_row(label, value, width=20):
-    """Format a table row with consistent spacing"""
+    """Format a table row with consistent spacing."""
     return f"{label:<{width}} {value}"
 
-def get_terminal_width():
-    """Get the current terminal width"""
-    try:
-        term_width, _ = shutil.get_terminal_size()
-        return term_width
-    except Exception:
-        return 80  # Default fallback width
-
-def create_divider(style="full", width=None):
-    """
-    Create a visual divider line.
-    
-    Args:
-        style (str): "full" (═════), "partial" (─────), "dots" (·····) or "box" (box drawing)
-        width (int): Custom width, otherwise uses terminal width
-    
-    Returns:
-        str: The divider line
-    """
-    width = width or get_terminal_width()
-    
-    if style == "full":
-        return "═" * width
-    elif style == "partial":
-        return "─" * width
-    elif style == "dots":
-        return "·" * width
-    elif style == "box":
-        return "┌" + "─" * (width - 2) + "┐"
-    else:
-        return "-" * width
-
-def format_box(content, title=None, width=None):
-    """
-    Create a box around content with an optional title.
-    
-    Args:
-        content (str): The text content to place in the box
-        title (str): Optional title to display at the top of the box
-        width (int): Custom width, otherwise uses terminal width - 4
-        
-    Returns:
-        str: Content formatted in a box
-    """
-    term_width = width or get_terminal_width() - 4
-    lines = content.split('\n')
-    
-    # Create the box
-    if title:
-        title_str = f" {title} "
-        top = f"╭─{title_str}" + "─" * (term_width - len(title_str) - 2) + "╮"
-    else:
-        top = "╭" + "─" * term_width + "╮"
-        
-    bottom = "╰" + "─" * term_width + "╯"
-    
-    # Format the content
-    formatted_lines = []
-    for line in lines:
-        formatted_lines.append(f"│ {line:<{term_width-2}} │")
+def format_status_line(label, status=None, message=None, emoji=True):
+    """Format a status line with appropriate emoji."""
+    prefix = ""
+    if status and emoji:
+        status_emoji = EMOJI.get(status, "")
+        if status_emoji:
+            prefix = f"{status_emoji} "
             
-    # Combine everything
-    return top + "\n" + "\n".join(formatted_lines) + "\n" + bottom
+    if message:
+        return f"{prefix}{label}: {message}"
+    return f"{prefix}{label}"
 
-def format_status_line(label, status, value=None, emoji=True):
+def format_list(items, bullet="•", bullet_type="symbol"):
     """
-    Format a status line with appropriate status emoji.
+    Format a list with consistent bullets.
     
     Args:
-        label (str): The label for the status item
-        status (str): One of "success", "warning", "error", "info"
-        value (str): Optional value or message
-        emoji (bool): Whether to include the emoji
-        
-    Returns:
-        str: Formatted status line
-    """
-    status_emoji = EMOJI.get(status, "")
+        items: List of items to format
+        bullet: Bullet character to use
+        bullet_type: 'symbol', 'number', or 'letter'
     
-    if value:
-        if emoji and status_emoji:
-            return f"{status_emoji} {label}: {value}"
-        return f"{label}: {value}"
-    else:
-        if emoji and status_emoji:
-            return f"{status_emoji} {label}"
-        return label
-
-def format_list(items, bullet_type="emoji", emoji_key=None):
-    """
-    Format a list of items with consistent bullets.
-    
-    Args:
-        items (list): List of items to format
-        bullet_type (str): One of "emoji", "dash", "bullet", "number"
-        emoji_key (str): Key to use from EMOJI dict if bullet_type is "emoji"
-        
     Returns:
         str: Formatted list
     """
-    result = []
-    
+    result = ""
     for i, item in enumerate(items):
-        if bullet_type == "emoji" and emoji_key and emoji_key in EMOJI:
-            result.append(f"{EMOJI[emoji_key]} {item}")
-        elif bullet_type == "emoji":
-            # Default to the info emoji
-            result.append(f"{EMOJI['info']} {item}")
-        elif bullet_type == "dash":
-            result.append(f"- {item}")
-        elif bullet_type == "bullet":
-            result.append(f"• {item}")
-        elif bullet_type == "number":
-            result.append(f"{i+1}. {item}")
+        if bullet_type == "number":
+            prefix = f"{i+1}. "
+        elif bullet_type == "letter":
+            prefix = f"{chr(97+i)}. "
+        else:
+            prefix = f"{bullet} "
             
+        result += f"{prefix}{item}\n"
+    return result
+
+def format_box(content, title=None, width=None):
+    """Format content in a box with optional title."""
+    # Box drawing characters
+    tl, tr, bl, br = "╭", "╮", "╰", "╯"
+    h, v = "─", "│"
+    
+    # Determine width
+    if not width:
+        width = get_terminal_width() - 4
+        
+    # Split content into lines
+    lines = content.strip().split('\n')
+    
+    # Create the box
+    result = []
+    if title:
+        title_str = f" {title} "
+        padding = width - len(title_str) - 2
+        result.append(f"{tl}{h}{title_str}{h * padding}{tr}")
+    else:
+        result.append(f"{tl}{h * width}{tr}")
+        
+    # Add content lines
+    for line in lines:
+        if len(line) > width - 2:  # Account for box borders
+            line = line[:width - 5] + "..."
+        result.append(f"{v} {line.ljust(width - 2)} {v}")
+        
+    # Add bottom of box
+    result.append(f"{bl}{h * width}{br}")
+    
     return "\n".join(result)
 
-# Example usage:
-if __name__ == "__main__":
-    print(format_header("UaiBot Status Report", emoji=EMOJI["robot"]))
+def create_divider(style="partial", width=None):
+    """Create a divider with specified style."""
+    if not width:
+        width = get_terminal_width()
+        
+    if style == "full":
+        return "=" * width
+    elif style == "partial":
+        return "-" * width
+    elif style == "dotted":
+        return "·" * width
+    else:
+        return "-" * width
+
+def process_command_output(command, output_type, raw_output):
+    """
+    Process command output based on output type.
     
-    print(format_status_line("System", "success", "Online"))
-    print(format_status_line("Database", "warning", "Slow connection"))
-    print(format_status_line("Network", "error", "Disconnected"))
-    
-    devices = ["Arduino (COM3)", "Webcam C920", "External Drive"]
-    print("\n" + format_header("Connected Devices", emoji=EMOJI["device"]))
-    print(format_list(devices, bullet_type="emoji", emoji_key="green"))
-    
-    print("\n" + format_box("CPU: 45% utilization\nRAM: 3.2GB/8GB used\nDisk: 120GB free", 
-                          title="System Resources"))
+    Args:
+        command (str): The command that was run
+        output_type (str): Type of output (e.g., 'uptime', 'disk', 'status')
+        raw_output (str): Raw command output
+        
+    Returns:
+        str: Formatted output
+    """
+    # Process based on output type
+    if output_type == "uptime":
+        return format_status_line(f"System uptime: {raw_output.strip()}", "time")
+        
+    elif output_type == "disk":
+        header = format_header("Disk Space", "folder")
+        return header + raw_output
+        
+    elif output_type == "status":
+        # Try to parse as JSON
+        try:
+            data = json.loads(raw_output)
+            result = format_header("System Status", "robot")
+            
+            # Process each key in the status data
+            for key, value in data.items():
+                if key == "warnings":
+                    for warning in value:
+                        result += format_status_line(warning, "warning") + "\n"
+                elif key == "errors":
+                    for error in value:
+                        result += format_status_line(error, "error") + "\n"
+                else:
+                    result += format_status_line(f"{key}: {value}", "success") + "\n"
+                    
+            return result
+        except:
+            # Not JSON, just format as text
+            return format_header("System Status", "robot") + raw_output
+            
+    # Default processing - just return the raw output
+    return raw_output

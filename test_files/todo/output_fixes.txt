@@ -1,0 +1,20 @@
+# UaiBot Output Formatting Issues and Fixes
+
+## Issues Identified
+- Output is shown multiple times (3x duplication)
+- Some outputs don't follow the consistent format
+- Logger is outputting the same information multiple times
+- Thinking box is shown multiple times
+
+## Fixed Items
+- Created dedicated output formatter module
+- Patched main script to prevent duplicate outputs
+- Added single-output printer to ensure each message is shown once
+- Fixed log duplication with a custom filter
+
+## To Do
+- Integrate output formatter into all UaiBot modules 
+- Add configuration option for output verbosity
+- Create a proper output facade pattern to centralize all output handling
+- Add unit tests for output formatting
+- Consider adding color formatting for better readability

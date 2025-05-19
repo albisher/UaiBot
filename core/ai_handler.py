@@ -309,117 +309,106 @@ def get_system_info():
     return system_str
 
 class AIHandler:
-    def __init__(self, model_type="local", api_key=None, ollama_base_url="http://localhost:11434", google_model_name="gemini-pro", quiet_mode=False):
-        self.model_type = model_type
-        self.api_key = api_key
-        self.ollama_base_url = ollama_base_url
-        self.google_model_name = google_model_name
+    def __init__(self, model_type="local", api_key=None, ollama_base_url="http://localhost:11434", google_model_name="gemini-pro", quiet_mode=False, fast_mode=False):
+        """Initialize the AI Handler with the specified model type."""
+        self.model_type = model_type.lower()
+        self.model = None
         self.quiet_mode = quiet_mode
+        self.fast_mode = fast_mode  # Add fast_mode flag for timeout adjustments
         
-        # Try to get default model from config rather than hardcoding 'llama2'
-        self.ollama_model_name = None
-        try:
-            config_paths = ["config/settings.json", "../config/settings.json"]
-            for path in config_paths:
-                if os.path.exists(path):
-                    with open(path, 'r') as f:
-                        config = json.load(f)
-                        self.ollama_model_name = config.get("default_ollama_model")
-                        break
-        except:
-            pass
-        
-        # Use fallback if no config found
-        if not self.ollama_model_name:
-            self.ollama_model_name = "gemma3:4b"  # Better default than llama2 which is often not available
-
         if self.model_type == "google":
-            if not genai:
-                raise ImportError("Google Generative AI SDK not installed.")
-            if not self.api_key:
-                # Try to get API key from environment variable
-                self.api_key = os.getenv("GOOGLE_API_KEY")
-            if not self.api_key:
-                # Try to get API key from config file
-                try:
-                    # Try current directory first
-                    if os.path.exists("config/settings.json"):
-                        with open("config/settings.json", 'r') as f:
-                            config = json.load(f)
-                            self.api_key = config.get("google_api_key")
-                    # Try relative path from core directory
-                    elif os.path.exists("../config/settings.json"):
-                        with open("../config/settings.json", 'r') as f:
-                            config = json.load(f)
-                            self.api_key = config.get("google_api_key")
-                    elif not self.quiet_mode:
-                        self._log("Warning: config/settings.json not found in current or parent directory.")
-                except FileNotFoundError:
-                    if not self.quiet_mode:
-                        self._log("Warning: config/settings.json not found.")
-                except json.JSONDecodeError:
-                    if not self.quiet_mode:
-                        self._log("Warning: Could not decode config/settings.json.")
-
-            if not self.api_key:
-                raise ValueError("Google API Key not provided or found. Please set GOOGLE_API_KEY environment variable or add 'google_api_key' to config/settings.json.")
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(self.google_model_name)
-            if not self.quiet_mode:
-                self._log(f"Google AI Handler initialized with model: {self.google_model_name}")
-
-        elif self.model_type == "ollama" or self.model_type == "local":
-            if not ollama:
-                raise ImportError("Ollama SDK not installed.")
+            # Initialize the Google AI model
             try:
-                # Fix the connection issue by explicitly using the URL format ollama expects
-                if not self.ollama_base_url.startswith('http://') and not self.ollama_base_url.startswith('https://'):
-                    self.ollama_base_url = 'http://' + self.ollama_base_url
-                    
-                # Ensure the URL doesn't have a trailing slash
-                if self.ollama_base_url.endswith('/'):
-                    self.ollama_base_url = self.ollama_base_url[:-1]
+                import google.generativeai as genai
                 
-                # Use debug logging instead of direct print for connection message
-                self._log_debug(f"Connecting to Ollama at: {self.ollama_base_url}")
+                if not api_key:
+                    raise ValueError("Google API key is required for the Google AI model")
                 
-                self.client = ollama.Client(host=self.ollama_base_url)
+                genai.configure(api_key=api_key)
+                self._log_debug(f"Setting up Google AI with model: {google_model_name}")
                 
-                # Test connection with a simple API call
-                try:
-                    models_list = self.client.list()
-                    available_models = [m['name'] for m in models_list.get('models', [])]
-                except Exception as conn_err:
-                    # Try an alternative approach by directly using httpx
-                    import httpx
-                    with httpx.Client() as client:
-                        response = client.get(f"{self.ollama_base_url}/api/tags")
-                        if response.status_code == 200:
-                            models_data = response.json()
-                            available_models = [m['name'] for m in models_data.get('models', [])]
-                        else:
-                            raise ConnectionError(f"Failed to connect to Ollama API: Status code {response.status_code}")
+                # Configure the model
+                self.google_model_name = google_model_name
+                generation_config = {
+                    "temperature": 0.1,  # Low temperature for more deterministic responses
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "max_output_tokens": 1024,
+                }
                 
-                if not available_models:
-                    self._log_debug(f"No Ollama models found at {self.ollama_base_url}. Please ensure Ollama is running and models are installed.")
-                elif self.ollama_model_name not in available_models and ":" not in self.ollama_model_name: # if model name doesn't specify version
-                    # try to find a version of the model
-                    found_model = next((m for m in available_models if m.startswith(self.ollama_model_name + ":")), None)
-                    if found_model:
-                        self.ollama_model_name = found_model
-                    else:
-                        # Use the configured model even if not immediately found in the list
-                        if available_models:
-                            self._log_debug(f"Using first available model: {available_models[0]}")
-                            self.ollama_model_name = available_models[0]
-
-                # Using debug logging for initialization messages
-                self._log_debug(f"Ollama AI Handler initialized. Using model: {self.ollama_model_name} from {self.ollama_base_url}")
-                self._log_debug(f"Ollama model set to: {self.ollama_model_name}")
+                safety_settings = [
+                    {
+                        "category": "HARM_CATEGORY_HARASSMENT",
+                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        "category": "HARM_CATEGORY_HATE_SPEECH",
+                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                    }
+                ]
+                
+                self.model = genai.GenerativeModel(
+                    model_name=google_model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )
+                
+                self._log("Google AI initialized successfully")
+            except ImportError:
+                raise ImportError("Google GenerativeAI package not installed. Run 'pip install google-generativeai'")
             except Exception as e:
-                raise ConnectionError(f"Failed to connect to Ollama at {self.ollama_base_url}. Ensure Ollama is running. Error: {e} - {e.__class__.__name__}")
+                self._log(f"Error initializing Google AI: {str(e)}")
+                raise
+        
+        elif self.model_type == "ollama":
+            # Initialize the Ollama AI model
+            try:
+                import requests
+                
+                self.base_url = ollama_base_url
+                self.ollama_model_name = "gemma:4b" # Default model
+                
+                # Check connection to Ollama
+                try:
+                    resp = requests.get(f"{ollama_base_url}/api/tags", timeout=5 if fast_mode else 10)
+                    if resp.status_code != 200:
+                        raise ConnectionError(f"Could not connect to Ollama API at {ollama_base_url}")
+                    
+                    # Set default model based on what's available
+                    models = resp.json().get("models", [])
+                    if models:
+                        # Use a sensible default from available models
+                        model_names = [m["name"] for m in models]
+                        # Preference order: gemma:latest, llama3:latest, mistral:latest, or first available
+                        for preferred in ["gemma:latest", "gemma", "llama3:latest", "llama3", "mistral:latest"]:
+                            if any(m.startswith(preferred) for m in model_names):
+                                self.ollama_model_name = next(m for m in model_names if m.startswith(preferred))
+                                break
+                        else:
+                            # If none of the preferred models are available, use the first one
+                            self.ollama_model_name = models[0]["name"]
+                    
+                    self._log(f"Using Ollama model: {self.ollama_model_name}")
+                    
+                except Exception as e:
+                    raise ConnectionError(f"Failed to connect to Ollama API: {str(e)}")
+                
+                self._log("Ollama initialized successfully")
+            except ImportError:
+                raise ImportError("Requests package not installed. Run 'pip install requests'")
+            except Exception as e:
+                self._log(f"Error initializing Ollama: {str(e)}")
+                raise
         else:
-            raise ValueError(f"Unsupported model_type: {self.model_type}. Choose 'google' or 'ollama'.")
+            raise ValueError(f"Unsupported model type: {model_type}")
 
     # Helper method to handle logging with quiet_mode awareness
     def _log(self, message):
@@ -502,19 +491,49 @@ class AIHandler:
             else:
                 enhanced_prompt = prompt
             
-            if not hasattr(self, 'client') or not self.client:
-                raise ValueError("Ollama client not initialized")
+            import requests
             
-            # Add a shorter timeout for faster responses, especially useful in fast mode
-            response = self.client.generate(
-                model=self.ollama_model_name, 
-                prompt=enhanced_prompt
-            )
+            # Use shorter timeout in fast mode
+            timeout_value = 5 if hasattr(self, 'fast_mode') and self.fast_mode else 15
             
-            if response and "response" in response:
-                return response["response"].strip()
-            else:
-                return "Error: Ollama returned invalid response format"
+            # Use requests with timeout parameter
+            api_url = f"{self.base_url}/api/generate"
+            headers = {"Content-Type": "application/json"}
+            data = {
+                "model": self.ollama_model_name,
+                "prompt": enhanced_prompt,
+                "stream": False  # No streaming for simplicity
+            }
+            
+            # In fast mode, use a smaller context and response size
+            if hasattr(self, 'fast_mode') and self.fast_mode:
+                data["options"] = {
+                    "num_ctx": 1024,           # Smaller context window
+                    "num_predict": 256,        # Shorter response
+                    "temperature": 0.1,        # Lower temperature for faster/deterministic responses
+                    "stop_on_eos": True        # Stop generating on EOS token
+                }
+            
+            # Make the request with a timeout
+            try:
+                # Use connect timeout to fail faster if Ollama server is not reachable
+                response = requests.post(api_url, headers=headers, json=data, 
+                                       timeout=(2 if self.fast_mode else 5, timeout_value))
+                
+                if response.status_code == 200:
+                    resp_json = response.json()
+                    if resp_json and "response" in resp_json:
+                        return resp_json["response"].strip()
+                    else:
+                        return "Error: Ollama returned invalid response format"
+                else:
+                    return f"Error: Ollama API returned status code {response.status_code}"
+            except requests.exceptions.Timeout:
+                # Specific error for timeout
+                return "Error: Ollama API request timed out. Please try again later."
+            except requests.exceptions.ConnectionError:
+                # Connection refused, server down, etc.
+                return "Error: Could not connect to Ollama API. Is the server running?"
         except Exception as e:
             return f"Error: Failed to get AI response: {str(e)}"
 

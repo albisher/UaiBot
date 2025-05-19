@@ -205,6 +205,13 @@ class ShellHandler:
                     command = "find ~ -type f -name '*.txt' -not -path '*/\\.*' 2>/dev/null | head -n 15"
                 else:  # Windows
                     command = 'dir /s /b "%USERPROFILE%\\*.txt"'
+                    
+        # Handle problematic wildcard patterns that can cause excessive recursion
+        if "find" in command and "'**'" in command:
+            # Replace '**' wildcard with '*' which is safer
+            command = command.replace("'**'", "'*'")
+            if not self.quiet_mode:
+                print(f"Modified search command for safety: {command}")
         
         try:
             # Prefer using shlex.split for secure command execution without shell=True
@@ -271,6 +278,13 @@ class ShellHandler:
             return f"Command not found: {command}"
         except PermissionError:
             return f"Permission denied when running: {command}"
+        except subprocess.TimeoutExpired:
+            if self.fast_mode:
+                # In fast mode, return immediately without retrying
+                return f"Command timed out after {timeout} seconds. Fast mode enabled, not retrying."
+            else:
+                # In normal mode, give more info
+                return f"Command timed out after {timeout} seconds: {command}"
         except Exception as e:
             return f"Error executing command: {command}\n{str(e)}"
     

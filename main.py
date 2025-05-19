@@ -17,24 +17,28 @@ import subprocess
 import platform
 import warnings
 import urllib3
+from core.logging_config import setup_logging
 import logging
+from pathlib import Path
+from core.file_utils import search_files, expand_path, find_cv_files
+
+# Import the output handler to prevent duplicate outputs
+sys.path.append(os.path.join(os.path.dirname(__file__), 'test_files'))
+from test_files.output_handler import OutputHandler
+
+# Create a global output handler instance
+output_handler = OutputHandler()
 
 # Disable httpx INFO level logging to prevent duplicate request logs
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("uaibot.log"),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+# Set up logging with proper configuration to prevent duplicate messages
+setup_logging(log_level=logging.INFO, log_file="logs/uaibot.log")
 logger = logging.getLogger(__name__)
 
-# Suppress the urllib3 LibreSSL warning
+# Suppress all urllib3 warnings
 warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.NotOpenSSLWarning)
 
 # Disable other urllib3 warnings
 urllib3.disable_warnings()
@@ -66,8 +70,262 @@ try:
 except ImportError:
     pass  # GUI components not available or PyQt5 not installed
 
+# File operation keywords for improved mapping
+FILE_OPERATIONS = {
+    'create': ['create', 'new', 'make', 'touch', 'generate'],
+    'read': ['read', 'open', 'view', 'display', 'show', 'cat'],
+    'update': ['update', 'edit', 'modify', 'change', 'alter', 'write', 'append'],
+    'delete': ['delete', 'remove', 'erase', 'destroy', 'trash', 'rm'],
+    'search': ['search', 'find', 'locate', 'where', 'which'],
+    'list': ['list', 'ls', 'dir', 'enumerate'],
+    'rename': ['rename', 'move', 'mv', 'change name'],
+    'copy': ['copy', 'cp', 'duplicate'],
+    'info': ['info', 'stat', 'details', 'metadata', 'properties']
+}
+
+def parse_file_request(request):
+    """
+    Parse a file operation request to determine the operation and parameters.
+    
+    Args:
+        request (str): The user request string
+        
+    Returns:
+        dict: Operation details including operation type, target file, etc.
+    """
+    request_lower = request.lower()
+    operation_type = None
+    
+    # Determine operation type
+    for op_type, keywords in FILE_OPERATIONS.items():
+        if any(keyword in request_lower for keyword in keywords):
+            operation_type = op_type
+            break
+    
+    # Extract file paths or patterns
+    # Check for quoted paths first
+    import re
+    quoted_paths = re.findall(r'"([^"]+)"', request)
+    if not quoted_paths:
+        quoted_paths = re.findall(r"'([^']+)'", request)
+    
+    # If no quoted paths, try to extract words that might be paths
+    potential_paths = []
+    if not quoted_paths:
+        # Split by common prepositions and conjunctions that might separate commands from paths
+        path_indicators = [' in ', ' at ', ' to ', ' from ', ' called ', ' named ', ' as ']
+        for indicator in path_indicators:
+            if indicator in request_lower:
+                parts = request_lower.split(indicator, 1)
+                if len(parts) > 1 and parts[1].strip():
+                    potential_paths.append(parts[1].strip())
+    
+    # Try to identify file types/extensions
+    extensions = re.findall(r'\.([a-zA-Z0-9]+)', request)
+    
+    return {
+        'operation': operation_type,
+        'quoted_paths': quoted_paths,
+        'potential_paths': potential_paths,
+        'extensions': extensions,
+        'original_request': request
+    }
+
+def handle_file_operation(parsed_request):
+    """
+    Handle a file operation based on the parsed request.
+    
+    Args:
+        parsed_request (dict): Parsed request details
+        
+    Returns:
+        str: Result message
+    """
+    operation = parsed_request['operation']
+    
+    # Handle search operation
+    if operation == 'search':
+        search_term = None
+        search_path = None
+        
+        # Extract search term from request
+        request_words = parsed_request['original_request'].lower().split()
+        for i, word in enumerate(request_words):
+            if word in ['find', 'search', 'locate']:
+                if i + 1 < len(request_words):
+                    search_term = request_words[i + 1]
+                    break
+        
+        # Determine search path
+        if parsed_request['quoted_paths']:
+            search_path = parsed_request['quoted_paths'][0]
+        elif parsed_request['potential_paths']:
+            search_path = parsed_request['potential_paths'][0]
+        
+        # Special case for CV files
+        if "cv" in parsed_request['original_request'].lower() or "resume" in parsed_request['original_request'].lower():
+            results, error = find_cv_files(search_path)
+            if error:
+                return f"❌ Error searching for CV files: {error}"
+            elif not results:
+                return "No CV files found."
+            else:
+                return f"Found {len(results)} CV files:\n" + "\n".join(results)
+        
+        # Regular file search
+        results, error = search_files(search_term, search_path)
+        if error:
+            return f"❌ Error searching for files: {error}"
+        elif not results:
+            return f"No files matching '{search_term}' found."
+        else:
+            return f"Found {len(results)} files matching '{search_term}':\n" + "\n".join(results)
+    
+    # Handle create operation
+    elif operation == 'create':
+        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
+            return "❌ No file name specified for creation."
+            
+        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
+        full_path = expand_path(file_path)
+        
+        try:
+            # Ensure directory exists
+            directory = os.path.dirname(full_path)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory)
+                
+            # Create empty file
+            Path(full_path).touch()
+            return f"✅ Created file: {full_path}"
+        except Exception as e:
+            return f"❌ Error creating file: {str(e)}"
+    
+    # Handle read operation
+    elif operation == 'read':
+        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
+            return "❌ No file specified to read."
+            
+        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
+        full_path = expand_path(file_path)
+        
+        try:
+            if not os.path.isfile(full_path):
+                return f"❌ File not found: {full_path}"
+                
+            with open(full_path, 'r') as file:
+                content = file.read()
+            
+            # Limit content length for display
+            max_length = 1000
+            if len(content) > max_length:
+                content = content[:max_length] + "...\n[Content truncated, file is too large to display completely]"
+                
+            return f"📄 Content of {full_path}:\n\n{content}"
+        except Exception as e:
+            return f"❌ Error reading file: {str(e)}"
+    
+    # Handle update operation
+    elif operation == 'update':
+        # This would require additional UI for content input
+        return "File update operations require content input. Please use the appropriate command with content."
+    
+    # Handle delete operation
+    elif operation == 'delete':
+        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
+            return "❌ No file specified to delete."
+            
+        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
+        full_path = expand_path(file_path)
+        
+        try:
+            if not os.path.exists(full_path):
+                return f"❌ File not found: {full_path}"
+                
+            if os.path.isfile(full_path):
+                os.remove(full_path)
+                return f"✅ Deleted file: {full_path}"
+            elif os.path.isdir(full_path):
+                return f"❌ {full_path} is a directory. Use a directory removal command instead."
+        except Exception as e:
+            return f"❌ Error deleting file: {str(e)}"
+    
+    # Handle list operation
+    elif operation == 'list':
+        search_path = None
+        
+        if parsed_request['quoted_paths']:
+            search_path = parsed_request['quoted_paths'][0]
+        elif parsed_request['potential_paths']:
+            search_path = parsed_request['potential_paths'][0]
+        else:
+            search_path = "."  # Current directory
+            
+        full_path = expand_path(search_path)
+        
+        try:
+            if not os.path.exists(full_path):
+                return f"❌ Directory not found: {full_path}"
+                
+            if not os.path.isdir(full_path):
+                return f"❌ {full_path} is not a directory."
+                
+            files = os.listdir(full_path)
+            if not files:
+                return f"Directory {full_path} is empty."
+                
+            # Format list with file types
+            formatted_list = []
+            for file in sorted(files):
+                file_path = os.path.join(full_path, file)
+                if os.path.isdir(file_path):
+                    formatted_list.append(f"📁 {file}/")
+                else:
+                    formatted_list.append(f"📄 {file}")
+                    
+            return f"Contents of {full_path}:\n" + "\n".join(formatted_list)
+        except Exception as e:
+            return f"❌ Error listing directory: {str(e)}"
+    
+    # Handle other operations
+    else:
+        return f"Operation '{operation}' is not yet implemented or recognized."
+
+def process_file_flag_request(request):
+    """
+    Process a file operation request that comes with the -f flag.
+    
+    Args:
+        request (str): The user request string
+        
+    Returns:
+        str: Response to the request
+    """
+    logger.info(f"Processing file request: {request}")
+    
+    # Parse the request to determine the file operation
+    parsed_request = parse_file_request(request)
+    
+    # Log the parsed request for debugging
+    logger.debug(f"Parsed request: {parsed_request}")
+    
+    # If no operation was detected, provide guidance
+    if not parsed_request['operation']:
+        return (
+            "I couldn't determine what file operation you want to perform. "
+            "Please try again with a clearer request, such as:\n"
+            "- find files with 'example' in the name\n"
+            "- create a new file called 'example.txt'\n"
+            "- show the contents of 'example.txt'\n"
+            "- delete the file 'example.txt'\n"
+            "- list files in the documents folder"
+        )
+    
+    # Handle the file operation
+    return handle_file_operation(parsed_request)
+
 def main():
-    """Main entry point for UaiBot."""
+    """Main entry point for the UaiBot application"""
     # Parse command-line arguments first to check for license skip
     parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant.")
     parser.add_argument("-c", "--command", type=str, help="Execute a single command and exit.")
@@ -79,7 +337,10 @@ def main():
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
     parser.add_argument("-f", "--fast", action="store_true", help="Fast mode - does not wait for user feedback on errors")
     parser.add_argument("--skip-license-check", action="store_true", help="Skip license validation (for development only)")
-    args = parser.parse_args()
+    args, remaining_args = parser.parse_known_args()
+
+    # Join remaining args into a single request string
+    request = ' '.join(remaining_args) if remaining_args else None
 
     # Set quiet mode and fast mode from command line args
     quiet_mode = args.quiet if hasattr(args, 'quiet') else False
@@ -129,11 +390,11 @@ def main():
         if not debug_mode and not debug_only and log_type.lower() == "info":
             # Regular user-facing messages shouldn't have log prefix
             if force or not quiet_mode:
-                print(message)
+                output_handler.capture_print(message)
         else:
             # Debug and other logs should have the formatted prefix
             if force or not quiet_mode:
-                print(f"{prefix}{message}{suffix}")
+                output_handler.capture_print(f"{prefix}{message}{suffix}")
                 
         # Always log to file regardless of console output
         logger.log(
@@ -265,7 +526,16 @@ def main():
                                 fast_mode=fast_mode)
     
     # Initialize the command processor with our new implementation
+    # Pass the output handler to ensure consistent formatting
     command_processor = CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode, fast_mode=fast_mode)
+    
+    # Import and use the proper output formatter
+    try:
+        from utils.output_formatter import format_box
+        # Set up the formatter for the command processor
+        command_processor.format_box = format_box
+    except ImportError:
+        log("Warning: Could not import output formatter, using default formatting", debug_only=True)
     
     # Debug log showing which command processor we're using
     if debug_mode:
@@ -300,12 +570,23 @@ def main():
 
     if args.command:  # If command is provided via CLI
         # Never use GUI for single commands
+        # Reset output handler and start capturing
+        output_handler.reset()
+        output_handler.start_capture()
+        
+        # Process the command
         result = command_processor.process_command(args.command)
-        log(result)
+        
+        # Filter out duplicate outputs
+        filtered_result = output_handler.filter_duplicate_outputs(result)
+        
+        # Print the filtered result
+        print(filtered_result)
+        
         log("UaiBot single command execution finished.", debug_only=True)
-        # In fast mode with a direct command, exit immediately without waiting for user input
-        if fast_mode:
-            sys.exit(0)
+        # Always exit after processing a single command
+        # This prevents hanging regardless of fast mode
+        sys.exit(0)
     elif use_gui and GUI_AVAILABLE:  # Launch GUI mode
         try:
             log("Launching UaiBot GUI interface...")
@@ -366,13 +647,30 @@ def main():
                 log("Fast mode enabled. UaiBot will exit after executing one command.", debug_only=True)
             
             while True:
+                # Reset output handler state for each new command
+                output_handler.reset()
+                
                 # Get user input without showing "Request:" prompt
                 try:
                     user_input = input()
                     if user_input.lower() in ['x', 'exit', 'quit']:
-                        break
+                        log("\nExiting UaiBot. Goodbye!")
+                        # Ensure clean exit
+                        sys.stdout.flush()
+                        sys.stderr.flush()
+                        sys.exit(0)
+                    
+                    # Start capturing output to prevent duplication
+                    output_handler.start_capture()
+                    
+                    # Process the command
                     result = command_processor.process_command(user_input)
-                    log(result)
+                    
+                    # Filter out duplicate outputs
+                    filtered_result = output_handler.filter_duplicate_outputs(result)
+                    
+                    # Log the filtered result
+                    print(filtered_result)
                     
                     # Add a blank line and the prompt again after each response for better readability
                     print("\nType your request please:")
@@ -380,7 +678,10 @@ def main():
                     # In fast mode, exit after executing any command
                     if fast_mode:
                         log("\nFast mode enabled. Exiting after command execution.", debug_only=True)
-                        # Add sys.exit for immediate termination in fast mode
+                        # Explicitly flush stdout and stderr to ensure all output is visible
+                        sys.stdout.flush()
+                        sys.stderr.flush()
+                        # Force immediate termination in fast mode without waiting for anything else
                         sys.exit(0)
                 except KeyboardInterrupt:
                     log("\nExiting UaiBot.")
@@ -391,6 +692,16 @@ def main():
             log("UaiBot session ended.", debug_only=True)
     else:
         log("Interactive mode is disabled. Exiting.")
+
+    if args.file:
+        if not request:
+            print("Please provide a file operation request with the -f flag.")
+            return
+            
+        # Process file operations with the -f flag
+        response = process_file_flag_request(request)
+        print(response)
+        return
 
 if __name__ == "__main__":
     main()

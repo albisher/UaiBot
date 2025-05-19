@@ -5,6 +5,10 @@ Formats raw command output into user-friendly results.
 import platform
 import re
 import json
+from utils.output_formatter import (
+    EMOJI, format_header, format_table_row, format_box,
+    format_status_line, format_list, create_divider
+)
 
 class OutputProcessor:
     """Processes raw command output into human-readable format."""
@@ -17,43 +21,31 @@ class OutputProcessor:
             uptime_parts = raw_output.split(",")
             if len(uptime_parts) >= 2:
                 up_part = uptime_parts[0].split("up ")[1].strip()
-                # Format nicely
-                return f"⏱️ Your system has been running for {up_part}"
+                # Format nicely using output_formatter
+                return format_status_line(f"Your system has been running for {up_part}", "time")
         
         # Fallback for simple output
-        return f"⏱️ System uptime: {raw_output.strip()}"
+        return format_status_line(f"System uptime: {raw_output.strip()}", "time")
     
-    def process_memory(self, raw_output):
-        """Process memory command output."""
-        if not raw_output:
-            return "❌ Unable to retrieve memory information."
-            
-        if platform.system().lower() == 'darwin':
-            # Process vm_stat output on macOS
-            lines = raw_output.strip().split('\n')
-            memory_info = {}
-            for line in lines:
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    memory_info[key.strip()] = value.strip()
-            
-            # Estimate memory usage from vm_stat output
-            return f"🧠 **Memory Information**\n\n{raw_output}"
-        else:
-            # Simple output for other platforms
-            return f"🧠 **Memory Information**\n\n{raw_output}"
+    def process_windows_uptime(self, raw_output):
+        """Process Windows uptime output."""
+        # This would require actual implementation to parse Windows-specific format
+        # Simplified example using output_formatter
+        return format_status_line(f"System uptime: {raw_output.strip()}", "time")
     
     def process_disk_space(self, raw_output):
         """Process disk space command output."""
         if not raw_output:
-            return "❌ Unable to retrieve disk space information."
+            return format_status_line("Unable to retrieve disk space information.", "error")
         
         lines = raw_output.strip().split('\n')
         if len(lines) < 2:
-            return f"💾 Disk space information: {raw_output.strip()}"
+            return format_status_line(f"Disk space information: {raw_output.strip()}", "folder")
         
         # Skip header line and process disk partitions
-        result = "💾 **Disk Space Information**\n\n"
+        result = format_header("Disk Space Information", "folder")
+        
+        # Process each line into a formatted table
         for line in lines[1:]:
             parts = line.split()
             if len(parts) >= 5:
@@ -65,151 +57,135 @@ class OutputProcessor:
                 mount = " ".join(parts[5:])
                 
                 if mount == "/" or mount == "/System/Volumes/Data" or "user" in mount.lower():
-                    result += f"• {mount}:\n"
-                    result += f"  - {avail} free of {size} ({use_percent} used)\n\n"
+                    # Display drive info with appropriate icon based on usage
+                    status_key = "green"
+                    try:
+                        usage = int(use_percent.strip('%'))
+                        if usage > 90:
+                            status_key = "red"
+                        elif usage > 70:
+                            status_key = "yellow"
+                    except ValueError:
+                        pass
+                        
+                    result += format_status_line(f"{mount}", status_key) + "\n"
+                    result += f"  {avail} free of {size} ({use_percent} used)\n\n"
         
         return result.strip()
     
-    def process_notes_topics(self, raw_output):
-        """Process Notes topics/folders search output."""
-        if not raw_output or raw_output.strip() == "":
-            return "📝 I couldn't find any Notes topics on your system."
-        
-        # Format for macOS AppleScript output which will be like: {"Notes", "Work", "Personal"}
-        if platform.system().lower() == 'darwin':
-            # Remove any leading/trailing whitespace and brackets
-            cleaned_output = raw_output.strip()
-            if cleaned_output.startswith('{') and cleaned_output.endswith('}'):
-                cleaned_output = cleaned_output[1:-1]
-            
-            # Split on commas and clean up each topic name
-            topics = [topic.strip(' "\'') for topic in cleaned_output.split(',') if topic.strip()]
-            
-            if not topics:
-                return "📝 I couldn't find any Notes topics on your system."
-                
-            result = "📝 **Notes Topics**\n\n"
-            for topic in topics:
-                result += f"• {topic}\n"
-                
-            return result.strip()
-        else:
-            # For other platforms
-            folders = raw_output.strip().split('\n')
-            
-            result = "📝 **Notes Folders**\n\n"
-            for folder in folders:
-                folder = folder.strip()
-                if folder:
-                    result += f"• {folder}\n"
-                    
-            return result.strip()
-    
-    def process_notes_count(self, raw_output):
-        """Process Notes count output."""
-        if not raw_output or raw_output.strip() == "":
-            return "❌ I couldn't determine the number of notes."
-        
-        try:
-            count = int(raw_output.strip())
-            return f"📝 You have {count} notes in your Notes app."
-        except ValueError:
-            return f"📝 Notes count information: {raw_output.strip()}"
-    
-    def process_notes_list(self, raw_output):
-        """Process Notes list output."""
-        if not raw_output or raw_output.strip() == "":
-            return "📝 I couldn't find any notes in your Notes app."
-        
-        # Format for macOS AppleScript output which will be like: {"Note 1", "Shopping List", "Ideas"}
-        if platform.system().lower() == 'darwin':
-            # Remove any leading/trailing whitespace and brackets
-            cleaned_output = raw_output.strip()
-            if cleaned_output.startswith('{') and cleaned_output.endswith('}'):
-                cleaned_output = cleaned_output[1:-1]
-            
-            # Split on commas and clean up each note name
-            notes = [note.strip(' "\'') for note in cleaned_output.split(',') if note.strip()]
-            
-            if not notes:
-                return "📝 I couldn't find any notes in your Notes app."
-                
-            result = "📝 **Your Notes**\n\n"
-            for note in notes:
-                result += f"• {note}\n"
-                
-            return result.strip()
-        else:
-            # For other platforms
-            return f"📝 **Notes List**\n\n{raw_output.strip()}"
-    
-    def process_folder_search(self, raw_output, search_term):
-        """Process folder search results."""
-        if not raw_output or raw_output.strip() == "":
-            return f"🔍 I didn't find any folders matching '{search_term}'."
-            
-        folders = raw_output.strip().split('\n')
-        
-        result = f"📂 **Folders matching '{search_term}'**\n\n"
-        for folder in folders:
-            folder = folder.strip()
-            if folder:
-                result += f"• {folder}\n"
-                
-        return result.strip()
-        
-    def process_windows_uptime(self, raw_output):
-        """Process Windows uptime output."""
-        # This would require actual implementation to parse Windows-specific format
-        return f"⏱️ System uptime: {raw_output.strip()}"
-        
     def process_windows_disk_space(self, raw_output):
         """Process Windows disk space output."""
-        return f"💾 **Disk space information**:\n\n{raw_output.strip()}"
+        # Using output_formatter for consistent formatting
+        header = format_header("Disk Space Information", "folder")
+        return header + raw_output.strip()
     
     def process_macos_memory(self, raw_output):
         """Process macOS vm_stat output."""
-        return f"🧠 **Memory information**:\n\n{raw_output.strip()}"
+        # Using output_formatter for consistent formatting
+        header = format_header("Memory Information", "stats")
+        return header + format_box(raw_output.strip(), title="Memory Statistics")
     
     def process_linux_memory(self, raw_output):
         """Process Linux free -h output."""
-        return f"🧠 **Memory information**:\n\n{raw_output.strip()}"
+        # Using output_formatter for consistent formatting
+        header = format_header("Memory Information", "stats")
+        return header + format_box(raw_output.strip(), title="Memory Statistics")
     
     def process_windows_memory(self, raw_output):
         """Process Windows memory output."""
-        return f"🧠 **Memory information**:\n\n{raw_output.strip()}"
+        # Using output_formatter for consistent formatting
+        header = format_header("Memory Information", "stats")
+        return header + format_box(raw_output.strip(), title="Memory Statistics")
+    
+    def process_notes_folders(self, raw_output):
+        """Process Notes folder search output."""
+        if not raw_output or raw_output.strip() == "":
+            return format_status_line("I didn't find any Notes folders on your system.", "info")
+            
+        folders = raw_output.strip().split("\n")
         
+        result = format_header("Notes Folders", "document")
+        folder_list = []
+        
+        for folder in folders:
+            folder = folder.strip()
+            if folder:
+                if "iCloud" in folder:
+                    folder_list.append(f"iCloud Notes: {folder}")
+                elif "Containers" in folder:
+                    folder_list.append(f"Local Notes: {folder}")
+                elif "Notes.app" in folder:
+                    folder_list.append(f"Notes Application: {folder}")
+                else:
+                    folder_list.append(folder)
+        
+        # Format as a proper list
+        if folder_list:
+            result += format_list(folder_list)
+            
+        return result.strip()
+    
+    def process_notes_topics(self, raw_output):
+        """Process notes topic list output."""
+        if not raw_output or raw_output.strip() == "":
+            return format_status_line("I didn't find any Notes topics.", "info")
+        
+        # Format for macOS AppleScript output which will be like: {"Notes", "Work", "Personal"}
+        if raw_output.strip().startswith('{') and raw_output.strip().endswith('}'):
+            # Clean up the output from AppleScript
+            cleaned = raw_output.strip()[1:-1]
+            # Split on commas and clean up quotes
+            topics = [topic.strip(' "\'') for topic in cleaned.split(',') if topic.strip()]
+        else:
+            topics = raw_output.strip().split("\n")
+        
+        result = format_header("Notes Topics", "document")
+        topic_list = [topic.strip() for topic in topics if topic.strip()]
+        
+        # Format as a proper list
+        if topic_list:
+            result += format_list(topic_list)
+            
+        return result.strip()
+    
     def process_youtube_results(self, raw_output):
         """Process YouTube API results."""
         try:
             data = json.loads(raw_output)
             if "items" in data and len(data["items"]) > 0:
-                result = "🎬 **Currently Trending on YouTube**\n\n"
+                result = format_header("Trending on YouTube", "stats")
+                video_list = []
+                
                 for i, item in enumerate(data["items"]):
                     if "snippet" in item:
                         snippet = item["snippet"]
                         title = snippet.get("title", "Unknown")
                         channel = snippet.get("channelTitle", "Unknown Channel")
-                        result += f"{i+1}. **{title}**\n   by {channel}\n\n"
-                return result.strip()
+                        video_list.append(f"**{title}**\nby {channel}")
+                
+                # Format as numbered list
+                if video_list:
+                    result += format_list(video_list, bullet_type="number")
+                return result
             else:
-                return "❌ No trending videos found on YouTube."
+                return format_status_line("No trending videos found on YouTube.", "error")
         except json.JSONDecodeError:
-            return "❌ Error parsing YouTube API response."
+            return format_status_line("Error parsing YouTube API response.", "error")
         except Exception as e:
-            return f"❌ Error processing YouTube results: {str(e)}"
+            return format_status_line(f"Error processing YouTube results: {str(e)}", "error")
     
     def process_general_search(self, raw_output, search_term):
         """Process general search results."""
         if not raw_output or raw_output.strip() == "":
-            return f"🔍 I didn't find anything matching '{search_term}'."
+            return format_status_line(f"I didn't find anything matching '{search_term}'.", "search")
         
         items = raw_output.strip().split("\n")
         
-        result = f"🔍 **Search Results for '{search_term}'**\n\n"
-        for item in items:
-            item = item.strip()
-            if item:
-                result += f"• {item}\n"
+        result = format_header(f"Search Results for '{search_term}'", "search")
+        item_list = [item.strip() for item in items if item.strip()]
+        
+        # Format as a bullet list
+        if item_list:
+            result += format_list(item_list)
                 
         return result.strip()

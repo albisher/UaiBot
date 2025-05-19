@@ -9,6 +9,7 @@ import shlex
 import platform
 import glob
 from pathlib import Path
+import fnmatch  # Make sure fnmatch is properly imported
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ def search_files(search_term, search_path=None, name_pattern=None, file_type=Non
     
     # Prepare search results
     results = []
+    seen_files = set()  # Track seen files to prevent duplicates
     
     try:
         # Walk through directory structure
@@ -76,11 +78,16 @@ def search_files(search_term, search_path=None, name_pattern=None, file_type=Non
                 # Check if file matches search criteria
                 file_path = os.path.join(root, filename)
                 
+                # Skip if we've already processed this file
+                if file_path in seen_files:
+                    continue
+                seen_files.add(file_path)
+                
                 match = True
                 
                 # Apply name pattern filter if specified
                 if name_pattern:
-                    if not glob.fnmatch.fnmatch(filename, name_pattern):
+                    if not fnmatch.fnmatch(filename, name_pattern):
                         match = False
                 
                 # Apply file type filter if specified
@@ -89,9 +96,14 @@ def search_files(search_term, search_path=None, name_pattern=None, file_type=Non
                     if not ext.endswith(file_type.lower()):
                         match = False
                 
-                # Apply search term filter if specified
+                # Apply search term filter if specified - make this more robust
                 if search_term and match:
-                    if search_term.lower() not in filename.lower():
+                    # If search_term has wildcards, use fnmatch pattern matching
+                    if '*' in search_term or '?' in search_term:
+                        if not fnmatch.fnmatch(filename.lower(), search_term.lower()):
+                            match = False
+                    # Otherwise use simple substring search
+                    elif search_term.lower() not in filename.lower():
                         match = False
                 
                 if match:
@@ -123,17 +135,15 @@ def find_cv_files(search_path=None):
     cv_extensions = [".pdf", ".doc", ".docx", ".txt", ".rtf"]
     
     results = []
+    seen_files = set()  # Track seen files to prevent duplicates
     
     # Search for each combination of term and extension
     for term in cv_terms:
         for ext in cv_extensions:
             files, _ = search_files(term, search_path, f"*{ext}")
-            results.extend(files)
+            for file in files:
+                if file not in seen_files:
+                    seen_files.add(file)
+                    results.append(file)
     
-    # Remove duplicates while preserving order
-    unique_results = []
-    for file in results:
-        if file not in unique_results:
-            unique_results.append(file)
-    
-    return unique_results, None
+    return results, None
