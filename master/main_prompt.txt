@@ -67,3 +67,7 @@ We got this project running from many folders and files.
 - and so on.
 
 We always run test files from their folder on another test specific folder to make sure every type of test is valid under that path.
+
+After all coder creation or alteration you always run the code to make sure it works as expected.
+- you always check the code for any errors or bugs using same input it reported the bug with (if any).
+- you always check the code for any errors or bugs using same output it reported the bug with (if any).

@@ -54,6 +54,9 @@ from platform_uai.platform_manager import PlatformManager
 # Import license validation
 from core.license_check import check_license
 
+# Import command processing
+from command_processor.command_processor_main import CommandProcessor
+
 # GUI imports (only loaded if needed)
 GUI_AVAILABLE = False
 try:
@@ -262,16 +265,11 @@ def main():
                                 fast_mode=fast_mode)
     
     # Initialize the command processor with our new implementation
-    # Use the command_processor_main.py in the command_processor directory
-    # This is to ensure we're using the updated version with direct execution
-    from importlib.machinery import SourceFileLoader
-    cp_module = SourceFileLoader("command_processor_main", 
-                            os.path.join(os.path.dirname(os.path.abspath(__file__)), "command_processor/command_processor_main.py")).load_module()
-    command_processor = cp_module.CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode)
+    command_processor = CommandProcessor(ai_handler, shell_handler, quiet_mode=quiet_mode)
     
     # Debug log showing which command processor we're using
     if debug_mode:
-        log(f"Using CommandProcessor from: {cp_module.__file__}")
+        log(f"Using CommandProcessor from: {command_processor.__module__}")
     
     # Initialize screen manager
     screen_manager = ScreenManager(quiet_mode=quiet_mode)
