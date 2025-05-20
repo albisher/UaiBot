@@ -124,6 +124,23 @@ def update_command_patterns(add_patterns=True):
                 r"(where\s+am\s+i|current\s+directory|present\s+working\s+directory|pwd)",
                 r"(what\s+directory|which\s+directory|what\s+folder|which\s+folder)"
             ]
+        },
+        # Arabic language patterns - new section
+        "arabic_commands": {
+            "file_operations": [
+                r"(انشاء|انشئ|جديد|اعمل)\s+(ملف|مجلد)",
+                r"(احذف|امسح|ازل)\s+(ملف|مجلد)",
+                r"(اقرأ|اعرض|اظهر)\s+(ملف|محتوى)",
+                r"(انسخ|انقل|غير اسم)\s+(ملف|مجلد)"
+            ],
+            "system_info": [
+                r"(كم|ما هو|اظهر)\s+(الذاكرة|المساحة|التخزين)",
+                r"(ما هو|اظهر)\s+(النظام|الجهاز)"
+            ],
+            "search": [
+                r"(ابحث|جد|أين)\s+(ملف|مجلد|عن)",
+                r"(اين|وين)\s+(الملفات|المجلدات)"
+            ]
         }
     }
     
@@ -179,6 +196,18 @@ def update_command_patterns(add_patterns=True):
             final_patterns = enhanced_patterns
     
     # Write the updated patterns to the file
+    with open(patterns_file, 'w') as f:
+        json.dump(final_patterns, f, indent=2)
+    
+    print(f"Command patterns updated at {patterns_file}")
+    # Add a timestamp metadata entry
+    final_patterns["_metadata"] = {
+        "last_updated": datetime.datetime.now().isoformat(),
+        "pattern_count": sum(len(patterns) for category in final_patterns.values() 
+                            if isinstance(category, dict) for subcategory, patterns in category.items())
+    }
+    
+    # Write the updated patterns with metadata to the file
     with open(patterns_file, 'w') as f:
         json.dump(final_patterns, f, indent=2)
     

@@ -1,7 +1,7 @@
 /.goose
 /.venv
 /.secret
-/config
+
 
 /sudo.txt
 

@@ -5,6 +5,10 @@ Handles determining whether commands should be executed locally or sent to a scr
 import re
 import subprocess
 import platform
+import json
+import os
+import logging
+from typing import Dict, Any, Tuple, Optional
 
 # Import from the core
 from core.ai_handler import get_system_info
@@ -12,8 +16,15 @@ from core.ai_handler import get_system_info
 # Import from the device_manager for USB detection
 from device_manager.usb_detector import USBDetector
 
+# Import our new modules for improved command processing
+from command_processor.ai_command_extractor import AICommandExtractor
+from command_processor.logger import CommandLogger
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
 class CommandProcessor:
-    def __init__(self, ai_handler, shell_handler, quiet_mode=False):
+    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False):
         """
         Initialize the CommandProcessor.
         
@@ -21,12 +32,18 @@ class CommandProcessor:
             ai_handler: AI handler instance for processing commands
             shell_handler: Shell handler instance for executing commands
             quiet_mode (bool): If True, reduces terminal output
+            fast_mode (bool): If True, handles errors quickly and exits
         """
         self.ai_handler = ai_handler
         self.shell_handler = shell_handler
         self.quiet_mode = quiet_mode
+        self.fast_mode = fast_mode
         self.system_platform = platform.system().lower()
         self.usb_detector = USBDetector(quiet_mode=quiet_mode)
+        
+        # Initialize the AI command extractor and logger
+        self.command_extractor = AICommandExtractor()
+        self.command_logger = CommandLogger()
         
         # Common terminal commands
         self.common_commands = [
@@ -167,86 +184,177 @@ class CommandProcessor:
         if is_usb_query:
             return usb_result
         
+        # Check for direct shell command execution (starts with ! or common command)
+        if user_input.startswith("!") or user_input.split()[0] in self.common_commands:
+            # If it starts with !, remove it before execution
+            command = user_input[1:].strip() if user_input.startswith("!") else user_input
+            return self._try_direct_execution(command)
+        
+        query_lower = user_input.lower()
+        
         # Direct command handling for Apple Notes app and other special folders
-        if "notes" in user_input.lower() and ("folder" in user_input.lower() or 
-                                            "app" in user_input.lower() or
-                                            "show me" in user_input.lower() or
-                                            "where" in user_input.lower()):
+        if "notes" in query_lower and ("folder" in query_lower or 
+                                      "app" in query_lower or
+                                      "show me" in query_lower or
+                                      "where" in query_lower):
             # Special case for Apple Notes - ensure we handle it directly
             return self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
             
         # Check if this is a file/folder search request
-        if "find" in user_input.lower() or "search" in user_input.lower():
+        if "find" in query_lower or "search" in query_lower:
             # Extract search term if any
             search_terms = ["file", "folder", "directory"]
             for term in search_terms:
-                if term in user_input.lower():
+                if term in query_lower:
                     pattern = rf"(?:find|search)(?:\s+for)?\s+(?:a|the)?\s+{term}(?:s)?\s+(?:named|called)?\s+['\"]*([a-zA-Z0-9_\-\.\s]+)['\"\s]*"
-                    match = re.search(pattern, user_input.lower())
+                    match = re.search(pattern, query_lower)
                     if match:
                         search_name = match.group(1).strip()
                         if term in ["folder", "directory"]:
                             return self.shell_handler.find_folders(search_name)
                         else:
                             # Use find with both files and directories for generic file search
-                            return self.shell_handler.execute_command(f'find ~ -name "*{search_name}*" -type f 2>/dev/null | head -n 20', force_shell=True)
+                            return self._try_direct_execution(f'find ~ -name "*{search_name}*" -type f 2>/dev/null | head -n 20')
         
-        # If it's a direct command (starts with ! or is a common command), execute it directly
-        if user_input.startswith("!") or user_input.split()[0] in self.common_commands:
-            return self.shell_handler.execute_command(user_input)
+        # Handle based on AI response
+        return self._handle_with_ai(user_input)
+    
+    def _try_direct_execution(self, command):
+        """
+        Try to execute a command directly.
         
-        query_lower = user_input.lower()
-        user_input_orig = user_input  # Save original input with proper case
-        
-        # Check if there's a current screen context
-        screen_exists = self.check_screen_exists()
-        
-        # First check for explicit screen session command indicators
-        explicitly_screen = self.is_explicitly_screen(query_lower)
-        
-        # Check for commands that INITIATE screen sessions
-        if query_lower.startswith("screen ") and any(term in query_lower for term in ['dev', 'cu', 'tty', 'serial', 'usb']):
-            # This is likely a command to open a new screen session with a device
-            cmd = self.shell_handler.execute_command(user_input_orig)
-            return cmd
-        
-        # Handle USB device specific commands
-        handled, result = self.handle_usb_device_query(query_lower, screen_exists, explicitly_screen)
-        if handled:
-            return result
+        Args:
+            command (str): The command to execute
             
-        # Fall back to AI for command suggestion if not handled by specific logic
-        # Get detailed system information for the AI prompt
+        Returns:
+            str: Command output or error message
+        """
+        # Log the direct command execution
+        self.log(f"Executing command: {command}")
+        
+        # Determine whether the command needs shell execution
+        safety_level = self.shell_handler.check_command_safety_level(command) \
+            if hasattr(self.shell_handler, 'check_command_safety_level') else None
+            
+        try:
+            force_shell = safety_level in ['NOT_IN_WHITELIST', 'REQUIRES_SHELL_TRUE_ASSESSMENT'] \
+                if safety_level else True
+                
+            # Execute the command
+            result = self.shell_handler.execute_command(command, force_shell=force_shell)
+            
+            # Log the execution result
+            self.command_logger.log_command_execution(command, command, True, result)
+            
+            return result
+        except Exception as e:
+            error_msg = f"Error executing command: {str(e)}"
+            self.log(error_msg)
+            
+            # Log the execution failure
+            self.command_logger.log_command_execution(command, command, False, str(e))
+            
+            return error_msg
+    
+    def _handle_with_ai(self, user_input):
+        """
+        Handle the request using AI to generate a command.
+        
+        Args:
+            user_input (str): The user request
+            
+        Returns:
+            str: Execution result or error message
+        """
+        # Get system information for the AI prompt
         system_info = get_system_info()
         
-        prompt_for_ai = (
-            f"User request: '{user_input}'. "
-            f"You are running on {system_info}. "
-            f"Based on this request, suggest a single, common, and safe command specifically for this system. "
-            "Avoid generating complex command chains (e.g., using ';', '&&', '||') unless the user's request explicitly implies it and it's a very common pattern. "
-            "Do not provide explanations, only the command itself. "
-            f"If the request is ambiguous or potentially unsafe to translate into a shell command, respond with 'Error: Cannot fulfill request safely.'"
+        # Use our improved AI prompt that encourages structured responses
+        prompt = self.command_extractor.format_ai_prompt(
+            user_input, 
+            {"system": system_info, "version": platform.release()}
         )
-
-        ai_response_command = self.ai_handler.query_ai(prompt_for_ai)
-        if not self.quiet_mode:
-            print(f"AI Suggested Command: {ai_response_command}")
-
-        if ai_response_command and not ai_response_command.startswith("Error:"):
-            safety_level = self.shell_handler.check_command_safety_level(ai_response_command)
-            if not self.quiet_mode:
-                print(f"Command safety level: {safety_level}")
-            # Auto-execute suggested command without prompts
-            force_shell = safety_level in ['NOT_IN_WHITELIST', 'REQUIRES_SHELL_TRUE_ASSESSMENT']
-            if not self.quiet_mode:
-                print(f"Executing command: {ai_response_command}")
-            command_output = self.shell_handler.execute_command(ai_response_command, force_shell=force_shell)
-            return command_output
-        elif ai_response_command.startswith("Error:"):
-            return f"AI Error: {ai_response_command}\nSkipping execution due to AI error."
+        
+        self.log(f"Asking AI for a command...")
+        
+        # Get response from AI
+        try:
+            ai_response = self.ai_handler.get_ai_response(prompt)
+        except Exception as e:
+            error_msg = f"Error getting AI response: {str(e)}"
+            self.log(error_msg)
+            return error_msg
+        
+        # Extract command and metadata from AI response
+        success, command, metadata = self.command_extractor.extract_command(ai_response)
+        
+        if success and command:
+            self.log(f"AI suggested command: {command}")
+            
+            # Execute the command
+            result = self._try_direct_execution(command)
+            
+            # Format the response
+            formatted_response = f"📋 I ran this command for you:\n{command}\n\n📊 Result:\n{result}"
+            
+            # If there's an explanation in the metadata, add it
+            if metadata.get("parsed_json") and metadata["parsed_json"].get("explanation"):
+                formatted_response += f"\n\n💡 {metadata['parsed_json']['explanation']}"
+                
+            return formatted_response
+        
+        elif metadata["is_error"]:
+            # This is an error response - log it for implementation
+            error_message = metadata["error_message"] or "This request cannot be handled by a simple command."
+            self.log(f"AI Error: {error_message}")
+            
+            # Extract detailed implementation requirements
+            details = self.command_extractor.extract_implementation_details(ai_response)
+            
+            # Log the implementation requirement
+            self.command_logger.log_implementation_needed(user_input, error_message, details)
+            
+            # Format the response to the user
+            response = (f"❌ I'm unable to execute this request: {error_message}\n\n"
+                       f"This request has been logged for future implementation.")
+                       
+            # Add complexity info if available
+            if details.get("complexity") != "unknown":
+                response += f"\n\nThis appears to be a {details['complexity']} complexity task."
+                
+            return response
         else:
-            return "AI did not return a valid command string."
-    
+            # No command found but no explicit error - treat as general response
+            # Clean up the AI response to make it user-friendly
+            clean_response = ai_response.replace("```json", "").replace("```", "").strip()
+            
+            # Try to parse as JSON to extract any useful info
+            try:
+                data = json.loads(clean_response)
+                if isinstance(data, dict):
+                    if "error" in data and data["error"]:
+                        # This is an error response in JSON format
+                        error_message = data.get("error_message", "This request cannot be handled by a simple command.")
+                        
+                        # Log the implementation requirement
+                        self.command_logger.log_implementation_needed(
+                            user_input, 
+                            error_message, 
+                            {"reason": error_message}
+                        )
+                        
+                        return f"❌ I'm unable to execute this request: {error_message}\n\nThis request has been logged for future implementation."
+                    
+                    # There might be other useful information in the JSON
+                    if "explanation" in data:
+                        return f"💡 {data['explanation']}"
+            except json.JSONDecodeError:
+                # Not valid JSON, just use the raw response
+                pass
+                
+            # Return a clean version of the AI response as information
+            return f"💡 {clean_response}"
+            
     def _handle_folder_search(self, query):
         """
         Check if the query is asking about files or folders and handle accordingly.

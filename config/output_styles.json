@@ -1,0 +1,124 @@
+{
+  "output_styles": {
+    "use_emojis": true,
+    "use_color": true,
+    "use_boxes": true,
+    "terminal_width": "auto",
+    "text_alignment": "left",
+    "default_symbols": {
+      "success": "✓",
+      "warning": "!",
+      "error": "✗",
+      "info": "i",
+      "bullet": "•"
+    }
+  },
+  "emoji_sets": {
+    "default": {
+      "success": "✅",
+      "warning": "⚠️",
+      "error": "❌",
+      "info": "ℹ️",
+      "loading": "🔄",
+      "robot": "🤖",
+      "settings": "⚙️",
+      "security": "🔐",
+      "stats": "📊",
+      "computer": "💻",
+      "mobile": "📱",
+      "printer": "🖨️",
+      "camera": "📷",
+      "controller": "🎮",
+      "folder": "📁",
+      "file": "📄",
+      "document": "📝",
+      "code": "📜",
+      "web": "🌐",
+      "signal": "📡",
+      "wifi": "📶",
+      "lock": "🔒",
+      "green": "🟢",
+      "yellow": "🟡",
+      "red": "🔴",
+      "blue": "🔵",
+      "search": "🔍",
+      "play": "▶️",
+      "pause": "⏸️",
+      "stop": "⏹️",
+      "tip": "💡",
+      "time": "🕒",
+      "question": "❓",
+      "thinking": "🤔"
+    },
+    "minimal": {
+      "success": "+",
+      "warning": "!",
+      "error": "x",
+      "info": "i",
+      "robot": "R",
+      "stats": "#",
+      "folder": "D",
+      "file": "f",
+      "green": "O",
+      "yellow": "O",
+      "red": "O"
+    },
+    "ascii": {
+      "success": "[OK]",
+      "warning": "[!]",
+      "error": "[X]",
+      "info": "[i]",
+      "robot": "[BOT]",
+      "settings": "[CFG]",
+      "security": "[SEC]",
+      "stats": "[STATS]",
+      "computer": "[PC]",
+      "folder": "[DIR]",
+      "file": "[FILE]",
+      "green": "[+]",
+      "yellow": "[~]",
+      "red": "[-]",
+      "tip": "[TIP]"
+    }
+  },
+  "box_styles": {
+    "default": {
+      "top_left": "╭",
+      "top_right": "╮",
+      "bottom_left": "╰",
+      "bottom_right": "╯",
+      "horizontal": "─",
+      "vertical": "│"
+    },
+    "double": {
+      "top_left": "╔",
+      "top_right": "╗",
+      "bottom_left": "╚",
+      "bottom_right": "╝",
+      "horizontal": "═",
+      "vertical": "║"
+    },
+    "ascii": {
+      "top_left": "+",
+      "top_right": "+",
+      "bottom_left": "+",
+      "bottom_right": "+",
+      "horizontal": "-",
+      "vertical": "|"
+    }
+  },
+  "themes": {
+    "default": {
+      "emoji_set": "default",
+      "box_style": "default"
+    },
+    "minimal": {
+      "emoji_set": "minimal",
+      "box_style": "ascii"
+    },
+    "professional": {
+      "emoji_set": "ascii",
+      "box_style": "default"
+    }
+  }
+}

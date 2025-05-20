@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import re
+import os
+from datetime import datetime
 from typing import List, Dict, Any
 
 class OutputHandler:
@@ -88,6 +90,41 @@ class OutputHandler:
         self.command_shown = False
         self.result_shown = False
         self.captured_output = []
+    
+    def create_file(self, filename, content=None, add_date=False):
+        """
+        Create a file with optional content and date.
+        
+        Args:
+            filename (str): Name of the file to create
+            content (str, optional): Content to add to the file
+            add_date (bool, optional): Whether to add the current date at the top of the file
+            
+        Returns:
+            tuple: (success, message)
+        """
+        try:
+            # Make sure directory exists for the file
+            directory = os.path.dirname(filename)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+                
+            # Prepare content
+            file_content = ""
+            if add_date:
+                current_date = datetime.now().strftime("%Y-%m-%d")
+                file_content += f"{current_date}\n"
+                
+            if content:
+                file_content += content
+                
+            # Write the file
+            with open(filename, 'w') as f:
+                f.write(file_content)
+                
+            return True, f"File '{filename}' created successfully"
+        except Exception as e:
+            return False, f"Error creating file: {str(e)}"
     
     def filter_duplicate_outputs(self, output):
         """Filter out duplicate outputs from text."""

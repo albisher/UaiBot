@@ -21,6 +21,7 @@ from core.logging_config import setup_logging
 import logging
 from pathlib import Path
 from core.file_utils import search_files, expand_path, find_cv_files
+from datetime import datetime
 
 # Import the output handler to prevent duplicate outputs
 sys.path.append(os.path.join(os.path.dirname(__file__), 'test_files'))
@@ -119,15 +120,35 @@ def parse_file_request(request):
                 parts = request_lower.split(indicator, 1)
                 if len(parts) > 1 and parts[1].strip():
                     potential_paths.append(parts[1].strip())
+                    
+        # Extract folder and file references
+        folder_matches = re.findall(r'(\w+)\s+folder', request_lower)
+        if folder_matches:
+            for folder in folder_matches:
+                potential_paths.append(folder)
+                
+        file_matches = re.findall(r'file\s+(?:name(?:d)?|called)?\s+(?:it)?\s*(\w+\.?\w*)', request_lower)
+        if file_matches:
+            potential_paths.append(file_matches[0])
     
     # Try to identify file types/extensions
     extensions = re.findall(r'\.([a-zA-Z0-9]+)', request)
+    
+    # Check if the request asks for adding date or content
+    add_content = False
+    add_date = False
+    if "add" in request_lower and "date" in request_lower:
+        add_date = True
+    if any(term in request_lower for term in ["add", "write", "put", "insert", "append"]):
+        add_content = True
     
     return {
         'operation': operation_type,
         'quoted_paths': quoted_paths,
         'potential_paths': potential_paths,
         'extensions': extensions,
+        'add_date': add_date,
+        'add_content': add_content,
         'original_request': request
     }
 
@@ -179,27 +200,6 @@ def handle_file_operation(parsed_request):
         elif not results:
             return f"No files matching '{search_term}' found."
         else:
-            return f"Found {len(results)} files matching '{search_term}':\n" + "\n".join(results)
-    
-    # Handle create operation
-    elif operation == 'create':
-        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
-            return "❌ No file name specified for creation."
-            
-        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
-        full_path = expand_path(file_path)
-        
-        try:
-            # Ensure directory exists
-            directory = os.path.dirname(full_path)
-            if directory and not os.path.exists(directory):
-                os.makedirs(directory)
-                
-            # Create empty file
-            Path(full_path).touch()
-            return f"✅ Created file: {full_path}"
-        except Exception as e:
-            return f"❌ Error creating file: {str(e)}"
     
     # Handle read operation
     elif operation == 'read':
@@ -323,6 +323,179 @@ def process_file_flag_request(request):
     
     # Handle the file operation
     return handle_file_operation(parsed_request)
+
+def handle_file_operations(file_query, operation=None):
+    """
+    Handle file operation requests with proper error handling.
+    
+    Args:
+        file_query (str): The file operation query from user
+        operation (str, optional): Specific operation to perform (create, read, etc.)
+    
+    Returns:
+        str: Operation result or error message
+    """
+    try:
+        from core.file_operations import FILE_OPERATIONS
+        
+        # If operation not specified, try to detect it from the query
+        if not operation:
+            operation = detect_file_operation(file_query)
+            
+        if not operation:
+            return "Error: Could not determine file operation. Please specify create, read, write, delete, etc."
+        
+        # Handle each operation type
+        if operation == 'create':
+            # Extract filename and content
+            filename_match = re.search(r'(?:file|named|called)\s+([^\s]+)', file_query)
+            filename = filename_match.group(1) if filename_match else "new_file.txt"
+            
+            # Extract content if any
+            content_match = re.search(r'content\s+["\']([^"\']+)["\']', file_query)
+            content = content_match.group(1) if content_match else "Created by UaiBot"
+            
+            # Create the file
+            with open(filename, 'w') as f:
+                f.write(content)
+                
+            return f"✅ Created file: {filename}\nContent: {content}"
+            
+        elif operation == 'read':
+            # Extract filename
+            filename_match = re.search(r'(?:file|read|open|show|display)\s+([^\s]+)', file_query)
+            if not filename_match:
+                return "Error: Please specify a file to read"
+                
+            filename = filename_match.group(1)
+            
+            # Check if file exists
+            if not os.path.exists(filename):
+                return f"Error: File not found: {filename}"
+                
+            # Read the file
+            try:
+                with open(filename, 'r') as f:
+                    content = f.read()
+                return f"📄 Content of {filename}:\n\n{content}"
+            except Exception as e:
+                return f"Error reading file: {str(e)}"
+                
+        elif operation == 'write' or operation == 'append':
+            # Extract filename
+            filename_match = re.search(r'(?:file|to)\s+([^\s]+)', file_query)
+            if not filename_match:
+                return "Error: Please specify a file to write to"
+                
+            filename = filename_match.group(1)
+            
+            # Extract content
+            content_match = re.search(r'(?:content|text|with|add)\s+["\']([^"\']+)["\']', file_query)
+            if not content_match:
+                return "Error: Please specify content to write"
+                
+            content = content_match.group(1)
+            
+            # Write or append to the file
+            mode = 'a' if operation == 'append' else 'w'
+            with open(filename, mode) as f:
+                f.write(content)
+                
+            action = "Appended to" if operation == 'append' else "Wrote to"
+            return f"✅ {action} file: {filename}\nContent: {content}"
+            
+        elif operation == 'delete':
+            # Extract filename
+            filename_match = re.search(r'(?:file|delete|remove)\s+([^\s]+)', file_query)
+            if not filename_match:
+                return "Error: Please specify a file to delete"
+                
+            filename = filename_match.group(1)
+            
+            # Check if file exists
+            if not os.path.exists(filename):
+                return f"Error: File not found: {filename}"
+                
+            # Delete the file
+            os.remove(filename)
+            return f"✅ Deleted file: {filename}"
+            
+        elif operation == 'search':
+            # Extract search term
+            search_match = re.search(r'(?:for|containing)\s+["\']?([^"\']+)["\']?', file_query)
+            if not search_match:
+                return "Error: Please specify what to search for"
+                
+            search_term = search_match.group(1)
+            
+            # Extract directory (default to current)
+            dir_match = re.search(r'(?:in|directory)\s+([^\s]+)', file_query)
+            search_dir = dir_match.group(1) if dir_match else "."
+            
+            # Perform search
+            result = subprocess.run(['find', search_dir, '-name', f'*{search_term}*'],
+                                   capture_output=True, text=True)
+            
+            if not result.stdout.strip():
+                return f"No files found matching '{search_term}' in {search_dir}"
+                
+            return f"🔍 Found files matching '{search_term}':\n{result.stdout}"
+            
+        elif operation == 'list':
+            # Extract directory (default to current)
+            dir_match = re.search(r'(?:in|directory)\s+([^\s]+)', file_query)
+            list_dir = dir_match.group(1) if dir_match else "."
+            
+            # Check if directory exists
+            if not os.path.exists(list_dir):
+                return f"Error: Directory not found: {list_dir}"
+                
+            # List files
+            files = os.listdir(list_dir)
+            if not files:
+                return f"Directory {list_dir} is empty"
+                
+            return f"📂 Contents of {list_dir}:\n" + "\n".join(files)
+            
+        else:
+            return f"Error: Unsupported file operation: {operation}"
+            
+    except Exception as e:
+        return f"Error in file operation: {str(e)}"
+
+def detect_file_operation(query):
+    """
+    Detect file operation type from natural language query.
+    
+    Args:
+        query (str): User query
+    
+    Returns:
+        str: Detected operation or None
+    """
+    query_lower = query.lower()
+    
+    # Define operation keywords
+    operations = {
+        'create': ['create', 'new', 'make', 'touch'],
+        'read': ['read', 'open', 'view', 'display', 'show', 'cat'],
+        'write': ['write', 'edit', 'modify', 'change', 'alter'],
+        'append': ['append', 'add', 'update'],
+        'delete': ['delete', 'remove', 'erase', 'trash', 'rm'],
+        'search': ['search', 'find', 'locate', 'where', 'which'],
+        'list': ['list', 'ls', 'dir', 'enumerate']
+    }
+    
+    # Check for each operation type
+    for operation, keywords in operations.items():
+        if any(keyword in query_lower for keyword in keywords):
+            return operation
+            
+    # Default to read if file is mentioned
+    if 'file' in query_lower:
+        return 'read'
+        
+    return None
 
 def main():
     """Main entry point for the UaiBot application"""

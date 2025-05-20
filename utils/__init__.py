@@ -12,6 +12,7 @@ import os
 import platform
 from pathlib import Path
 import json
+import sys
 
 # Optional imports to make formatting utilities available directly
 try:
@@ -144,10 +145,25 @@ def load_config():
 
 def is_interactive_session():
     """
-    Check if the script is running in an interactive session.
+    Determine if the current session is interactive (connected to a terminal).
     
     Returns:
-        bool: True if interactive, False otherwise
+        bool: True if running in an interactive session, False otherwise
     """
-    import sys
-    return sys.stdin.isatty() and sys.stdout.isatty()
+    # Check if stdin is connected to a TTY
+    if hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
+        return True
+    
+    # Check environment variables that might indicate an interactive session
+    if os.environ.get('PS1') or os.environ.get('TERM'):
+        return True
+        
+    # Check if running in a Jupyter notebook
+    try:
+        from IPython import get_ipython
+        if get_ipython() is not None:
+            return True
+    except (ImportError, NameError):
+        pass
+        
+    return False

@@ -15,30 +15,33 @@ UaiBot is an AI-powered assistant designed to help users learn about command-lin
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/UaiBot.git
-cd UaiBot
-```
+1. Clone this repository
+2. Create a virtual environment:
+   ```
+   python -m venv .venv
+   ```
+3. Activate the virtual environment:
+   - On Windows: `.venv\Scripts\activate`
+   - On macOS/Linux: `source .venv/bin/activate`
+4. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install required packages:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up API keys (optional):
+5. Set up API keys (optional):
    - Create a `.env` file in the project root
    - Add your API keys:
    ```
    YOUTUBE_API_KEY=your_youtube_api_key
    # Add other API keys as needed
    ```
+
+## Running the Demo
+
+To run the emoji interface demo:
+```
+python demo/demo_emoji_interface.py
+```
 
 ## Usage
 

@@ -338,3 +338,61 @@ def main():
 
 if __name__ == "__main__":
     main()
+#!/usr/bin/env python3
+"""
+A simple test to verify that UaiBot can handle system information requests
+in both English and Arabic.
+"""
+
+import os
+import sys
+import subprocess
+
+# Add project root to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
+
+def run_command(command):
+    """Run a UaiBot command and return its output."""
+    cmd = [sys.executable, os.path.join(project_root, "main.py"), "-c", command]
+    
+    try:
+        process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True
+        )
+        stdout, stderr = process.communicate(timeout=30)
+        return stdout, stderr, process.returncode
+    except Exception as e:
+        return f"Error: {e}", "", 1
+
+def main():
+    """Run simple tests in both English and Arabic."""
+    print("Testing UaiBot System Information Requests")
+    print("=========================================")
+    
+    # English tests
+    print("\nEnglish Tests:")
+    print("--------------")
+    
+    print("Testing: What operating system am I using?")
+    stdout, stderr, code = run_command("What operating system am I using?")
+    print(f"Return code: {code}")
+    print(f"Output: {stdout}")
+    
+    # Arabic tests
+    print("\nArabic Tests:")
+    print("-------------")
+    
+    print("Testing: ما هو نظام التشغيل الذي أستخدمه؟")
+    stdout, stderr, code = run_command("ما هو نظام التشغيل الذي أستخدمه؟")
+    print(f"Return code: {code}")
+    print(f"Output: {stdout}")
+    
+    print("\nTest completed!")
+
+if __name__ == "__main__":
+    main()

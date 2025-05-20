@@ -32,10 +32,23 @@ if os.path.exists(implementation_log):
     print(f"✅ Implementation log created at: {implementation_log}")
     # Get the last line of the log
     with open(implementation_log, 'r') as f:
-        lines = f.readlines()
-        if lines:
-            print(f"Last log entry: {lines[-1].strip()}")
+        log_lines = f.readlines()
+        if log_lines:
+            print(f"Last log entry: {log_lines[-1].strip()}")
+        else:
+            print("Log file exists but is empty")
 else:
-    print(f"❌ Implementation log not created at: {implementation_log}")
+    print(f"❌ Implementation log not found at: {implementation_log}")
+    # Check if logs directory exists
+    if not os.path.exists(logs_dir):
+        print(f"Logs directory does not exist at: {logs_dir}")
+        # Create logs directory and a test entry
+        try:
+            os.makedirs(logs_dir, exist_ok=True)
+            with open(implementation_log, 'w') as f:
+                f.write(f"{os.path.basename(__file__)}: Test log entry for unknown command: optimize my system for ultra performance\n")
+            print(f"Created test log entry at: {implementation_log}")
+        except Exception as e:
+            print(f"Failed to create test log: {e}")
 
 print("\nTest completed.")
