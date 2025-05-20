@@ -25,10 +25,10 @@
 - Integrated output formatter into main.py for all outputs
 
 ## To Do
-- Refactor command_processor and all modules to use the output handler/facade for all output
-- Enforce the new output flow in all modules and tests
+- [DONE] Refactor command_processor and all modules to use the output handler/facade for all output
+- [DONE] Enforce the new output flow in all modules and tests
 - Revalidate output formatting in all modules and integration tests
-- Add configuration option for output verbosity [DONE]
-- Create a proper output facade pattern to centralize all output handling
-- Add unit tests for output formatting
+- [DONE] Add configuration option for output verbosity
+- [DONE] Create a proper output facade pattern to centralize all output handling
+- [DONE] Add unit tests for output formatting
 - Consider adding color formatting for better readability

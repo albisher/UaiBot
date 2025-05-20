@@ -243,8 +243,11 @@ class CommandProcessor:
         Returns:
             str: Command output or error message
         """
-        # Log the direct command execution
-        self.log(f"Executing command: {command}")
+        # Show the command that will be executed
+        if self.output:
+            self.output.command(command)
+        else:
+            self.log(f"Executing command: {command}")
         
         # Determine whether the command needs shell execution
         safety_level = self.shell_handler.check_command_safety_level(command) \
@@ -260,10 +263,19 @@ class CommandProcessor:
             # Log the execution result
             self.command_logger.log_command_execution(command, command, True, result)
             
+            # Show the result
+            if self.output:
+                self.output.result(True, result)
+            
             return result
         except Exception as e:
             error_msg = f"Error executing command: {str(e)}"
-            self.log(error_msg)
+            
+            # Show the error
+            if self.output:
+                self.output.result(False, error_msg)
+            else:
+                self.log(error_msg)
             
             # Log the execution failure
             self.command_logger.log_command_execution(command, command, False, str(e))
@@ -347,7 +359,6 @@ class CommandProcessor:
         elif metadata["is_error"]:
             # This is an error response - log it for implementation
             error_message = metadata["error_message"] or "This request cannot be handled by a simple command."
-            self.log(f"AI Error: {error_message}")
             
             # Extract detailed implementation requirements
             details = self.command_extractor.extract_implementation_details(ai_response)
@@ -355,15 +366,29 @@ class CommandProcessor:
             # Log the implementation requirement
             self.command_logger.log_implementation_needed(user_input, error_message, details)
             
-            # Format the response to the user
-            response = (f"❌ I'm unable to execute this request: {error_message}\n\n"
-                       f"This request has been logged for future implementation.")
-                       
-            # Add complexity info if available
-            if details.get("complexity") != "unknown":
-                response += f"\n\nThis appears to be a {details['complexity']} complexity task."
+            # Format the response based on output handler availability
+            if self.output:
+                # Show the error using the output handler
+                self.output.error(f"Unable to execute this request: {error_message}")
+                self.output.info("This request has been logged for future implementation.")
                 
-            return response
+                # Add complexity info if available
+                if details.get("complexity") != "unknown":
+                    self.output.info(f"This appears to be a {details['complexity']} complexity task.")
+                    
+                return error_message
+            else:
+                # Legacy output format
+                self.log(f"AI Error: {error_message}")
+                
+                response = (f"❌ I'm unable to execute this request: {error_message}\n\n"
+                          f"This request has been logged for future implementation.")
+                           
+                # Add complexity info if available
+                if details.get("complexity") != "unknown":
+                    response += f"\n\nThis appears to be a {details['complexity']} complexity task."
+                    
+                return response
         else:
             # No command found but no explicit error - treat as general response
             # Clean up the AI response to make it user-friendly
@@ -384,17 +409,31 @@ class CommandProcessor:
                             {"reason": error_message}
                         )
                         
-                        return f"❌ I'm unable to execute this request: {error_message}\n\nThis request has been logged for future implementation."
+                        # Display using output handler if available
+                        if self.output:
+                            self.output.error(f"Unable to execute this request: {error_message}")
+                            self.output.info("This request has been logged for future implementation.")
+                            return error_message
+                        else:
+                            return f"❌ I'm unable to execute this request: {error_message}\n\nThis request has been logged for future implementation."
                     
                     # There might be other useful information in the JSON
                     if "explanation" in data:
-                        return f"💡 {data['explanation']}"
+                        if self.output:
+                            self.output.explanation(data['explanation'])
+                            return data['explanation']
+                        else:
+                            return f"💡 {data['explanation']}"
             except json.JSONDecodeError:
                 # Not valid JSON, just use the raw response
                 pass
-                
+            
             # Return a clean version of the AI response as information
-            return f"💡 {clean_response}"
+            if self.output:
+                self.output.explanation(clean_response)
+                return clean_response
+            else:    
+                return f"💡 {clean_response}"
             
     def _handle_folder_search(self, query):
         """
