@@ -14,6 +14,8 @@ from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List, Union
 
 from command_processor.ai_response_cache import AIResponseCache
+from command_processor.error_handler import error_handler, ErrorCategory
+from command_processor.user_interaction_history import interaction_history
 
 logger = logging.getLogger(__name__)
 
@@ -577,3 +579,47 @@ Now process the user's request and respond with ONLY the appropriate JSON format
         if self.use_cache and self.response_cache:
             return self.response_cache.get_stats()
         return {"enabled": False}
+
+    def process_request(self, request: str) -> Dict[str, Any]:
+        """
+        Process a user request and return the result.
+        
+        Args:
+            request: The user request string
+            
+        Returns:
+            Dictionary containing the processing result
+        """
+        # Get platform information for context
+        platform_info = self._get_platform_info()
+        
+        # Generate a cache key based on the request and platform info
+        cache_key = self._cache.generate_key(request, platform_info)
+        
+        # Check if we have a cached response
+        cached_result = self._cache.get(cache_key)
+        if cached_result:
+            logger.debug(f"Cache hit for request: {request[:30]}...")
+            return cached_result
+        
+        # Format the AI prompt with the request and platform info
+        ai_prompt = self._ai_command_extractor.format_ai_prompt(request, platform_info)
+        
+        # Get the AI response
+        ai_response = self._ai_handler.get_response(ai_prompt)
+        
+        # Use parallel extraction for better performance
+        success, command, metadata = self._ai_command_extractor.extract_command_parallel(ai_response)
+        
+        # Prepare the result
+        result = {
+            "success": success,
+            "command": command,
+            "metadata": metadata,
+            "ai_response": ai_response
+        }
+        
+        # Cache the result for future use
+        self._cache.put(cache_key, result)
+        
+        return result

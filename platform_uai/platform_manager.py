@@ -17,6 +17,8 @@ class PlatformManager:
         self.audio_handler = None
         self.usb_handler = None
         self.input_handler = None
+        self.apple_silicon_optimizer = None
+        self.is_apple_silicon = False
         
         # Check if the platform is supported
         if not self.platform_name:
@@ -24,6 +26,24 @@ class PlatformManager:
             self.platform_supported = False
         else:
             self.platform_supported = True
+            
+            # Check for Apple Silicon if on Mac
+            if self.platform_name == 'mac' and platform.system() == 'Darwin' and platform.machine() == 'arm64':
+                self._init_apple_silicon()
+            
+    def _init_apple_silicon(self):
+        """Initialize Apple Silicon specific optimizations if available"""
+        try:
+            # Try to import the Apple Silicon optimizer
+            from platform_uai.mac.apple_silicon import apple_silicon_optimizer
+            self.apple_silicon_optimizer = apple_silicon_optimizer
+            self.is_apple_silicon = self.apple_silicon_optimizer.is_apple_silicon
+            
+            if self.is_apple_silicon:
+                print(f"Detected Apple Silicon: {self.apple_silicon_optimizer.chip_details.get('name', 'Unknown')}")
+        except ImportError as e:
+            print(f"Note: Apple Silicon optimizations not available: {e}")
+            self.is_apple_silicon = False
             
     def initialize(self):
         """Initialize all platform-specific components"""
@@ -69,7 +89,7 @@ class PlatformManager:
     
     def get_platform_info(self):
         """Get information about the current platform"""
-        return {
+        info = {
             'name': self.platform_name,
             'system': platform.system(),
             'release': platform.release(),
@@ -77,6 +97,47 @@ class PlatformManager:
             'architecture': platform.machine(),
             'processor': platform.processor(),
         }
+        
+        # Add Apple Silicon specific info if available
+        if self.is_apple_silicon and self.apple_silicon_optimizer:
+            apple_silicon_info = self.apple_silicon_optimizer.get_optimization_status()
+            info['apple_silicon'] = True
+            info['chip_name'] = apple_silicon_info.get('chip_details', {}).get('name', 'Unknown Apple Silicon')
+            info['neural_engine_available'] = apple_silicon_info.get('neural_engine_available', False)
+        
+        return info
+    
+    def get_ml_optimizations(self):
+        """Get machine learning optimizations for the current platform"""
+        if self.is_apple_silicon and self.apple_silicon_optimizer:
+            return self.apple_silicon_optimizer.get_optimized_ml_config()
+        
+        # Default configuration for non-Apple Silicon platforms
+        return {
+            'use_metal': False,
+            'use_neural_engine': False,
+            'optimized_threading': True,
+            'thread_count': os.cpu_count() or 4,
+            'memory_limit': 1024  # in MB
+        }
+    
+    def get_tensor_optimizations(self):
+        """Get tensor operation optimizations for the current platform"""
+        if self.is_apple_silicon and self.apple_silicon_optimizer:
+            return self.apple_silicon_optimizer.get_optimized_tensor_config()
+            
+        # Default configuration for non-Apple Silicon platforms
+        return {
+            'backend': 'default',
+            'precision': 'float32',
+            'use_gpu': False,
+            'use_metal': False
+        }
+        
+    def optimize_process(self):
+        """Apply platform-specific process optimizations"""
+        if self.is_apple_silicon and self.apple_silicon_optimizer:
+            self.apple_silicon_optimizer.optimize_process_priority()
     
     def check_simulation_mode(self):
         """Check if we're running in simulation mode"""

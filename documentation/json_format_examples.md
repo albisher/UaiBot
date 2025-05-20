@@ -19,31 +19,77 @@ This format is used for responses that can be directly executed as shell command
 
 ```json
 {
-  "command": "find /home/user -type f -name '*.txt' -size +1M -mtime -7 | xargs grep 'important'",
-  "explanation": "Finds text files larger than 1MB, modified in the last week, containing the word 'important'",
-  "alternatives": ["grep -r 'important' --include='*.txt' /home/user"],
+  "command": "find /home/user -type f -name '*.txt' -size +1M -mtime -7",
+  "explanation": "Finds text files larger than 1MB, modified in the last week",
+  "alternatives": ["find /home/user -type f -name '*.txt' | xargs ls -lah"],
+  "requires_implementation": false
+}
+```
+
+### Platform-Specific Command Examples
+
+#### macOS Example
+
+```json
+{
+  "command": "sw_vers",
+  "explanation": "Displays macOS version information",
+  "platform": "macOS",
+  "requires_implementation": false
+}
+```
+
+#### Linux Example
+
+```json
+{
+  "command": "lsb_release -a",
+  "explanation": "Displays Linux distribution information",
+  "alternatives": ["cat /etc/os-release"],
+  "platform": "Linux",
+  "requires_implementation": false
+}
+```
+
+### Command with Piping Example
+
+```json
+{
+  "command": "ps aux | grep 'node' | grep -v grep",
+  "explanation": "Lists all running Node.js processes",
+  "alternatives": ["pgrep -l node"],
+  "requires_implementation": false
+}
+```
+
+### Apple Silicon Optimized Command Example
+
+```json
+{
+  "command": "arch -arm64 brew install tensorflow",
+  "explanation": "Installs TensorFlow using Homebrew with native ARM64 architecture",
+  "platform": "macOS-arm64",
   "requires_implementation": false
 }
 ```
 
 ## Format 2: File Operations
 
-This format is used for file-related operations like creating, reading, writing, or deleting files.
-
-### File Creation
+This format is used for operations related to files and directories.
 
 ```json
 {
   "file_operation": "create",
   "operation_params": {
     "filename": "test.txt",
-    "content": "This is test content"
+    "content": "Hello world"
   },
-  "explanation": "Creates a new file named test.txt with the specified content"
+  "explanation": "Creates a new file named test.txt with content",
+  "requires_implementation": true
 }
 ```
 
-### File Reading
+### File Reading Example
 
 ```json
 {
@@ -51,50 +97,26 @@ This format is used for file-related operations like creating, reading, writing,
   "operation_params": {
     "filename": "config.json"
   },
-  "explanation": "Reads and displays the content of config.json"
+  "explanation": "Reads and displays the content of config.json",
+  "requires_implementation": true
 }
 ```
 
-### File Writing/Update
-
-```json
-{
-  "file_operation": "write",
-  "operation_params": {
-    "filename": "config.json",
-    "content": "{\n  \"setting\": \"value\"\n}"
-  },
-  "explanation": "Writes new content to config.json, replacing any existing content"
-}
-```
-
-### File Append
+### File Append Example
 
 ```json
 {
   "file_operation": "append",
   "operation_params": {
     "filename": "log.txt",
-    "content": "New log entry added at 2025-05-20"
+    "content": "New log entry added"
   },
-  "explanation": "Appends a new line to log.txt without overwriting existing content"
+  "explanation": "Appends a new line to log.txt without overwriting existing content",
+  "requires_implementation": true
 }
 ```
 
-### File Deletion
-
-```json
-{
-  "file_operation": "delete",
-  "operation_params": {
-    "filename": "temp.txt",
-    "force": true
-  },
-  "explanation": "Deletes temp.txt without confirmation (force=true)"
-}
-```
-
-### File Search
+### File Search Example
 
 ```json
 {
@@ -102,78 +124,183 @@ This format is used for file-related operations like creating, reading, writing,
   "operation_params": {
     "search_term": "config",
     "directory": "/etc",
-    "case_sensitive": false
+    "max_depth": 3,
+    "file_type": "*.conf"
   },
-  "explanation": "Searches for files containing 'config' in their name in the /etc directory"
+  "explanation": "Searches for config files in /etc directory up to 3 levels deep",
+  "requires_implementation": true
 }
 ```
 
-### Directory Listing
+### Directory Operation Example
 
 ```json
 {
-  "file_operation": "list",
+  "file_operation": "create_directory",
   "operation_params": {
-    "directory": "~/Documents",
-    "show_hidden": true
+    "directory_path": "project/src/components",
+    "recursive": true
   },
-  "explanation": "Lists all files in the ~/Documents directory, including hidden files"
+  "explanation": "Creates a nested directory structure",
+  "requires_implementation": true
+}
+```
+
+### File Permission Example
+
+```json
+{
+  "file_operation": "chmod",
+  "operation_params": {
+    "target": "script.sh",
+    "permissions": "755"
+  },
+  "explanation": "Makes the script executable",
+  "requires_implementation": true
 }
 ```
 
 ## Format 3: Information Responses
 
-This format is used for responses that provide information rather than executing a command.
-
-### System Information
+This format is used for providing information without executing commands.
 
 ```json
 {
   "info_type": "system_info",
-  "response": "The system is running macOS 13.4 with 16GB RAM and 8 CPU cores.",
-  "related_command": "system_profiler SPHardwareDataType",
-  "explanation": "Provides hardware information about the system"
+  "response": "The system is running Linux with 16GB RAM.",
+  "related_command": "uname -a",
+  "explanation": "Provides information about the operating system",
+  "requires_implementation": false
 }
 ```
 
-### Conceptual Information
+### Concept Explanation Example
 
 ```json
 {
   "info_type": "concept_explanation",
-  "response": "A firewall is a network security system that monitors and controls incoming and outgoing network traffic based on predetermined security rules.",
+  "response": "A firewall is a network security system that monitors and controls traffic.",
   "related_command": "sudo ufw status",
-  "explanation": "Explains what a firewall is and shows a command to check the firewall status"
+  "explanation": "Explains what a firewall is and shows a command to check the firewall status",
+  "requires_implementation": false
+}
+```
+
+### Help Information Example
+
+```json
+{
+  "info_type": "help",
+  "response": "You can use UaiBot to perform file operations, execute commands, and get information.",
+  "related_commands": [
+    {"command": "uai help", "description": "Display general help information"},
+    {"command": "uai examples", "description": "Show example commands"},
+    {"command": "uai version", "description": "Show version information"}
+  ],
+  "explanation": "Provides help information about UaiBot",
+  "requires_implementation": false
+}
+```
+
+### Detailed Technical Response Example
+
+```json
+{
+  "info_type": "technical_explanation",
+  "response": "SSH (Secure Shell) is a cryptographic network protocol for operating network services securely over an unsecured network. Typical applications include remote command-line, login, and remote command execution, but any network service can be secured with SSH.",
+  "related_commands": [
+    {"command": "ssh user@hostname", "description": "Connect to a remote server"},
+    {"command": "ssh-keygen", "description": "Generate SSH key pair"}
+  ],
+  "explanation": "Explains the SSH protocol and provides related commands",
+  "requires_implementation": false
+}
+```
+
+### Apple Silicon Specific Information
+
+```json
+{
+  "info_type": "hardware_info",
+  "response": "You're running on Apple Silicon (M1 Pro) which supports hardware acceleration for ML workloads through the Neural Engine.",
+  "related_command": "sysctl -n machdep.cpu.brand_string",
+  "hardware_capabilities": [
+    "Neural Engine",
+    "Metal optimized GPU",
+    "ARM64 architecture"
+  ],
+  "explanation": "Information about Apple Silicon capabilities",
+  "requires_implementation": false
 }
 ```
 
 ## Format 4: Error Responses
 
-This format is used when a request cannot be fulfilled for some reason.
-
-### Security Error
+This format is used for cases where the operation cannot be performed.
 
 ```json
 {
   "error": true,
   "error_message": "Cannot execute system-level commands that might compromise security",
-  "suggested_approach": "Try using a more specific, safer command that accomplishes the same goal"
+  "error_type": "security_violation",
+  "suggested_approach": "Try using a more specific, safer command",
+  "requires_implementation": false
 }
 ```
 
-### Implementation Error
+### Permission Error Example
 
 ```json
 {
   "error": true,
-  "error_message": "This functionality requires additional implementation",
-  "suggested_approach": "This would require interaction with external services which is not currently supported"
+  "error_message": "Operation requires root/administrator privileges",
+  "error_type": "permission_denied",
+  "suggested_approach": "Try using sudo or running as administrator",
+  "requires_implementation": false
 }
 ```
 
-## Complex Multi-step Operations
+### Missing Dependency Error Example
 
-For complex operations that involve multiple steps, use this format:
+```json
+{
+  "error": true,
+  "error_message": "Required dependency 'docker' is not installed",
+  "error_type": "missing_dependency",
+  "suggested_approach": "Install Docker using 'sudo apt-get install docker.io' on Ubuntu or 'brew install docker' on macOS",
+  "requires_implementation": false
+}
+```
+
+### Invalid Request Error Example
+
+```json
+{
+  "error": true,
+  "error_message": "The request contains invalid parameters or syntax",
+  "error_type": "invalid_request",
+  "suggested_approach": "Check the syntax of your request and try again",
+  "requires_implementation": false
+}
+```
+
+### Platform-Specific Error Example
+
+```json
+{
+  "error": true,
+  "error_message": "This operation is only supported on Linux systems",
+  "error_type": "platform_incompatibility",
+  "current_platform": "macOS",
+  "required_platform": "Linux",
+  "suggested_approach": "This operation cannot be performed on your current OS",
+  "requires_implementation": false
+}
+```
+
+## Format 5: Multi-Step Operations
+
+This format is used for operations that require multiple commands to be executed.
 
 ```json
 {
@@ -187,73 +314,136 @@ For complex operations that involve multiple steps, use this format:
       "file_operation": "create",
       "operation_params": {
         "filename": "project/src/main.py",
-        "content": "def main():\n    print('Hello, world!')\n\nif __name__ == '__main__':\n    main()"
+        "content": "print('Hello, world!')"
       },
-      "explanation": "Create main.py file with a simple hello world program"
+      "explanation": "Create main.py file"
     },
     {
       "command": "cd project && python src/main.py",
       "explanation": "Run the Python script"
     }
   ],
-  "explanation": "Sets up a simple Python project and runs it"
+  "explanation": "Sets up a simple Python project and runs it",
+  "requires_implementation": true
 }
 ```
 
-## Multilingual Examples
-
-### Arabic Example
+### Installation and Configuration Example
 
 ```json
 {
-  "file_operation": "create",
-  "operation_params": {
-    "filename": "مرحبا.txt",
-    "content": "مرحبا بالعالم!"
+  "multi_step_operation": true,
+  "steps": [
+    {
+      "command": "sudo apt-get update",
+      "explanation": "Update package lists"
+    },
+    {
+      "command": "sudo apt-get install -y nginx",
+      "explanation": "Install Nginx web server"
+    },
+    {
+      "file_operation": "create",
+      "operation_params": {
+        "filename": "/etc/nginx/sites-available/mysite",
+        "content": "server {\n  listen 80;\n  server_name example.com;\n  root /var/www/html;\n  index index.html;\n}"
+      },
+      "explanation": "Create Nginx site configuration"
+    },
+    {
+      "command": "sudo ln -s /etc/nginx/sites-available/mysite /etc/nginx/sites-enabled/",
+      "explanation": "Enable the site configuration"
+    },
+    {
+      "command": "sudo systemctl restart nginx",
+      "explanation": "Restart Nginx to apply changes"
+    }
+  ],
+  "explanation": "Installs and configures Nginx web server with a basic site",
+  "requires_implementation": true,
+  "requires_privileges": true
+}
+```
+
+## Format 6: Interactive Operations
+
+This format is used for operations that require user interaction during execution.
+
+```json
+{
+  "interactive_operation": true,
+  "initial_command": "ssh username@hostname",
+  "expected_prompts": [
+    {
+      "prompt": "password:",
+      "response": "<prompt_user>",
+      "description": "Enter your SSH password"
+    }
+  ],
+  "explanation": "Connect to a remote server via SSH",
+  "requires_implementation": true
+}
+```
+
+### Database Operation Example
+
+```json
+{
+  "interactive_operation": true,
+  "initial_command": "mysql -u root -p",
+  "expected_prompts": [
+    {
+      "prompt": "Enter password:",
+      "response": "<prompt_user>",
+      "description": "Enter your MySQL root password"
+    },
+    {
+      "prompt": "mysql>",
+      "response": "CREATE DATABASE my_database;",
+      "description": "Create a new database"
+    },
+    {
+      "prompt": "mysql>",
+      "response": "exit",
+      "description": "Exit MySQL client"
+    }
+  ],
+  "explanation": "Connect to MySQL and create a new database",
+  "requires_implementation": true
+}
+```
+
+## Format 7: Contextual Response
+
+This format is used for responses that adapt based on the user's context or history.
+
+```json
+{
+  "contextual_response": true,
+  "context_type": "continuation",
+  "previous_request": "Show me my IP address",
+  "current_response": {
+    "command": "ifconfig | grep inet",
+    "explanation": "Shows all IP addresses for all network interfaces",
+    "alternatives": ["ip addr show"]
   },
-  "explanation": "Creates a new text file with Arabic text content"
-}
-```
-
-### Spanish Example
-
-```json
-{
-  "command": "echo 'Hola mundo' > saludo.txt",
-  "explanation": "Creates a file with 'Hello World' in Spanish",
-  "alternatives": ["printf 'Hola mundo' > saludo.txt"],
   "requires_implementation": false
 }
 ```
 
-## Platform-specific Examples
-
-### macOS Example
+### Learning-Based Response Example
 
 ```json
 {
-  "command": "sw_vers",
-  "explanation": "Displays macOS version information",
-  "platform": "macOS"
+  "contextual_response": true,
+  "context_type": "learning",
+  "observation": "User frequently works with Python files",
+  "adapted_response": {
+    "command": "find . -name '*.py' -mtime -7",
+    "explanation": "Find Python files modified in the last 7 days",
+    "alternatives": ["ls -lt *.py | head -10"]
+  },
+  "explanation": "Response adapted based on observed user patterns",
+  "requires_implementation": true
 }
 ```
-
-### Linux Example
-
-```json
-{
-  "command": "lsb_release -a",
-  "explanation": "Displays Linux distribution information",
-  "alternatives": ["cat /etc/os-release"],
-  "platform": "Linux"
-}
-```
-
-## Usage Guidelines
-
-1. Always select the most appropriate format for the request type
-2. Include helpful explanations to enhance user understanding
-3. Provide alternatives where appropriate
-4. For file operations, ensure paths and filenames are properly escaped
-5. Use platform-specific commands when necessary
-6. For error cases, provide helpful suggestions for alternative approaches
