@@ -24,7 +24,7 @@ from command_processor.logger import CommandLogger
 logger = logging.getLogger(__name__)
 
 class CommandProcessor:
-    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False):
+    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False, output_facade=None):
         """
         Initialize the CommandProcessor.
         
@@ -33,6 +33,7 @@ class CommandProcessor:
             shell_handler: Shell handler instance for executing commands
             quiet_mode (bool): If True, reduces terminal output
             fast_mode (bool): If True, handles errors quickly and exits
+            output_facade: Reference to the output facade for UI handling
         """
         self.ai_handler = ai_handler
         self.shell_handler = shell_handler
@@ -40,6 +41,16 @@ class CommandProcessor:
         self.fast_mode = fast_mode
         self.system_platform = platform.system().lower()
         self.usb_detector = USBDetector(quiet_mode=quiet_mode)
+        
+        # Get output facade if provided or import as needed
+        if output_facade:
+            self.output = output_facade
+        else:
+            try:
+                from utils.output_facade import output
+                self.output = output
+            except ImportError:
+                self.output = None
         
         # Initialize the AI command extractor and logger
         self.command_extractor = AICommandExtractor()
@@ -75,7 +86,10 @@ class CommandProcessor:
     def log(self, message):
         """Print a message if not in quiet mode"""
         if not self.quiet_mode:
-            print(message)
+            if self.output:
+                self.output.info(message)
+            else:
+                print(message)
     
     def check_screen_exists(self):
         """
@@ -266,6 +280,10 @@ class CommandProcessor:
         Returns:
             str: Execution result or error message
         """
+        # Start a new output sequence for this AI-driven command
+        if self.output:
+            self.output.new_sequence()
+            
         # Get system information for the AI prompt
         system_info = get_system_info()
         
@@ -275,33 +293,56 @@ class CommandProcessor:
             {"system": system_info, "version": platform.release()}
         )
         
-        self.log(f"Asking AI for a command...")
+        # Show thinking process if we have the output handler
+        if self.output:
+            thinking_msg = f"Analyzing your request: '{user_input}'\nGenerating appropriate command..."
+            self.output.thinking(thinking_msg)
+        else:
+            self.log(f"Asking AI for a command...")
         
         # Get response from AI
         try:
             ai_response = self.ai_handler.get_ai_response(prompt)
         except Exception as e:
             error_msg = f"Error getting AI response: {str(e)}"
-            self.log(error_msg)
+            if self.output:
+                self.output.error(error_msg)
+            else:
+                self.log(error_msg)
             return error_msg
         
         # Extract command and metadata from AI response
         success, command, metadata = self.command_extractor.extract_command(ai_response)
         
         if success and command:
-            self.log(f"AI suggested command: {command}")
+            # Show the command that will be executed
+            if self.output:
+                self.output.command(command)
+            else:
+                self.log(f"AI suggested command: {command}")
             
             # Execute the command
             result = self._try_direct_execution(command)
             
-            # Format the response
-            formatted_response = f"📋 I ran this command for you:\n{command}\n\n📊 Result:\n{result}"
-            
-            # If there's an explanation in the metadata, add it
-            if metadata.get("parsed_json") and metadata["parsed_json"].get("explanation"):
-                formatted_response += f"\n\n💡 {metadata['parsed_json']['explanation']}"
+            # Show the result
+            if self.output:
+                self.output.result(True, result)
                 
-            return formatted_response
+                # If there's an explanation, add it
+                if metadata.get("parsed_json") and metadata["parsed_json"].get("explanation"):
+                    self.output.explanation(metadata["parsed_json"]["explanation"])
+                    
+                # Return a simpler response for the calling function
+                return result
+            else:
+                # Format the response for legacy output path
+                formatted_response = f"📋 I ran this command for you:\n{command}\n\n📊 Result:\n{result}"
+                
+                # If there's an explanation in the metadata, add it
+                if metadata.get("parsed_json") and metadata["parsed_json"].get("explanation"):
+                    formatted_response += f"\n\n💡 {metadata['parsed_json']['explanation']}"
+                    
+                return formatted_response
         
         elif metadata["is_error"]:
             # This is an error response - log it for implementation

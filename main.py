@@ -18,22 +18,43 @@ from pathlib import Path
 from core.file_utils import search_files, expand_path, find_cv_files
 from datetime import datetime
 from platform_uai.platform_manager import PlatformManager
-from utils.output_formatter import EMOJI, get_terminal_width
+from utils.output_formatter import get_terminal_width
 
 # Add project root to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = current_dir
 sys.path.append(project_root)
 
-# Import the output handler to prevent duplicate outputs
-try:
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'test_files'))
-    from test_files.output_handler import OutputHandler
-    # Create a global output handler instance
-    output_handler = OutputHandler()
-except ImportError:
-    # Output handler is optional, not critical if missing
-    output_handler = None
+# Import the OutputFacade singleton
+from utils.output_facade import output
+
+# Alias for backward compatibility
+def format_uaibot_output(message, msg_type="info"):
+    """
+    Format output using the output facade.
+    This is a legacy function maintained for backward compatibility.
+    Uses the new OutputFacade internally.
+    """
+    # Convert legacy message types to appropriate OutputFacade method calls
+    if msg_type == "info":
+        return output.box(message, "Information")
+    elif msg_type == "success":
+        output.success(message)
+        return message
+    elif msg_type == "error":
+        output.error(message)
+        return message
+    elif msg_type == "warning":
+        output.warning(message)
+        return message
+    elif msg_type == "robot":
+        return output.box(message, "UaiBot")
+    elif msg_type == "tip":
+        output.info(message) 
+        return message
+    else:
+        output.info(message)
+        return message
 
 # Disable httpx INFO level logging to prevent duplicate request logs
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -53,13 +74,6 @@ urllib3.disable_warnings()
 from core.utils import load_config
 from command_processor import CommandProcessor, ShellHandler
 
-def format_uaibot_output(message, msg_type="info"):
-    # Simple output formatting using emoji and width
-    emoji = EMOJI.get(msg_type, EMOJI["info"])
-    width = get_terminal_width()
-    border = f"{emoji} " + ("─" * (width - 4)) + f" {emoji}"
-    return f"\n{border}\n{emoji} {message}\n{border}\n"
-
 class UaiBot:
     """Main UaiBot class that handles user interaction."""
     
@@ -68,17 +82,23 @@ class UaiBot:
         self.platform_manager = PlatformManager()
         if not self.platform_manager.platform_supported:
             logger.error(f"Unsupported platform: {self.platform_manager.platform_name}")
-            print(f"ERROR: Unsupported platform: {self.platform_manager.platform_name}")
+            output.error(f"Unsupported platform: {self.platform_manager.platform_name}")
             sys.exit(1)
             
         # Initialize platform components
         logger.info("Initializing platform components...")
         self.platform_manager.initialize()
         
+        # Load configuration
+        config = load_config() or {}
+        
+        # Configure output facade with verbosity settings
+        output_verbosity = config.get('output_verbosity', 'normal')
+        
         # Initialize shell handler and command processor
         self.shell_handler = ShellHandler()
         from core.ai_handler import AIHandler
-        config = load_config() or {}
+        
         model_type = config.get('default_ai_provider', 'ollama')
         ollama_base_url = config.get('ollama_base_url', 'http://localhost:11434')
         google_api_key = config.get('google_api_key')
@@ -97,7 +117,8 @@ I'm your AI assistant.
 Type commands or questions for help.
 Running on: {platform_info['name']}
 """
-        self.output_verbosity = (config.get('output_verbosity', 'normal') if 'config' in locals() else 'normal')
+        # Set output verbosity based on config
+        self.output_verbosity = output_verbosity
     
     def start(self):
         """Start the UaiBot interactive session."""

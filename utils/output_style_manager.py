@@ -65,11 +65,58 @@ class OutputStyleManager:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Error loading output styles config: {e}")
-            # Return minimal default configuration
+            # Return minimal default configuration with extended emoji set
             return {
-                "output_styles": {"use_emojis": False, "use_color": True},
-                "emoji_sets": {"default": {}},
-                "box_styles": {"default": {}},
+                "output_styles": {"use_emojis": True, "use_color": True},
+                "emoji_sets": {
+                    "default": {
+                        "success": "✅",
+                        "warning": "⚠️",
+                        "error": "❌",
+                        "info": "ℹ️",
+                        "robot": "🤖",
+                        "stats": "📊",
+                        "folder": "📁",
+                        "file": "📄",
+                        "time": "🕒",
+                        "green": "🟢",
+                        "yellow": "🟡",
+                        "red": "🔴",
+                        "document": "📝",
+                        "computer": "💻",
+                        "mobile": "📱",
+                        "search": "🔍",
+                        "tip": "💡",
+                        "question": "❓",
+                        "thinking": "🤔",
+                        "command": "📌",
+                        "explanation": "💬"
+                    },
+                    "minimal": {
+                        "success": "+",
+                        "warning": "!",
+                        "error": "x",
+                        "info": "i",
+                        "robot": "R",
+                        "stats": "#",
+                        "folder": "D",
+                        "file": "F",
+                        "time": "T",
+                        "green": "o",
+                        "yellow": "o",
+                        "red": "o",
+                        "document": "D",
+                        "computer": "C",
+                        "mobile": "M",
+                        "search": "S",
+                        "tip": "*",
+                        "question": "?",
+                        "thinking": "?",
+                        "command": ">",
+                        "explanation": "="
+                    }
+                },
+                "box_styles": {"default": {}, "ascii": {}},
                 "themes": {"default": {"emoji_set": "default", "box_style": "default"}}
             }
             
@@ -264,6 +311,84 @@ class OutputStyleManager:
             return f"{prefix}{label}: {message}"
         return f"{prefix}{label}"
 
+    def format_list(self, items, bullet_type="symbol", bullet="•"):
+        """
+        Format a list of items with consistent bullets.
+        
+        Args:
+            items (list): The items to format
+            bullet_type (str): Type of bullet: 'symbol', 'number', or 'letter'
+            bullet (str): Bullet character to use for symbol type
+            
+        Returns:
+            str: Formatted list as a string
+        """
+        result = ""
+        for i, item in enumerate(items):
+            if bullet_type == "number":
+                prefix = f"{i+1}. "
+            elif bullet_type == "letter":
+                prefix = f"{chr(97+i)}. "  # a, b, c...
+            else:
+                prefix = f"{bullet} "
+                
+            result += f"{prefix}{item}\n"
+        return result
+    
+    def format_thinking(self, content):
+        """
+        Format thinking content with appropriate styling.
+        
+        Args:
+            content (str): The thinking content to display
+            
+        Returns:
+            str: Formatted thinking block
+        """
+        emoji = self.get_emoji("thinking", "🤔")
+        return f"{emoji} {self.format_box(content, title='Thinking')}"
+    
+    def format_command(self, command):
+        """
+        Format a command with appropriate styling.
+        
+        Args:
+            command (str): The command to display
+            
+        Returns:
+            str: Formatted command line
+        """
+        emoji = self.get_emoji("command", "📌")
+        return f"{emoji} Executing: {command}"
+    
+    def format_result(self, success, message):
+        """
+        Format a result message with success/failure styling.
+        
+        Args:
+            success (bool): Whether the operation was successful
+            message (str): The result message to display
+            
+        Returns:
+            str: Formatted result message
+        """
+        status_key = "success" if success else "error"
+        emoji = self.get_emoji(status_key)
+        return f"{emoji} {message}"
+    
+    def format_explanation(self, message):
+        """
+        Format an explanation message.
+        
+        Args:
+            message (str): The explanation to display
+            
+        Returns:
+            str: Formatted explanation
+        """
+        emoji = self.get_emoji("explanation", "💬")
+        return f"{emoji} {message}"
+
 # Simple test if run directly
 if __name__ == "__main__":
     # Create style manager with default settings
@@ -289,3 +414,9 @@ if __name__ == "__main__":
         # Show a box
         content = "CPU: 45% utilization\nRAM: 3.2GB/8GB used\nDisk: 120GB free"
         print("\n" + style_mgr.format_box(content, title="System Resources"))
+        
+        # Show the new formatting methods
+        print("\n" + style_mgr.format_thinking("I'm analyzing the system status..."))
+        print("\n" + style_mgr.format_command("uptime"))
+        print("\n" + style_mgr.format_result(True, "Command executed successfully"))
+        print("\n" + style_mgr.format_explanation("The system has been running for 3 days."))

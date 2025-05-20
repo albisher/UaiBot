@@ -18,6 +18,8 @@ sys.path.append(project_root)
 
 # Import the style manager
 from utils.output_style_manager import OutputStyleManager
+# Import the output handler for direct output
+from utils.output_handler import output_handler
 
 class EnhancedOutputProcessor:
     """
@@ -207,6 +209,52 @@ class EnhancedOutputProcessor:
             # Not JSON, return formatted raw output
             return self.style_mgr.format_box(raw_output, title="System Status")
 
+    def command_to_output_handler(self, command, raw_output, processor_method=None):
+        """
+        Process a command and display it through the output handler.
+        
+        Args:
+            command (str): The command that was executed
+            raw_output (str): The raw output from the command
+            processor_method (str): Name of the processor method to use
+                                   (if None, will try to guess from command)
+        """
+        # Display the command that was executed
+        output_handler.command(command)
+        
+        # If no processor method specified, try to infer from command
+        if processor_method is None:
+            # Simple matching logic - could be enhanced
+            if command.startswith("uptime"):
+                processor_method = "process_uptime"
+            elif command.startswith("vm_stat") or command.startswith("free"):
+                processor_method = "process_memory"
+            elif command.startswith("df"):
+                processor_method = "process_disk_space"
+            elif "ps" in command:
+                processor_method = "process_running_processes"
+        
+        # Process the output
+        success = bool(raw_output)
+        
+        if processor_method and hasattr(self, processor_method):
+            formatted_output = getattr(self, processor_method)(raw_output)
+            # Show success/failure
+            if success:
+                output_handler.result(True, "Command executed successfully")
+            else:
+                output_handler.result(False, "Command returned no data")
+            
+            # Display formatted output
+            output_handler.capture_print("\n" + formatted_output)
+        else:
+            # Default processing for commands without specific processor
+            if success:
+                output_handler.result(True, "Command executed successfully")
+                output_handler.box(raw_output, title="Output")
+            else:
+                output_handler.result(False, "Command failed or returned no output")
+
 # Simple test if run directly
 if __name__ == "__main__":
     processor = EnhancedOutputProcessor()
@@ -227,3 +275,14 @@ if __name__ == "__main__":
     print("\nSwitching to minimal theme:")
     processor.style_mgr.set_theme("minimal")
     print(processor.process_uptime("14:30  up 3 days, 2:14, 5 users, load averages: 1.20 1.33 1.42"))
+    
+    # Test with output handler
+    print("\nTesting with output handler:")
+    output_handler.reset()
+    output_handler.thinking("I need to check system uptime...")
+    processor.command_to_output_handler("uptime", "14:30  up 3 days, 2:14, 5 users, load averages: 1.20 1.33 1.42", "process_uptime")
+    
+    print("\nTesting disk space with output handler:")
+    output_handler.reset()
+    output_handler.thinking("Checking available disk space...")
+    processor.command_to_output_handler("df -h", disk_output, "process_disk_space")
