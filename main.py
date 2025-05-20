@@ -500,6 +500,8 @@ def detect_file_operation(query):
 
 def parse_arguments():
     """Parse command line arguments."""
+    # Note: This function is deprecated and is being kept for backward compatibility
+    # The actual argument parsing now happens directly in the main() function
     parser = argparse.ArgumentParser(description='UaiBot - Terminal Assistant')
     parser.add_argument('--model', '-m', help='Ollama model to use', default=DEFAULT_MODEL)
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
@@ -880,12 +882,13 @@ def main():
     else:
         log("Interactive mode is disabled. Exiting.")
 
-    if args.file:
+    # Process file operations if --file flag was provided
+    if hasattr(args, 'file') and args.file:
         if not request:
-            print("Please provide a file operation request with the -f flag.")
+            print("Please provide a file operation request with the --file flag.")
             return
             
-        # Process file operations with the -f flag
+        # Process file operations with the --file flag
         response = process_file_flag_request(request)
         print(response)
         return

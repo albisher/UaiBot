@@ -91,196 +91,10 @@ class AICommandExtractor:
                     metadata["source"] = "json"
                     metadata["confidence"] = 0.95
                     
-                    # FORMAT 1: Command with explanation
-                    if "command" in data:
-                        command = data["command"]
-                        
-                        # Extract additional metadata if available
-                        if "explanation" in data:
-                            metadata["explanation"] = data["explanation"]
-                        if "alternatives" in data:
-                            metadata["suggested_alternatives"] = data["alternatives"]
-                        if "requires_implementation" in data:
-                            metadata["requires_implementation"] = data["requires_implementation"]
-                            
-                        # Handle command with file operation
-                        if "file_operation" in data:
-                            metadata["file_operation"] = data["file_operation"]
-                            if "operation_params" in data:
-                                metadata["operation_params"] = data["operation_params"]
-                            
-                        logger.debug(f"Extracted command from JSON: {command}")
-                        return True, command, metadata
-                    
-                    # FORMAT 2: File operation
-                    elif "file_operation" in data:
-                        metadata["file_operation"] = data["file_operation"]
-                        if "operation_params" in data:
-                            metadata["operation_params"] = data["operation_params"]
-                        if "explanation" in data:
-                            metadata["explanation"] = data["explanation"]
-                            
-                        metadata["source"] = "json_file_operation"
-                        
-                        # Generate command from file operation
-                        command = self._generate_command_from_file_operation(
-                            data["file_operation"], 
-                            data.get("operation_params", {})
-                        )
-                        
-                        if command:
-                            logger.debug(f"Generated command from file operation: {command}")
-                            return True, command, metadata
-                    
-                    # FORMAT 3: Error response
-                    elif "error" in data and data["error"]:
-                        metadata["is_error"] = True
-                        metadata["error_message"] = data.get("error_message", "Unable to fulfill request")
-                        if "suggested_approach" in data:
-                            metadata["suggested_approach"] = data["suggested_approach"]
-                        metadata["requires_implementation"] = data.get("requires_implementation", True)
-                        
-                        logger.debug(f"AI reported error: {metadata['error_message']}")
-                        return False, None, metadata
-                    
-                    # FORMAT 4: Informational response
-                    elif "info_type" in data or "information" in data:
-                        # Handle info_type format
-                        if "info_type" in data:
-                            metadata["info_type"] = data["info_type"]
-                            metadata["info_response"] = data.get("response", "")
-                            if "related_command" in data:
-                                related_cmd = data["related_command"]
-                                metadata["related_commands"] = [related_cmd] if isinstance(related_cmd, str) else related_cmd
-                                
-                            # If there's a related command, return it
-                            if metadata["related_commands"]:
-                                command = metadata["related_commands"][0]
-                                if "explanation" in data:
-                                    metadata["explanation"] = data["explanation"]
-                                return True, command, metadata
-                        
-                        # Handle information format
-                        if "information" in data and data["information"]:
-                            metadata["info_response"] = data.get("content", "")
-                            if "related_commands" in data:
-                                metadata["related_commands"] = data["related_commands"]
-                                
-                            # If there's a related command, return it
-                            if metadata["related_commands"] and len(metadata["related_commands"]) > 0:
-                                command = metadata["related_commands"][0]
-                                return True, command, metadata
-                    
-                    # FORMAT 5: Filesystem operation
-                    elif "filesystem_operation" in data and data["filesystem_operation"]:
-                        if "command" in data:
-                            command = data["command"]
-                            if "explanation" in data:
-                                metadata["explanation"] = data["explanation"]
-                            metadata["operation_type"] = data.get("operation_type", "unknown")
-                            metadata["path"] = data.get("path", ".")
-                            
-                            return True, command, metadata
-                    
-                    # FORMAT 6: Multi-step operation (return the first command)
-                    elif "steps" in data and isinstance(data["steps"], list) and len(data["steps"]) > 0:
-                        first_step = data["steps"][0]
-                        if isinstance(first_step, dict) and "command" in first_step:
-                            command = first_step["command"]
-                            metadata["multi_step"] = True
-                            metadata["total_steps"] = len(data["steps"])
-                            metadata["current_step"] = 1
-                            metadata["all_steps"] = data["steps"]
-                            if "explanation" in first_step:
-                                metadata["explanation"] = first_step["explanation"]
-                            
-                            return True, command, metadata
-                    
-                except json.JSONDecodeError:
-                    # This particular JSON string was invalid, try the next one
-                    continue
-        except Exception as e:
-            logger.debug(f"Error processing JSON in AI response: {e}")
-        
-        # Second priority: Try to extract code blocks if JSON parsing failed
-        try:
-            # Look for code blocks (bash, shell, etc.)
-            code_blocks = re.findall(r'```(?:bash|shell|sh|cmd|powershell)?\s*([^`]+)```', ai_response, re.DOTALL)
-            if code_blocks:
-                command = code_blocks[0].strip()
-                metadata["source"] = "code_block"
-                metadata["confidence"] = 0.8
-                
-                logger.debug(f"Extracted command from code block: {command}")
-                return True, command, metadata
-        except Exception as e:
-            logger.debug(f"Error extracting code blocks: {e}")
-        
-        # Third priority: Try to extract inline code
-        try:
-            inline_codes = re.findall(r'`([^`]+)`', ai_response)
-            if inline_codes:
-                # Use the longest inline code as it's more likely to be a complete command
-                command = max(inline_codes, key=len).strip()
-                metadata["source"] = "inline_code"
-                metadata["confidence"] = 0.7
-                
-                logger.debug(f"Extracted command from inline code: {command}")
-                return True, command, metadata
-        except Exception as e:
-            logger.debug(f"Error extracting inline code: {e}")
-        
-        # Fallback: Check for Arabic commands
-        try:
-            arabic_command = self._extract_arabic_command(ai_response)
-            if arabic_command:
-                metadata["source"] = "arabic_command"
-                metadata["confidence"] = 0.6
-                
-                logger.debug(f"Extracted Arabic command: {arabic_command}")
-                return True, arabic_command, metadata
-        except Exception as e:
-            logger.debug(f"Error extracting Arabic command: {e}")
-            
-        # No command found - check if response indicates an error
-        for error_text in self.error_indicators:
-            if error_text.lower() in ai_response.lower():
-                metadata["is_error"] = True
-                error_match = re.search(r'(?:ERROR|error|Error):\s*(.*?)(?:\n|$)', ai_response)
-                if error_match:
-                    metadata["error_message"] = error_match.group(1).strip()
-                else:
-                    metadata["error_message"] = "Unable to fulfill request safely"
-                
-                logger.debug(f"Detected error in AI response: {metadata['error_message']}")
-                return False, None, metadata
-            
-            # Try to determine if this is a file operation
-            metadata = self._detect_file_operation(arabic_command, metadata)
-            
-            return True, arabic_command, metadata
-                
-        # Try to extract from lines that look like commands (lowest confidence)
-        lines = ai_response.split('\n')
-        for line in lines:
-            line = line.strip()
-            # Look for lines that start with common command prefixes
-            if re.match(r'^(find|grep|ls|cat|echo|mkdir|touch|rm|cp|mv|curl|wget|tar|ssh|python|node|npm)\s+', line):
-                metadata["source"] = "line_pattern"
-                metadata["confidence"] = 0.3
-                
-                # Try to determine if this is a file operation
-                metadata = self._detect_file_operation(line, metadata)
-                
-                return True, line, metadata
-        
-        # No command found, but not explicitly an error
-        # This might be a general explanation or information
-        return False, None, metadata
-    
-    def _extract_arabic_command(self, ai_response: str) -> Optional[str]:
-        """
-        Extract Arabic commands from the AI response.
+                    # """
+        Extract Arabic commands from the AI response using the AI-driven approach.
+        This is a language-agnostic implementation that relies on JSON structures
+        rather than hardcoded patterns.
         
         Args:
             ai_response: The AI response to analyze
@@ -288,66 +102,68 @@ class AICommandExtractor:
         Returns:
             Optional[str]: Extracted Arabic command or None
         """
-        # Look for Arabic command indicators
-        for indicator in self.arabic_command_indicators:
-            if indicator in ai_response:
-                # Find the line containing the Arabic command
-                lines = ai_response.split('\n')
-                for line in lines:
-                    if indicator in line:
-                        # Try to convert to an equivalent shell command
-                        # File creation commands
-                        if "انشاء" in line or "انشئ" in line or "جديد" in line:
-                            # Create file command - extract the filename
-                            match = re.search(r'(?:انشاء|انشئ|جديد)\s+(?:ملف|مجلد)?\s+(?:باسم|اسمه)?\s*([^\s,]+)', line)
-                            if match:
-                                return f"touch {match.group(1)}"
-                            # Try alternative pattern
-                            match = re.search(r'(?:انشاء|انشئ).*?(?:ملف|مجلد)\s+(?:جديد)?\s+(?:باسم|اسمه)?\s*([^\s,]+)', line)
-                            if match:
-                                return f"touch {match.group(1)}"
-                                
-                        # File deletion commands
-                        elif "احذف" in line or "امسح" in line or "ازل" in line or "أزل" in line:
-                            # Delete file command - extract the filename
-                            match = re.search(r'(?:احذف|امسح|ازل|أزل)\s+(?:ال)?(?:ملف|مجلد)?\s+([^\s,]+)', line)
-                            if match:
-                                return f"rm {match.group(1)}"
-                                
-                        # File read commands
-                        elif "اقرأ" in line or "اعرض" in line or "اظهر" in line:
-                            # First check for "محتوى الملف" pattern
-                            match = re.search(r'(?:اقرأ|اعرض|اظهر)\s+(?:محتوى|محتويات)\s+(?:ال)?ملف\s+([^\s,]+)', line)
-                            if match:
-                                return f"cat {match.group(1)}"
-                            # Then check for simpler pattern
-                            match = re.search(r'(?:اقرأ|اعرض|اظهر)\s+(?:ال)?ملف\s+([^\s,]+)', line)
-                            if match:
-                                return f"cat {match.group(1)}"
-                                
-                        # List files commands
-                        elif "الملفات" in line or "اعرض جميع" in line:
-                            # Check if a specific directory is mentioned
-                            match = re.search(r'(?:في|في ال|في المجلد)\s+([^\s,]+)', line)
-                            if match:
-                                return f"ls -l {match.group(1)}"
+        # First priority: Look for JSON structures in the response
+        json_patterns = [
+            r'```json\s*(\{[\s\S]*?\})\s*```',  # JSON in code blocks
+            r'(\{[\s\S]*?"command"\s*:\s*".*?"[\s\S]*?\})'  # Bare JSON with command field
+        ]
+        
+        for pattern in json_patterns:
+            json_matches = re.findall(pattern, ai_response, re.DOTALL)
+            for json_str in json_matches:
+                try:
+                    data = json.loads(json_str)
+                    # If JSON contains a command field, use it directly
+                    if "command" in data:
+                        return data["command"]
+                    
+                    # If JSON contains file operation, generate a command
+                    if "file_operation" in data and "operation_params" in data:
+                        operation = data["file_operation"]
+                        params = data["operation_params"]
+                        
+                        if operation == "create" and "filename" in params:
+                            if "content" in params and params["content"]:
+                                return f"echo '{params['content']}' > {params['filename']}"
                             else:
-                                return "ls -l"
+                                return f"touch {params['filename']}"
                                 
-                        # Write to file commands
-                        elif "اكتب" in line or "أكتب" in line or "اضف" in line or "أضف" in line:
-                            # Look for content in quotes
-                            content_match = re.search(r'[\'"]([^\'"\n]+)[\'"]', line)
-                            # Look for filename after "في" (in)
-                            file_match = re.search(r'(?:في|الى|إلى)\s+(?:ال)?ملف\s+([^\s,]+)', line)
+                        elif operation == "read" and "filename" in params:
+                            return f"cat {params['filename']}"
                             
-                            if content_match and file_match:
-                                content = content_match.group(1)
-                                filename = file_match.group(1)
-                                return f"echo '{content}' > {filename}"
-                            elif file_match:
-                                # If we found a file but no content
-                                return f"touch {file_match.group(1)}"
+                        elif operation == "delete" and "filename" in params:
+                            return f"rm {params['filename']}"
+                            
+                        elif operation == "list":
+                            directory = params.get("directory", ".")
+                            return f"ls -la {directory}"
+                except:
+                    # If JSON parsing failed, continue checking other patterns
+                    continue
+        
+        # Second priority: Look for code blocks with potential commands
+        code_block_pattern = r'```(?:bash|shell|sh|zsh|console|terminal)?\s*(.*?)\s*```'
+        code_blocks = re.findall(code_block_pattern, ai_response, re.DOTALL)
+        
+        if code_blocks:
+            # Use the first code block that looks like a command
+            for block in code_blocks:
+                if block.strip() and not block.startswith(('#', '//')):
+                    return block.strip()
+        
+        # Third priority: Look for inline code with potential commands
+        inline_code_pattern = r'`(.*?)`'
+        inline_codes = re.findall(inline_code_pattern, ai_response)
+        
+        if inline_codes:
+            # Use the first inline code that looks like a command
+            for code in inline_codes:
+                if code.strip() and not code.startswith(('#', '//')):
+                    return code.strip()
+        
+        # If no structured format is found, return None
+        # The main extract_command method will handle fallbacks
+        return None
         
         return None
         
@@ -536,65 +352,7 @@ INSTRUCTIONS:
 
 RESPONSE FORMATS:
 
-FORMAT 1 (for executable shell commands):
-```json
-{{
-  "command": "<executable shell command>",
-  "explanation": "<brief explanation of what the command does>",
-  "alternatives": ["<alternative command 1>", "<alternative command 2>"],
-  "requires_implementation": false
-}}
-```
-
-FORMAT 2 (for file operations):
-```json
-{{
-  "file_operation": "<create|read|write|delete|search|list>",
-  "operation_params": {{
-    "filename": "<filename>",
-    "content": "<content to write if applicable>",
-    "directory": "<directory path if applicable>",
-    "search_term": "<search term if applicable>"
-  }},
-  "explanation": "<brief explanation of the operation>"
-}}
-```
-
-FORMAT 3 (for requests that cannot be fulfilled with a command):
-```json
-{{
-  "error": true,
-  "error_message": "<explain why this cannot be executed>",
-  "requires_implementation": true,
-  "suggested_approach": "<if applicable, suggest how the user might accomplish this>"
-}}
-```
-
-FORMAT 4 (for informational/conversational queries):
-```json
-{{
-  "info_type": "<system_info|general_question|help|definition>",
-  "response": "<your detailed response>",
-  "related_command": "<optional command related to the query>",
-  "explanation": "<brief explanation of the response>"
-}}
-```
-
-EXAMPLES:
-1. "list files in directory" → {"command": "ls -la", "explanation": "Lists all files in the current directory with details", "alternatives": ["ls", "find . -maxdepth 1"], "requires_implementation": false}
-2. "create a file named test.txt with content hello" → {"file_operation": "create", "operation_params": {"filename": "test.txt", "content": "hello"}, "explanation": "Creates a new file named test.txt with content 'hello'"}
-3. "what's my ip address" → {"command": "ip addr show", "explanation": "Shows network interface information including IP addresses", "alternatives": ["ifconfig", "hostname -I"], "requires_implementation": false}
-4. "انشاء ملف جديد باسم test_ar.txt" → {"file_operation": "create", "operation_params": {"filename": "test_ar.txt"}, "explanation": "Creates a new empty file named test_ar.txt"}
 """
-
-FORMAT 4 (for information requests that don't require commands):
-```json
-{{
-  "information": true,
-  "content": "<the informational response>",
-  "related_commands": ["<related command 1>", "<related command 2>"]
-}}
-```
 
 FORMAT 5 (for handling file system operations):
 ```json
