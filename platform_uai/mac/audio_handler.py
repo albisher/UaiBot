@@ -1,14 +1,23 @@
 """
 Platform-specific audio handling for macOS
+Implements the BaseAudioHandler interface.
 """
 import subprocess
 import json
-import pyaudio
 import wave
 import os
 from core.utils import get_project_root
+from platform_uai.common.audio_handler import BaseAudioHandler, SimulatedAudioHandler
 
-class MacAudioHandler:
+# Try to import pyaudio, fall back to simulation if not available
+try:
+    import pyaudio
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    PYAUDIO_AVAILABLE = False
+    print("PyAudio not available, falling back to simulated audio")
+
+class AudioHandler(BaseAudioHandler):
     def __init__(self):
         self.p = pyaudio.PyAudio()
         self.input_device = None

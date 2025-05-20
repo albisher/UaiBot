@@ -13,6 +13,8 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List, Union
 
+from command_processor.ai_response_cache import AIResponseCache
+
 logger = logging.getLogger(__name__)
 
 class AIDrivenProcessor:
@@ -21,38 +23,131 @@ class AIDrivenProcessor:
     Structures the AI prompt to return commands in predictable formats.
     """
     
-    def __init__(self, quiet_mode=False):
-        """Initialize the AI-driven processor."""
+    def __init__(self, quiet_mode=False, use_cache=True, cache_size=100, cache_ttl=3600):
+        """
+        Initialize the AI-driven processor.
+        
+        Args:
+            quiet_mode (bool): Whether to operate in quiet mode
+            use_cache (bool): Whether to use response caching
+            cache_size (int): Maximum number of items in the cache
+            cache_ttl (int): Time-to-live for cache entries in seconds
+        """
         self.quiet_mode = quiet_mode
+        self.use_cache = use_cache
+        self.response_cache = AIResponseCache(max_size=cache_size, ttl=cache_ttl) if use_cache else None
+        
+        # Enhanced examples dictionary with more comprehensive examples
         self.format_examples = {
+            # Basic command examples
             "list_files": {
                 "command": "ls -la",
                 "explanation": "Lists all files in the current directory with details",
                 "alternatives": ["ls", "find . -maxdepth 1"],
             },
+            "advanced_search": {
+                "command": "find /home/user -type f -name '*.txt' -size +1M -mtime -7",
+                "explanation": "Finds text files larger than 1MB, modified in the last week",
+                "alternatives": ["find /home/user -type f -name '*.txt' | xargs ls -lah"],
+            },
+            
+            # File operation examples
             "create_file": {
                 "file_operation": "create",
                 "operation_params": {
                     "filename": "test.txt", 
-                    "content": "hello"
+                    "content": "Hello world"
                 },
-                "explanation": "Creates a new file named test.txt with content 'hello'"
+                "explanation": "Creates a new file named test.txt with content"
             },
-            "ip_address": {
-                "command": "ip addr show",
-                "explanation": "Shows network interface information including IP addresses",
-                "alternatives": ["ifconfig", "hostname -I"],
+            "read_file": {
+                "file_operation": "read",
+                "operation_params": {
+                    "filename": "config.json"
+                },
+                "explanation": "Reads and displays the content of config.json"
             },
+            "append_file": {
+                "file_operation": "append",
+                "operation_params": {
+                    "filename": "log.txt",
+                    "content": "New log entry added"
+                },
+                "explanation": "Appends a new line to log.txt without overwriting existing content"
+            },
+            "search_files": {
+                "file_operation": "search",
+                "operation_params": {
+                    "search_term": "config",
+                    "directory": "/etc"
+                },
+                "explanation": "Searches for files containing 'config' in their name in the /etc directory"
+            },
+            
+            # Information responses
+            "system_info": {
+                "info_type": "system_info",
+                "response": "The system is running Linux with 16GB RAM.",
+                "related_command": "uname -a",
+                "explanation": "Provides information about the operating system"
+            },
+            "concept_info": {
+                "info_type": "concept_explanation",
+                "response": "A firewall is a network security system that monitors and controls traffic.",
+                "related_command": "sudo ufw status",
+                "explanation": "Explains what a firewall is and shows a command to check the firewall status"
+            },
+            
+            # Error responses
+            "security_error": {
+                "error": True,
+                "error_message": "Cannot execute system-level commands that might compromise security",
+                "suggested_approach": "Try using a more specific, safer command"
+            },
+            
+            # Multilingual examples
             "arabic_example": {
                 "file_operation": "create",
-                "operation_params": {"filename": "test_ar.txt"},
-                "explanation": "Creates a new empty file named test_ar.txt"
+                "operation_params": {"filename": "مرحبا.txt"},
+                "explanation": "Creates a new empty file with an Arabic name"
             },
-            "info_example": {
-                "info_type": "system_info",
-                "response": "The CPU usage is currently high because...",
-                "related_command": "top -b -n 1",
-                "explanation": "Provides information about CPU usage and suggests a command to see process details"
+            "spanish_example": {
+                "command": "echo 'Hola mundo' > saludo.txt",
+                "explanation": "Creates a file with 'Hello World' in Spanish",
+                "alternatives": ["printf 'Hola mundo' > saludo.txt"]
+            },
+            
+            # Platform-specific examples
+            "macos_example": {
+                "command": "sw_vers",
+                "explanation": "Displays macOS version information",
+                "platform": "macOS"
+            },
+            "linux_example": {
+                "command": "lsb_release -a",
+                "explanation": "Displays Linux distribution information",
+                "alternatives": ["cat /etc/os-release"],
+                "platform": "Linux"
+            },
+            
+            # Multi-step operation example
+            "complex_example": {
+                "multi_step_operation": True,
+                "steps": [
+                    {
+                        "command": "mkdir -p project/src",
+                        "explanation": "Create project directory structure"
+                    },
+                    {
+                        "file_operation": "create",
+                        "operation_params": {
+                            "filename": "project/src/main.py",
+                            "content": "print('Hello, world!')"
+                        },
+                        "explanation": "Create main.py file"
+                    }
+                ],
+                "explanation": "Sets up a simple Python project"
             }
         }
     
@@ -74,19 +169,51 @@ class AIDrivenProcessor:
                 os_info += f" {platform_info.get('version')}"
             if platform_info.get('linux_distro'):
                 os_info += f" ({platform_info.get('linux_distro')})"
+            if platform_info.get('processor'):
+                os_info += f"\nProcessor: {platform_info.get('processor')}"
         
         # Get current timestamp for context
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Create structured examples based on the format examples
-        examples = []
-        for description, example in self.format_examples.items():
-            examples.append(json.dumps(example, indent=2))
+        # Select a subset of examples based on the platform and request content
+        selected_examples = []
         
-        examples_str = "\n\n".join([f"Example {i+1}:\n```json\n{e}\n```" for i, e in enumerate(examples)])
+        # Always include basic command and file operations
+        base_examples = ["list_files", "create_file", "read_file"]
+        for key in base_examples:
+            if key in self.format_examples:
+                selected_examples.append(self.format_examples[key])
+        
+        # Check if request is likely in Arabic or another non-English language
+        arabic_chars = re.search(r'[\u0600-\u06FF]', user_request)
+        if arabic_chars and "arabic_example" in self.format_examples:
+            selected_examples.append(self.format_examples["arabic_example"])
+        elif "spanish" in user_request.lower() and "spanish_example" in self.format_examples:
+            selected_examples.append(self.format_examples["spanish_example"])
+        
+        # Add platform-specific examples if available
+        if platform_info and "system" in platform_info:
+            if platform_info["system"].lower() == "darwin" and "macos_example" in self.format_examples:
+                selected_examples.append(self.format_examples["macos_example"])
+            elif platform_info["system"].lower() == "linux" and "linux_example" in self.format_examples:
+                selected_examples.append(self.format_examples["linux_example"])
+        
+        # Check if request might need multiple steps
+        complex_keywords = ["project", "setup", "install", "configure", "create and", "multiple", "steps"]
+        if any(keyword in user_request.lower() for keyword in complex_keywords) and "complex_example" in self.format_examples:
+            selected_examples.append(self.format_examples["complex_example"])
+        
+        # Add error response example
+        if "security_error" in self.format_examples:
+            selected_examples.append(self.format_examples["security_error"])
+        
+        # Format the examples as JSON strings
+        examples_str = "\n\n".join([
+            f"Example {i+1}:\n```json\n{json.dumps(e, indent=2)}\n```" 
+            for i, e in enumerate(selected_examples)
+        ])
         
         # Create a comprehensive system prompt that encourages AI to handle all request types
-        prompt = f"""You are UaiBot, an AI-powered terminal assistant that can handle any type of request.
 
 CURRENT TIME: {current_time}
 USER REQUEST: {user_request}
@@ -380,6 +507,16 @@ Now process the user's request and respond with ONLY the appropriate JSON format
                 - Command to execute (or None)
                 - Metadata about the processing
         """
+        # Attempt to retrieve from cache first
+        cached_result = None
+        if self.use_cache and self.response_cache:
+            cached_key = f"{user_request}_{platform_info.get('system', '')}" if platform_info else user_request
+            cached_result = self.response_cache.get(cached_key)
+            
+            if cached_result:
+                logger.info(f"Cache hit for request: {user_request[:30]}...")
+                return cached_result.get('success', False), cached_result.get('command'), cached_result.get('metadata', {})
+        
         # Format the prompt to guide the AI's response
         prompt = self.format_ai_prompt(user_request, platform_info)
         
@@ -399,12 +536,44 @@ Now process the user's request and respond with ONLY the appropriate JSON format
             if not success:
                 metadata["full_ai_response"] = ai_response
             
+            # Store successful results in cache for future use
+            if success and self.use_cache and self.response_cache:
+                cached_key = f"{user_request}_{platform_info.get('system', '')}" if platform_info else user_request
+                cached_data = {
+                    'success': success,
+                    'command': command,
+                    'metadata': metadata
+                }
+                self.response_cache.put(cached_key, cached_data)
+                logger.debug(f"Cached response for request: {user_request[:30]}...")
+            
             return success, command, metadata
             
         except Exception as e:
-            logger.error(f"Error processing request with AI: {e}")
-            return False, None, {
+            logger.error(f"Error in AI-driven processing: {e}")
+            metadata = {
+                "source": "ai_driven_processor",
                 "is_error": True,
-                "error_message": f"Failed to process with AI: {str(e)}",
-                "source": "ai_error"
+                "error_message": f"Error occurred during processing: {str(e)}",
+                "exception_type": str(type(e).__name__)
             }
+            return False, None, metadata
+            
+    def clear_cache(self) -> None:
+        """
+        Clear the response cache.
+        """
+        if self.use_cache and self.response_cache:
+            self.response_cache.clear()
+            logger.info("AI response cache cleared")
+            
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about the cache.
+        
+        Returns:
+            Dictionary containing cache statistics or empty dict if cache is disabled
+        """
+        if self.use_cache and self.response_cache:
+            return self.response_cache.get_stats()
+        return {"enabled": False}

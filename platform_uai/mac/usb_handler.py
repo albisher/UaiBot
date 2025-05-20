@@ -1,14 +1,23 @@
 """
 Platform-specific USB handling for macOS (Apple Silicon M4)
+Implements the BaseUSBHandler interface.
 """
-import usb.core
-import usb.util
 import os
 import subprocess
 import json
 import time
+from platform_uai.common.usb_handler import BaseUSBHandler, SimulatedUSBHandler
 
-class MacUSBHandler:
+# Try to import USB libraries, fall back to simulation if not available
+try:
+    import usb.core
+    import usb.util
+    USB_LIBRARIES_AVAILABLE = True
+except ImportError:
+    USB_LIBRARIES_AVAILABLE = False
+    print("USB libraries not available, falling back to simulated USB")
+
+class USBHandler(BaseUSBHandler):
     def __init__(self):
         self.devices = []
         # Store list of connected devices for easier reference

@@ -50,55 +50,47 @@ class PlatformManager:
             if not self.input_handler:
                 print(f"Failed to initialize input handler for {self.platform_name}")
                 
-            # Check if handlers were initialized successfully
-            if self.audio_handler and self.usb_handler and self.input_handler:
-                print(f"Successfully initialized all platform components for {self.platform_name}")
-                return True
-            else:
-                print(f"Platform initialization incomplete for {self.platform_name}")
-                return False
-                
+            return all([self.audio_handler, self.usb_handler, self.input_handler])
         except ImportError as e:
-            print(f"Failed to import platform handlers: {e}")
+            print(f"Failed to import platform utilities: {e}")
             return False
-            
+    
     def get_audio_handler(self):
         """Get the platform-specific audio handler"""
         return self.audio_handler
-        
+    
     def get_usb_handler(self):
         """Get the platform-specific USB handler"""
         return self.usb_handler
-        
+    
+    def get_input_handler(self):
+        """Get the platform-specific input handler"""
+        return self.input_handler
+    
     def get_platform_info(self):
         """Get information about the current platform"""
-        if not self.platform_supported:
-            return {"error": f"Unsupported platform: {platform.system()}"}
-            
-        # Basic platform information
-        info = {
-            "platform_name": self.platform_name,
-            "system": platform.system(),
-            "platform": platform.platform(),
-            "python_version": platform.python_version(),
-            "handlers_initialized": {
-                "audio": self.audio_handler is not None,
-                "usb": self.usb_handler is not None
-            }
+        return {
+            'name': self.platform_name,
+            'system': platform.system(),
+            'release': platform.release(),
+            'version': platform.version(),
+            'architecture': platform.machine(),
+            'processor': platform.processor(),
         }
-        
-        # Add audio device information if available
-        if self.audio_handler:
-            try:
-                info["audio_devices"] = self.audio_handler.list_audio_devices()
-            except:
-                info["audio_devices"] = "Error retrieving audio devices"
-                
-        # Add USB device information if available
-        if self.usb_handler:
-            try:
-                info["usb_devices"] = self.usb_handler.get_device_list()
-            except:
-                info["usb_devices"] = "Error retrieving USB devices"
-                
-        return info
+    
+    def check_simulation_mode(self):
+        """Check if we're running in simulation mode"""
+        # Simulation mode is active when no display is available
+        # or when the DISPLAY environment variable is empty
+        return not os.environ.get('DISPLAY') and platform.system() != 'Darwin'
+    
+    def cleanup(self):
+        """Clean up platform-specific resources"""
+        if self.audio_handler and hasattr(self.audio_handler, 'cleanup'):
+            self.audio_handler.cleanup()
+            
+        if self.usb_handler and hasattr(self.usb_handler, 'cleanup'):
+            self.usb_handler.cleanup()
+            
+        if self.input_handler and hasattr(self.input_handler, 'cleanup'):
+            self.input_handler.cleanup()

@@ -9,14 +9,33 @@ import platform
 
 # Add project root to sys.path to enable imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)  # Add the UaiBot directory itself
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)  # Add the UaiBot directory itself
 
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from gui.dual_window_emoji import UaiBotDualInterface
+from PyQt5.QtWidgets import QApplication, QMessageBox, QSplashScreen
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QPixmap
+
+# Import UI components with fallback paths
+try:
+    # Try to import the dual window interface
+    from gui.dual_window_emoji import UaiBotDualInterface
+    USE_DUAL_INTERFACE = True
+except ImportError:
+    # Fall back to the basic interface
+    from gui.basic_interface import UaiBotBasicInterface
+    USE_DUAL_INTERFACE = False
+
 from core.utils import load_config, get_project_root
 from core.ai_handler import AIHandler
 from core.shell_handler import ShellHandler
 from platform_uai.platform_manager import PlatformManager
+
+def show_error_and_exit(message):
+    """Display error message and exit application"""
+    app = QApplication.instance() or QApplication(sys.argv)
+    QMessageBox.critical(None, "UaiBot Error", message)
+    sys.exit(1)
 
 def main():
     """Main function to start the GUI"""
@@ -39,77 +58,84 @@ def main():
     app.setOrganizationName("UaiBot")
     app.setApplicationVersion("1.0.0")
     
+    # Create splash screen if available
+    try:
+        splash_path = os.path.join(project_root, "gui", "resources", "splash.png")
+        if os.path.exists(splash_path):
+            splash_pixmap = QPixmap(splash_path)
+            splash = QSplashScreen(splash_pixmap)
+            splash.show()
+            app.processEvents()
+        else:
+            splash = None
+    except Exception:
+        splash = None
+    
     # Load configuration
     config = load_config()
     if not config:
-        QMessageBox.critical(None, "Error", "Failed to load configuration. Please check config/settings.json")
-        return 1
+        if splash:
+            splash.close()
+        show_error_and_exit("Failed to load configuration. Please check config/settings.json")
         
     # Initialize platform manager
     platform_manager = PlatformManager()
     if not platform_manager.platform_supported:
-        QMessageBox.critical(None, "Error", f"Unsupported platform: {platform.system()}")
-        return 1
+        if splash:
+            splash.close()
+        show_error_and_exit(f"Unsupported platform: {platform.system()}")
         
-    platform_manager.initialize()
-    audio_handler = platform_manager.get_audio_handler()
-    usb_handler = platform_manager.get_usb_handler()
+    # Initialize platform-specific components
+    if splash:
+        splash.showMessage("Initializing platform components...", Qt.AlignBottom | Qt.AlignCenter)
+        app.processEvents()
+        
+    if not platform_manager.initialize():
+        if splash:
+            splash.close()
+        show_error_and_exit("Failed to initialize platform components")
     
-    # Initialize AI and shell handlers
+    # Initialize shell and AI handlers
+    if splash:
+        splash.showMessage("Initializing system handlers...", Qt.AlignBottom | Qt.AlignCenter)
+        app.processEvents()
+        
+    shell_handler = ShellHandler()
+    ai_handler = AIHandler(config)
+    
+    # Create main interface
+    if splash:
+        splash.showMessage("Starting UaiBot interface...", Qt.AlignBottom | Qt.AlignCenter)
+        app.processEvents()
+    
     try:
-        # Initialize AI handler based on configuration
-        ai_provider = config.get("default_ai_provider")
-        ai_handler = None
-        
-        if not ai_provider:
-            print("Warning: No default_ai_provider specified in configuration.")
+        # Create the appropriate interface based on availability
+        if USE_DUAL_INTERFACE:
+            main_window = UaiBotDualInterface(
+                shell_handler=shell_handler,
+                ai_handler=ai_handler,
+                platform_manager=platform_manager,
+                config=config
+            )
         else:
-            if ai_provider == "google":
-                google_api_key = config.get("google_api_key")
-                if not google_api_key:
-                    google_api_key = os.getenv("GOOGLE_API_KEY")
-                if not google_api_key:
-                    print("Warning: Google API key not configured.")
-                else:
-                    google_model = config.get("default_google_model", "gemini-1.5-pro")
-                    ai_handler = AIHandler(
-                        model_type="google", 
-                        api_key=google_api_key,
-                        google_model_name=google_model
-                    )
-            elif ai_provider == "ollama":
-                ollama_url = config.get("ollama_base_url", "http://localhost:11434")
-                ollama_model = config.get("default_ollama_model", "llama2")
-                ai_handler = AIHandler(
-                    model_type="ollama",
-                    ollama_base_url=ollama_url
-                )
-                ai_handler.set_ollama_model(ollama_model)
-            else:
-                print(f"Warning: Unknown AI provider '{ai_provider}'.")
-                
-        # Initialize shell handler
-        shell_safe_mode = config.get("shell_safe_mode", True)
-        shell_dangerous_check = config.get("shell_dangerous_check", True)
-        shell_handler = ShellHandler(
-            safe_mode=shell_safe_mode,
-            enable_dangerous_command_check=shell_dangerous_check
-        )
-        
+            main_window = UaiBotBasicInterface(
+                shell_handler=shell_handler,
+                ai_handler=ai_handler,
+                platform_manager=platform_manager,
+                config=config
+            )
     except Exception as e:
-        print(f"Warning: Failed to initialize handlers: {str(e)}")
-        ai_handler = None
-        shell_handler = None
+        if splash:
+            splash.close()
+        show_error_and_exit(f"Failed to initialize the UI: {str(e)}")
     
-    # Create dual window interface
-    interface = UaiBotDualInterface()
+    # Show main window and close splash
+    main_window.show()
+    if splash:
+        splash.finish(main_window)
     
-    # Set handlers
-    interface.set_handlers(ai_handler=ai_handler, shell_handler=shell_handler)
-    
-    # Show windows and run application
-    interface.show()
-    return app.exec_()
+    # Run the application event loop
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

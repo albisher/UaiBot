@@ -1,5 +1,27 @@
 # UaiBot Future Improvements
 
+## Platform Support
+
+### Completed
+- [x] Complete the platform_manager.py implementation
+- [x] Implement proper platform detection and initialization
+- [x] Create basic GUI launcher with platform support
+- [x] Ensure compatibility with different platforms (Mac, Ubuntu, Jetson)
+- [x] Add test script for platform support verification
+
+### Short-term Tasks
+- [ ] Create platform-specific implementations for all supported platforms
+- [ ] Implement simulation mode for all platform-specific handlers
+- [ ] Add platform-specific optimizations for Apple Silicon
+- [ ] Enhance GUI components to adapt to platform capabilities
+- [ ] Add comprehensive unit tests for all platform-specific code
+
+### Medium-term Goals
+- [ ] Create Docker containers for cross-platform testing
+- [ ] Implement auto-detection of hardware capabilities
+- [ ] Add platform-specific installation scripts
+- [ ] Create platform feature parity matrix and documentation
+
 ## AI-Driven Command Processing
 
 ### Short-term Improvements

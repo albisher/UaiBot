@@ -27,6 +27,9 @@ def detect_platform():
             pass
         # Default to Ubuntu for Linux
         return 'ubuntu', 'ubuntu'
+    elif system == 'windows':
+        # Windows support
+        return 'windows', 'windows'
     else:
         # Unsupported platform
         return None, None
@@ -51,76 +54,95 @@ def load_platform_handler(module_name):
     module_path = f"platform_uai.{platform_dir}.{module_name}"
     
     try:
-        # Try to import the module
-        return importlib.import_module(module_path)
+        # Try to import the platform-specific module
+        module = importlib.import_module(module_path)
+        return module
     except ImportError as e:
-        print(f"Failed to load platform handler {module_path}: {e}")
-        return None
+        print(f"Failed to load platform module {module_path}: {e}")
+        
+        # Fall back to common implementation if available
+        try:
+            common_module_path = f"platform_uai.common.{module_name}"
+            module = importlib.import_module(common_module_path)
+            print(f"Loaded common module {common_module_path} as fallback")
+            return module
+        except ImportError as e2:
+            print(f"Failed to load common module {common_module_path}: {e2}")
+            return None
 
 def get_audio_handler():
-    """Get the platform-specific audio handler"""
+    """
+    Get the appropriate audio handler for the current platform
+    
+    Returns:
+        An instance of the platform-specific AudioHandler
+    """
     audio_module = load_platform_handler('audio_handler')
     if not audio_module:
         return None
-    
-    # Find the handler class in the module
-    handler_class = None
-    for name in dir(audio_module):
-        if name.endswith('AudioHandler'):
-            handler_class = getattr(audio_module, name)
-            break
-    
-    if not handler_class:
-        print("ERROR: Could not find AudioHandler class in module")
-        return None
         
-    # Create and return an instance of the handler
-    return handler_class()
+    try:
+        # Check if the module has an AudioHandler class
+        if hasattr(audio_module, 'AudioHandler'):
+            return audio_module.AudioHandler()
+        else:
+            print(f"ERROR: AudioHandler class not found in module")
+            return None
+    except Exception as e:
+        print(f"Failed to instantiate AudioHandler: {e}")
+        return None
 
 def get_usb_handler():
-    """Get the platform-specific USB handler"""
+    """
+    Get the appropriate USB handler for the current platform
+    
+    Returns:
+        An instance of the platform-specific USBHandler
+    """
     usb_module = load_platform_handler('usb_handler')
     if not usb_module:
         return None
-    
-    # Find the handler class in the module
-    handler_class = None
-    for name in dir(usb_module):
-        if name.endswith('USBHandler'):
-            handler_class = getattr(usb_module, name)
-            break
-    
-    if not handler_class:
-        print("ERROR: Could not find USBHandler class in module")
-        return None
         
-    # Create and return an instance of the handler
-    return handler_class()
+    try:
+        # Check if the module has a USBHandler class
+        if hasattr(usb_module, 'USBHandler'):
+            return usb_module.USBHandler()
+        else:
+            print(f"ERROR: USBHandler class not found in module")
+            return None
+    except Exception as e:
+        print(f"Failed to instantiate USBHandler: {e}")
+        return None
 
 def get_input_handler():
-    """Get the platform-specific input handler"""
+    """
+    Get the appropriate input handler for the current platform
+    
+    Returns:
+        An instance of the platform-specific InputHandler
+    """
     input_module = load_platform_handler('input_control')
     if not input_module:
-        print("WARNING: No platform-specific input handler found.")
-        # Fall back to common implementation
+        # Try the common implementation as a fallback
         try:
-            from platform_uai.common.input_control.mouse_keyboard_handler import MouseKeyboardHandler
-            print("Using common cross-platform input handler as fallback.")
+            from platform_uai.common.input_control import MouseKeyboardHandler
+            print("Using common MouseKeyboardHandler as fallback")
             return MouseKeyboardHandler()
         except ImportError as e:
-            print(f"Failed to load common input handler: {e}")
+            print(f"Failed to load common MouseKeyboardHandler: {e}")
             return None
-    
-    # Find the handler class in the module
-    handler_class = None
-    for name in dir(input_module):
-        if name.endswith('InputHandler'):
-            handler_class = getattr(input_module, name)
-            break
-    
-    if not handler_class:
-        print("ERROR: Could not find InputHandler class in module")
-        return None
         
-    # Create and return an instance of the handler
-    return handler_class()
+    try:
+        # Different platforms might have different handler class names
+        handler_classes = ['InputHandler', 'MouseKeyboardHandler']
+        
+        # Try each possible handler class
+        for handler_class in handler_classes:
+            if hasattr(input_module, handler_class):
+                return getattr(input_module, handler_class)()
+        
+        print(f"ERROR: No suitable input handler class found in module")
+        return None
+    except Exception as e:
+        print(f"Failed to instantiate input handler: {e}")
+        return None
