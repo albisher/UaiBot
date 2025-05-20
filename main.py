@@ -200,6 +200,7 @@ def handle_file_operation(parsed_request):
         elif not results:
             return f"No files matching '{search_term}' found."
         else:
+            return f"Found {len(results)} files:\n" + "\n".join(results)
     
     # Handle read operation
     elif operation == 'read':
@@ -497,6 +498,18 @@ def detect_file_operation(query):
         
     return None
 
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='UaiBot - Terminal Assistant')
+    parser.add_argument('--model', '-m', help='Ollama model to use', default=DEFAULT_MODEL)
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
+    parser.add_argument('--quiet', '-q', action='store_true', help='Minimal output')
+    parser.add_argument('--fast', '-f', action='store_true', help='Fast mode - exit on error')
+    parser.add_argument('--test', '-t', action='store_true', help='Test mode')
+    parser.add_argument('--file', type=str, help='Process a file instead of interactive mode')
+    parser.add_argument('--request', '-r', type=str, help='Direct request to process and exit')
+    return parser.parse_args()
+
 def main():
     """Main entry point for the UaiBot application"""
     # Parse command-line arguments first to check for license skip
@@ -510,6 +523,7 @@ def main():
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
     parser.add_argument("-f", "--fast", action="store_true", help="Fast mode - does not wait for user feedback on errors")
     parser.add_argument("--skip-license-check", action="store_true", help="Skip license validation (for development only)")
+    parser.add_argument("--file", type=str, help="Process a file instead of interactive mode", default=None)
     args, remaining_args = parser.parse_known_args()
 
     # Join remaining args into a single request string

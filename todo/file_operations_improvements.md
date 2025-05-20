@@ -4,6 +4,7 @@
 - Fixed IndentationError in main.py by implementing a proper file operations handler
 - The error occurred because the `elif operation == 'read':` statement wasn't properly indented after an `else` block
 - Need to improve robustness of file path handling, especially with relative paths
+- ✅ Fixed Arabic language support in file operations (syntax error in ai_command_extractor.py)
 
 ## Future Improvements
 
@@ -11,6 +12,7 @@
 - [ ] Add comprehensive unit tests for file operations functions
 - [ ] Implement safety checks to prevent accidental file overwrites
 - [ ] Add support for recursive directory operations
+- [ ] Improve multilingual support for file operations commands
 
 ### Medium Priority
 - [ ] Create a more sophisticated file path resolver that handles:
@@ -19,6 +21,7 @@
   - Environment variable substitution
 - [ ] Implement batch file operations
 - [ ] Add support for file metadata operations (permissions, timestamps)
+- [ ] Create separate language handlers for non-Latin script languages
 
 ### Low Priority
 - [ ] Add support for more complex file operations:
@@ -26,13 +29,13 @@
   - Finding duplicate files
   - Advanced search options (by date, size, content)
 - [ ] Create a web UI for file operations
+- [ ] Support file operations in multiple languages simultaneously
 
 ## Implementation Plan
-1. Refactor file operations into a dedicated module with proper OOP design
-2. Create a comprehensive test suite for all file operations
-3. Add proper documentation and examples for each operation
-4. Implement enhanced error handling and user feedback
-5. Add support for more complex file paths and operations
+1. Fix critical bugs in multilingual support
+2. Implement comprehensive test suite for file operations
+3. Enhance command extraction to better handle different languages
+4. Refactor file operations to be more modular and extendable
 
 ## Documentation Needs
 - Update main README.md with file operations examples

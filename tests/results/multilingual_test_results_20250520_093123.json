@@ -1,0 +1,67 @@
+{
+  "english": {
+    "passed": 0,
+    "failed": 0,
+    "details": []
+  },
+  "arabic": {
+    "passed": 0,
+    "failed": 6,
+    "details": [
+      {
+        "name": "Create file (AR)",
+        "command": "أنشئ ملف جديد باسم test_output_ar.txt واكتب فيه 'هذا ملف اختبار'",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "File \"/home/a/Documents/Projects/UaiBot/main.py\", line 205\n    elif operation == 'read':\nIndentationError: expected an indented block after 'else' statement on line 202"
+      },
+      {
+        "name": "Read file (AR)",
+        "command": "اعرض محتوى الملف test_output_ar.txt",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "File \"/home/a/Documents/Projects/UaiBot/main.py\", line 205\n    elif operation == 'read':\nIndentationError: expected an indented block after 'else' statement on line 202"
+      },
+      {
+        "name": "List files (AR)",
+        "command": "اعرض جميع الملفات في المجلد الحالي",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "File \"/home/a/Documents/Projects/UaiBot/main.py\", line 205\n    elif operation == 'read':\nIndentationError: expected an indented block after 'else' statement on line 202"
+      },
+      {
+        "name": "System info (AR)",
+        "command": "ما هو نظام التشغيل الذي أستخدمه؟",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "File \"/home/a/Documents/Projects/UaiBot/main.py\", line 205\n    elif operation == 'read':\nIndentationError: expected an indented block after 'else' statement on line 202"
+      },
+      {
+        "name": "Disk space (AR)",
+        "command": "أظهر المساحة المتاحة على القرص",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "File \"/home/a/Documents/Projects/UaiBot/main.py\", line 205\n    elif operation == 'read':\nIndentationError: expected an indented block after 'else' statement on line 202"
+      },
+      {
+        "name": "Delete file (AR)",
+        "command": "احذف الملف test_output_ar.txt",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "File \"/home/a/Documents/Projects/UaiBot/main.py\", line 205\n    elif operation == 'read':\nIndentationError: expected an indented block after 'else' statement on line 202"
+      }
+    ]
+  }
+}

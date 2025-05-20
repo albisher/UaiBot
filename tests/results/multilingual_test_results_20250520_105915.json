@@ -1,0 +1,67 @@
+{
+  "english": {
+    "passed": 0,
+    "failed": 0,
+    "details": []
+  },
+  "arabic": {
+    "passed": 0,
+    "failed": 6,
+    "details": [
+      {
+        "name": "Create file (AR)",
+        "command": "أنشئ ملف جديد باسم test_output_ar.txt واكتب فيه 'هذا ملف اختبار'",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/a/Documents/Projects/UaiBot/main.py\", line 63, in <module>\n    from command_processor.command_processor_main import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/__init__.py\", line 5, in <module>\n    from command_processor.command_processor import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/command_processor.py\", line 20, in <module>\n    from command_processor.ai_command_extractor import AICommandExtractor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/ai_command_extractor.py\", line 243\n    elif \"احذف\" in line or \"امسح\" في line or \"ازل\" في line:\n                                  ^^\nSyntaxError: invalid syntax"
+      },
+      {
+        "name": "Read file (AR)",
+        "command": "اعرض محتوى الملف test_output_ar.txt",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/a/Documents/Projects/UaiBot/main.py\", line 63, in <module>\n    from command_processor.command_processor_main import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/__init__.py\", line 5, in <module>\n    from command_processor.command_processor import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/command_processor.py\", line 20, in <module>\n    from command_processor.ai_command_extractor import AICommandExtractor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/ai_command_extractor.py\", line 243\n    elif \"احذف\" in line or \"امسح\" في line or \"ازل\" في line:\n                                  ^^\nSyntaxError: invalid syntax"
+      },
+      {
+        "name": "List files (AR)",
+        "command": "اعرض جميع الملفات في المجلد الحالي",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/a/Documents/Projects/UaiBot/main.py\", line 63, in <module>\n    from command_processor.command_processor_main import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/__init__.py\", line 5, in <module>\n    from command_processor.command_processor import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/command_processor.py\", line 20, in <module>\n    from command_processor.ai_command_extractor import AICommandExtractor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/ai_command_extractor.py\", line 243\n    elif \"احذف\" in line or \"امسح\" في line or \"ازل\" في line:\n                                  ^^\nSyntaxError: invalid syntax"
+      },
+      {
+        "name": "System info (AR)",
+        "command": "ما هو نظام التشغيل الذي أستخدمه؟",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/a/Documents/Projects/UaiBot/main.py\", line 63, in <module>\n    from command_processor.command_processor_main import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/__init__.py\", line 5, in <module>\n    from command_processor.command_processor import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/command_processor.py\", line 20, in <module>\n    from command_processor.ai_command_extractor import AICommandExtractor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/ai_command_extractor.py\", line 243\n    elif \"احذف\" in line or \"امسح\" في line or \"ازل\" في line:\n                                  ^^\nSyntaxError: invalid syntax"
+      },
+      {
+        "name": "Disk space (AR)",
+        "command": "أظهر المساحة المتاحة على القرص",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/a/Documents/Projects/UaiBot/main.py\", line 63, in <module>\n    from command_processor.command_processor_main import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/__init__.py\", line 5, in <module>\n    from command_processor.command_processor import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/command_processor.py\", line 20, in <module>\n    from command_processor.ai_command_extractor import AICommandExtractor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/ai_command_extractor.py\", line 243\n    elif \"احذف\" in line or \"امسح\" في line or \"ازل\" في line:\n                                  ^^\nSyntaxError: invalid syntax"
+      },
+      {
+        "name": "Delete file (AR)",
+        "command": "احذف الملف test_output_ar.txt",
+        "returncode": 1,
+        "succeeded": false,
+        "reason": "Empty output",
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/a/Documents/Projects/UaiBot/main.py\", line 63, in <module>\n    from command_processor.command_processor_main import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/__init__.py\", line 5, in <module>\n    from command_processor.command_processor import CommandProcessor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/command_processor.py\", line 20, in <module>\n    from command_processor.ai_command_extractor import AICommandExtractor\n  File \"/home/a/Documents/Projects/UaiBot/command_processor/ai_command_extractor.py\", line 243\n    elif \"احذف\" in line or \"امسح\" في line or \"ازل\" في line:\n                                  ^^\nSyntaxError: invalid syntax"
+      }
+    ]
+  }
+}

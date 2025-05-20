@@ -1,112 +1,139 @@
 #!/usr/bin/env python3
 """
-Test suite for UaiBot file operations.
-Tests the functionality of file operation detection and execution.
+Unit tests for file operations functionality in UaiBot.
+Tests both the core file operations module and the command processor's file handling.
 """
 import os
 import sys
-import shutil
 import unittest
 import tempfile
+import shutil
 from pathlib import Path
 
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath('..'))
+# Add project root to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import file operations functions
-try:
-    from main import handle_file_operations, detect_file_operation
-except ImportError:
-    # Fall back to importing from a different location
-    sys.path.insert(0, os.path.abspath('.'))
-    try:
-        from main import handle_file_operations, detect_file_operation
-    except ImportError:
-        print("Error: Could not import file operations functions")
-        sys.exit(1)
+from core.file_operations import parse_file_request, handle_file_operation
+from command_processor.file_operations_handler import FileOperationsHandler
 
-class TestFileOperations(unittest.TestCase):
-    """Test cases for file operations functionality."""
+class TestFileRequestParsing(unittest.TestCase):
+    """Test file request parsing functionality."""
+    
+    def test_create_file_parsing(self):
+        """Test parsing of file creation requests."""
+        request = "create a new file called test.txt"
+        parsed = parse_file_request(request)
+        
+        self.assertEqual(parsed['operation'], 'create')
+        self.assertTrue(any('test.txt' in path for path in parsed['potential_paths']))
+    
+    def test_read_file_parsing(self):
+        """Test parsing of file reading requests."""
+        request = "read the file config.json"
+        parsed = parse_file_request(request)
+        
+        self.assertEqual(parsed['operation'], 'read')
+        self.assertTrue(any('config.json' in path for path in parsed['potential_paths']))
+    
+    def test_update_file_parsing(self):
+        """Test parsing of file update requests."""
+        request = "update file log.txt with new content"
+        parsed = parse_file_request(request)
+        
+        self.assertEqual(parsed['operation'], 'update')
+        self.assertTrue(any('log.txt' in path for path in parsed['potential_paths']))
+    
+    def test_delete_file_parsing(self):
+        """Test parsing of file deletion requests."""
+        request = "delete the temporary file temp.txt"
+        parsed = parse_file_request(request)
+        
+        self.assertEqual(parsed['operation'], 'delete')
+        self.assertTrue(any('temp.txt' in path for path in parsed['potential_paths']))
+    
+    def test_arabic_request_parsing(self):
+        """Test parsing of Arabic file operation requests."""
+        # This is a basic test - comprehensive Arabic testing would require more test cases
+        request = "انشئ ملف جديد باسم test_ar.txt"
+        parsed = parse_file_request(request)
+        
+        self.assertIsNotNone(parsed['operation'])  # Should detect some operation
+
+class TestFileOperationsHandler(unittest.TestCase):
+    """Test the FileOperationsHandler class."""
     
     def setUp(self):
-        """Set up temporary directory for tests."""
+        """Set up for tests - create a temporary directory."""
         self.test_dir = tempfile.mkdtemp()
-        self.old_cwd = os.getcwd()
-        os.chdir(self.test_dir)
-        
-        # Create some test files
-        with open('test1.txt', 'w') as f:
-            f.write('This is test file 1')
-        with open('test2.txt', 'w') as f:
-            f.write('This is test file 2')
-        
+        self.handler = FileOperationsHandler(quiet_mode=True)
+    
     def tearDown(self):
-        """Clean up after tests."""
-        os.chdir(self.old_cwd)
+        """Clean up after tests - remove temporary directory."""
         shutil.rmtree(self.test_dir)
     
-    def test_detect_file_operation(self):
-        """Test file operation detection from queries."""
-        self.assertEqual(detect_file_operation('create file test.txt'), 'create')
-        self.assertEqual(detect_file_operation('read the file test.txt'), 'read')
-        self.assertEqual(detect_file_operation('write to file test.txt'), 'write')
-        self.assertEqual(detect_file_operation('append to file test.txt'), 'append')
-        self.assertEqual(detect_file_operation('delete file test.txt'), 'delete')
-        self.assertEqual(detect_file_operation('search for files containing test'), 'search')
-        self.assertEqual(detect_file_operation('list all files'), 'list')
-    
-    def test_create_operation(self):
-        """Test file creation operation."""
-        result = handle_file_operations('create file new.txt with content "Hello World"', 'create')
-        self.assertIn('Created file', result)
-        self.assertTrue(os.path.exists('new.txt'))
-        with open('new.txt', 'r') as f:
-            content = f.read()
-        self.assertEqual(content, 'Hello World')
-    
-    def test_read_operation(self):
-        """Test file reading operation."""
-        result = handle_file_operations('read file test1.txt', 'read')
-        self.assertIn('This is test file 1', result)
-    
-    def test_write_operation(self):
-        """Test file writing operation."""
-        result = handle_file_operations('write to file test1.txt content "New content"', 'write')
-        self.assertIn('Wrote to file', result)
-        with open('test1.txt', 'r') as f:
-            content = f.read()
-        self.assertEqual(content, 'New content')
-    
-    def test_append_operation(self):
-        """Test file append operation."""
-        result = handle_file_operations('append to file test1.txt content " appended text"', 'append')
-        self.assertIn('Appended to file', result)
-        with open('test1.txt', 'r') as f:
-            content = f.read()
-        self.assertEqual(content, 'This is test file 1 appended text')
-    
-    def test_delete_operation(self):
-        """Test file deletion operation."""
-        result = handle_file_operations('delete file test2.txt', 'delete')
-        self.assertIn('Deleted file', result)
-        self.assertFalse(os.path.exists('test2.txt'))
-    
-    def test_list_operation(self):
-        """Test file listing operation."""
-        result = handle_file_operations('list files', 'list')
-        self.assertIn('test1.txt', result)
-        self.assertIn('test2.txt', result)
-    
-    def test_error_handling(self):
-        """Test error handling for invalid operations."""
-        # Test file not found
-        result = handle_file_operations('read file nonexistent.txt', 'read')
-        self.assertIn('Error: File not found', result)
+    def test_create_file(self):
+        """Test file creation."""
+        test_file = os.path.join(self.test_dir, "test.txt")
+        result = self.handler.handle_operation("create", {"filename": test_file})
         
-        # Test invalid operation
-        result = handle_file_operations('invalid operation', 'invalid')
-        self.assertIn('Error: Unsupported file operation', result)
+        self.assertTrue("Created file" in result)
+        self.assertTrue(os.path.exists(test_file))
+    
+    def test_create_file_with_content(self):
+        """Test file creation with content."""
+        test_file = os.path.join(self.test_dir, "test_content.txt")
+        content = "This is test content"
+        result = self.handler.handle_operation("create", {
+            "filename": test_file,
+            "content": content
+        })
+        
+        self.assertTrue("Created file" in result)
+        
+        with open(test_file, 'r') as f:
+            self.assertEqual(f.read(), content)
+    
+    def test_read_file(self):
+        """Test file reading."""
+        # Create a file first
+        test_file = os.path.join(self.test_dir, "read_test.txt")
+        content = "This is content to read"
+        with open(test_file, 'w') as f:
+            f.write(content)
+        
+        # Now read it
+        result = self.handler.handle_operation("read", {"filename": test_file})
+        
+        self.assertTrue("Content of" in result)
+        self.assertTrue(content in result)
+    
+    def test_delete_file(self):
+        """Test file deletion."""
+        # Create a file first
+        test_file = os.path.join(self.test_dir, "delete_test.txt")
+        with open(test_file, 'w') as f:
+            f.write("This file will be deleted")
+        
+        # Now delete it
+        result = self.handler.handle_operation("delete", {"filename": test_file})
+        
+        self.assertTrue("Deleted file" in result)
+        self.assertFalse(os.path.exists(test_file))
+    
+    def test_list_directory(self):
+        """Test directory listing."""
+        # Create some files
+        for i in range(3):
+            with open(os.path.join(self.test_dir, f"file{i}.txt"), 'w') as f:
+                f.write(f"Content of file {i}")
+        
+        # List the directory
+        result = self.handler.handle_operation("list", {"directory": self.test_dir})
+        
+        self.assertTrue("Contents of" in result)
+        self.assertTrue("file0.txt" in result)
+        self.assertTrue("file1.txt" in result)
+        self.assertTrue("file2.txt" in result)
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

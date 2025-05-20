@@ -465,3 +465,41 @@ class CommandProcessor:
             return True, result
             
         return False, None
+
+def process_command(self, user_input):
+    """Process user input and execute commands directly."""
+    # ...existing code...
+    
+    # Check for current directory queries (high priority)
+    if self._is_directory_query(user_input.lower()):
+        return self._handle_directory_query(user_input)
+    
+    # Check if this is a file or folder search query
+    is_folder_search, folder_result = self._handle_folder_search(user_input)
+    if is_folder_search:
+        return folder_result
+        
+    # ...existing code...
+
+def _is_directory_query(self, query):
+    """Check if the query is about the current directory."""
+    directory_keywords = [
+        'where am i', 'current directory', 'pwd', 'active folder', 
+        'current folder', 'present working directory', 'what directory',
+        'which directory', 'what folder', 'which folder', 'active folder now',
+        'what is active folder', 'what is current folder'
+    ]
+    return any(keyword in query for keyword in directory_keywords)
+    
+def _handle_directory_query(self, query):
+    """Handle queries about the current directory."""
+    if hasattr(self.shell_handler, 'handle_directory_query'):
+        return self.shell_handler.handle_directory_query(query)
+    else:
+        # Fallback if the handler doesn't have the method
+        if self.system_platform == 'windows':
+            command = 'cd'
+        else:
+            command = 'pwd'
+        result = self.shell_handler.execute_command(command)
+        return f"📁 Current directory: {result.strip()}"

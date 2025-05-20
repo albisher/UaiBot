@@ -6,9 +6,10 @@
 - ✓ Added consistent styling for command outputs
 - ✓ Fixed file listing to use "Display all files in [directory]" format
 - ✓ Updated media file operations to use --no-safe-mode correctly
+- ✓ Fixed Arabic text handling in command processor (replaced Arabic "في" with "in")
 
 ## Critical Issues
-- Simplify Arabic text handling in file paths for more reliability
+- Improve Arabic text handling in file paths for better reliability
 - Fix browser automation AppleScript issues
 - Streamline confirmation handling for file operations
 
@@ -19,3 +20,4 @@
 - Unify output formatting across all UaiBot modules
 - Add full integration with theme system
 - Improve media file generation success rate
+- Create comprehensive Arabic language test suite

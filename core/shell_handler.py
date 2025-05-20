@@ -828,3 +828,41 @@ class ShellHandler:
             # Log unexpected errors but continue searching
             if not self.quiet_mode:
                 print(f"Error searching directory {directory}: {str(e)}")
+    
+    def get_current_directory(self):
+        """Get the current working directory in a user-friendly format."""
+        try:
+            # Get the current directory
+            if self.system_platform == 'windows':
+                command = 'cd'
+            else:
+                command = 'pwd'
+                
+            cwd = self.execute_command(command).strip()
+            home_path = os.path.expanduser('~')
+            
+            # Format the path to show ~ for home directory
+            if cwd.startswith(home_path):
+                cwd = cwd.replace(home_path, '~', 1)
+                
+            return f"📁 Current directory: {cwd}"
+        except Exception as e:
+            return f"❌ Error getting current directory: {str(e)}"
+        
+    def handle_directory_query(self, query):
+        """Handle various forms of directory-related queries."""
+        query_lower = query.lower()
+        
+        # Handle different types of directory queries
+        if any(term in query_lower for term in ['where am i', 'current directory', 'pwd', 'active folder', 'current folder']):
+            return self.get_current_directory()
+            
+        # List files in current directory
+        elif any(term in query_lower for term in ['show files', 'list files', 'what files', 'files in current']):
+            command = 'ls -la' if self.system_platform != 'windows' else 'dir'
+            result = self.execute_command(command)
+            return f"📋 Files in current directory:\n{result}"
+            
+        # General directory operations
+        else:
+            return self.get_current_directory()

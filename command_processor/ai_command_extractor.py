@@ -9,6 +9,7 @@ more robust and flexible.
 import re
 import json
 import logging
+from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List, Union
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ class AICommandExtractor:
     def extract_command(self, ai_response: str) -> Tuple[bool, Optional[str], Dict[str, Any]]:
         """
         Extract a command from AI response text with rich metadata.
+        Prioritizes structured JSON formats as specified in the prompt.
         
         Args:
             ai_response: The text response from the AI
@@ -66,9 +68,181 @@ class AICommandExtractor:
             "parsed_json": None,  # Parsed JSON if response contained it
             "file_operation": None,  # What file operation (create, read, write, delete, etc.)
             "operation_params": {},  # Parameters for file operations
+            "info_response": None,  # Informational response content
+            "related_commands": [],  # Related commands for informational responses
         }
         
-        # First, check if the AI indicates an error or limitation
+        # First priority: Extract JSON from the AI response
+        try:
+            # Look for code blocks containing JSON - this is the highest priority
+            json_pattern = r'```json\s*(\{[\s\S]*?\})\s*```'
+            json_matches = re.findall(json_pattern, ai_response, re.DOTALL)
+            
+            if not json_matches:
+                # If no code block JSON, look for raw JSON objects
+                raw_json_pattern = r'(\{[\s\S]*?\})'
+                json_matches = re.findall(raw_json_pattern, ai_response, re.DOTALL)
+            
+            # Try each potential JSON match until we find a valid one
+            for json_str in json_matches:
+                try:
+                    data = json.loads(json_str)
+                    metadata["parsed_json"] = data
+                    metadata["source"] = "json"
+                    metadata["confidence"] = 0.95
+                    
+                    # FORMAT 1: Command with explanation
+                    if "command" in data:
+                        command = data["command"]
+                        
+                        # Extract additional metadata if available
+                        if "explanation" in data:
+                            metadata["explanation"] = data["explanation"]
+                        if "alternatives" in data:
+                            metadata["suggested_alternatives"] = data["alternatives"]
+                        if "requires_implementation" in data:
+                            metadata["requires_implementation"] = data["requires_implementation"]
+                            
+                        # Handle command with file operation
+                        if "file_operation" in data:
+                            metadata["file_operation"] = data["file_operation"]
+                            if "operation_params" in data:
+                                metadata["operation_params"] = data["operation_params"]
+                            
+                        logger.debug(f"Extracted command from JSON: {command}")
+                        return True, command, metadata
+                    
+                    # FORMAT 2: File operation
+                    elif "file_operation" in data:
+                        metadata["file_operation"] = data["file_operation"]
+                        if "operation_params" in data:
+                            metadata["operation_params"] = data["operation_params"]
+                        if "explanation" in data:
+                            metadata["explanation"] = data["explanation"]
+                            
+                        metadata["source"] = "json_file_operation"
+                        
+                        # Generate command from file operation
+                        command = self._generate_command_from_file_operation(
+                            data["file_operation"], 
+                            data.get("operation_params", {})
+                        )
+                        
+                        if command:
+                            logger.debug(f"Generated command from file operation: {command}")
+                            return True, command, metadata
+                    
+                    # FORMAT 3: Error response
+                    elif "error" in data and data["error"]:
+                        metadata["is_error"] = True
+                        metadata["error_message"] = data.get("error_message", "Unable to fulfill request")
+                        if "suggested_approach" in data:
+                            metadata["suggested_approach"] = data["suggested_approach"]
+                        metadata["requires_implementation"] = data.get("requires_implementation", True)
+                        
+                        logger.debug(f"AI reported error: {metadata['error_message']}")
+                        return False, None, metadata
+                    
+                    # FORMAT 4: Informational response
+                    elif "info_type" in data or "information" in data:
+                        # Handle info_type format
+                        if "info_type" in data:
+                            metadata["info_type"] = data["info_type"]
+                            metadata["info_response"] = data.get("response", "")
+                            if "related_command" in data:
+                                related_cmd = data["related_command"]
+                                metadata["related_commands"] = [related_cmd] if isinstance(related_cmd, str) else related_cmd
+                                
+                            # If there's a related command, return it
+                            if metadata["related_commands"]:
+                                command = metadata["related_commands"][0]
+                                if "explanation" in data:
+                                    metadata["explanation"] = data["explanation"]
+                                return True, command, metadata
+                        
+                        # Handle information format
+                        if "information" in data and data["information"]:
+                            metadata["info_response"] = data.get("content", "")
+                            if "related_commands" in data:
+                                metadata["related_commands"] = data["related_commands"]
+                                
+                            # If there's a related command, return it
+                            if metadata["related_commands"] and len(metadata["related_commands"]) > 0:
+                                command = metadata["related_commands"][0]
+                                return True, command, metadata
+                    
+                    # FORMAT 5: Filesystem operation
+                    elif "filesystem_operation" in data and data["filesystem_operation"]:
+                        if "command" in data:
+                            command = data["command"]
+                            if "explanation" in data:
+                                metadata["explanation"] = data["explanation"]
+                            metadata["operation_type"] = data.get("operation_type", "unknown")
+                            metadata["path"] = data.get("path", ".")
+                            
+                            return True, command, metadata
+                    
+                    # FORMAT 6: Multi-step operation (return the first command)
+                    elif "steps" in data and isinstance(data["steps"], list) and len(data["steps"]) > 0:
+                        first_step = data["steps"][0]
+                        if isinstance(first_step, dict) and "command" in first_step:
+                            command = first_step["command"]
+                            metadata["multi_step"] = True
+                            metadata["total_steps"] = len(data["steps"])
+                            metadata["current_step"] = 1
+                            metadata["all_steps"] = data["steps"]
+                            if "explanation" in first_step:
+                                metadata["explanation"] = first_step["explanation"]
+                            
+                            return True, command, metadata
+                    
+                except json.JSONDecodeError:
+                    # This particular JSON string was invalid, try the next one
+                    continue
+        except Exception as e:
+            logger.debug(f"Error processing JSON in AI response: {e}")
+        
+        # Second priority: Try to extract code blocks if JSON parsing failed
+        try:
+            # Look for code blocks (bash, shell, etc.)
+            code_blocks = re.findall(r'```(?:bash|shell|sh|cmd|powershell)?\s*([^`]+)```', ai_response, re.DOTALL)
+            if code_blocks:
+                command = code_blocks[0].strip()
+                metadata["source"] = "code_block"
+                metadata["confidence"] = 0.8
+                
+                logger.debug(f"Extracted command from code block: {command}")
+                return True, command, metadata
+        except Exception as e:
+            logger.debug(f"Error extracting code blocks: {e}")
+        
+        # Third priority: Try to extract inline code
+        try:
+            inline_codes = re.findall(r'`([^`]+)`', ai_response)
+            if inline_codes:
+                # Use the longest inline code as it's more likely to be a complete command
+                command = max(inline_codes, key=len).strip()
+                metadata["source"] = "inline_code"
+                metadata["confidence"] = 0.7
+                
+                logger.debug(f"Extracted command from inline code: {command}")
+                return True, command, metadata
+        except Exception as e:
+            logger.debug(f"Error extracting inline code: {e}")
+        
+        # Fallback: Check for Arabic commands
+        try:
+            arabic_command = self._extract_arabic_command(ai_response)
+            if arabic_command:
+                metadata["source"] = "arabic_command"
+                metadata["confidence"] = 0.6
+                
+                logger.debug(f"Extracted Arabic command: {arabic_command}")
+                return True, arabic_command, metadata
+        except Exception as e:
+            logger.debug(f"Error extracting Arabic command: {e}")
+            
+        # No command found - check if response indicates an error
         for error_text in self.error_indicators:
             if error_text.lower() in ai_response.lower():
                 metadata["is_error"] = True
@@ -76,122 +250,10 @@ class AICommandExtractor:
                 if error_match:
                     metadata["error_message"] = error_match.group(1).strip()
                 else:
-                    # Try to extract a sentence containing the error
-                    sentences = re.split(r'[.!?]\s+', ai_response)
-                    for sentence in sentences:
-                        if any(indicator.lower() in sentence.lower() for indicator in self.error_indicators):
-                            metadata["error_message"] = sentence.strip()
-                            break
-                    
-                    if not metadata["error_message"]:
-                        metadata["error_message"] = "Unable to fulfill request safely"
+                    metadata["error_message"] = "Unable to fulfill request safely"
                 
-                metadata["requires_implementation"] = True
+                logger.debug(f"Detected error in AI response: {metadata['error_message']}")
                 return False, None, metadata
-                
-        # Check if response is in JSON format
-        try:
-            # Try to extract JSON structure from the response
-            json_match = re.search(r'```json\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*"command"[\s\S]*?\})', ai_response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1) or json_match.group(2)
-                data = json.loads(json_str)
-                metadata["parsed_json"] = data
-                
-                # If it has a command field, extract it
-                if "command" in data:
-                    command = data["command"]
-                    metadata["source"] = "json"
-                    metadata["confidence"] = 0.9
-                    
-                    # Extract file operation information if present
-                    if "file_operation" in data:
-                        metadata["file_operation"] = data["file_operation"]
-                        if "operation_params" in data:
-                            metadata["operation_params"] = data["operation_params"]
-                    
-                    # Check additional metadata in JSON
-                    if "requires_implementation" in data:
-                        metadata["requires_implementation"] = data["requires_implementation"]
-                    if "alternatives" in data:
-                        metadata["suggested_alternatives"] = data["alternatives"]
-                    if "explanation" in data:
-                        metadata["explanation"] = data["explanation"]
-                    if "error" in data and data["error"]:
-                        metadata["is_error"] = True
-                        metadata["error_message"] = data.get("error_message", "Unknown error")
-                        return False, None, metadata
-                        
-                    return True, command, metadata
-                
-                # If it's a file operation specification but no direct command
-                elif "file_operation" in data:
-                    metadata["file_operation"] = data["file_operation"]
-                    metadata["operation_params"] = data.get("operation_params", {})
-                    metadata["source"] = "json_file_operation"
-                    metadata["confidence"] = 0.85
-                    
-                    # Generate command based on the file operation
-                    command = self._generate_command_from_file_operation(
-                        data["file_operation"], 
-                        data.get("operation_params", {})
-                    )
-                    
-                    if command:
-                        return True, command, metadata
-                    else:
-                        metadata["is_error"] = True
-                        metadata["error_message"] = "Unable to generate command from file operation specification"
-                        metadata["requires_implementation"] = True
-                        return False, None, metadata
-        except json.JSONDecodeError:
-            pass  # Not valid JSON, continue with other methods
-        except Exception as e:
-            logger.debug(f"Error parsing JSON: {e}")
-        
-        # Try to extract code blocks (highest confidence)
-        code_blocks = re.findall(self.code_block_pattern, ai_response, re.DOTALL)
-        if code_blocks:
-            command = code_blocks[0].strip()
-            metadata["source"] = "code_block"
-            metadata["confidence"] = 0.9
-            
-            # Try to determine if this is a file operation
-            metadata = self._detect_file_operation(command, metadata)
-            
-            return True, command, metadata
-            
-        # Try to extract inline code (second highest confidence)
-        inline_codes = re.findall(self.inline_code_pattern, ai_response)
-        if inline_codes:
-            # Use the longest inline code as it's more likely to be a complete command
-            command = max(inline_codes, key=len).strip()
-            metadata["source"] = "inline_code"
-            metadata["confidence"] = 0.7
-            
-            # Try to determine if this is a file operation
-            metadata = self._detect_file_operation(command, metadata)
-            
-            return True, command, metadata
-            
-        # Try to extract commands based on indicator phrases
-        for pattern in self.command_indicator_phrases:
-            matches = re.search(pattern, ai_response, re.IGNORECASE)
-            if matches:
-                command = matches.group(1).strip()
-                metadata["source"] = "indicator_phrase"
-                metadata["confidence"] = 0.5
-                
-                # Try to determine if this is a file operation
-                metadata = self._detect_file_operation(command, metadata)
-                
-                return True, command, metadata
-                
-        # Check for Arabic commands (added support for Arabic)
-        arabic_command = self._extract_arabic_command(ai_response)
-        if arabic_command:
-            metadata["source"] = "arabic_command"
-            metadata["confidence"] = 0.6
             
             # Try to determine if this is a file operation
             metadata = self._detect_file_operation(arabic_command, metadata)
@@ -234,29 +296,58 @@ class AICommandExtractor:
                 for line in lines:
                     if indicator in line:
                         # Try to convert to an equivalent shell command
-                        # This is a simplification - a complete implementation would map Arabic commands to shell commands
+                        # File creation commands
                         if "انشاء" in line or "انشئ" in line or "جديد" in line:
-                            # Create file command
-                            match = re.search(r'(?:انشاء|انشئ|جديد)\s+(?:ملف|مجلد)?\s+([^\s]+)', line)
+                            # Create file command - extract the filename
+                            match = re.search(r'(?:انشاء|انشئ|جديد)\s+(?:ملف|مجلد)?\s+(?:باسم|اسمه)?\s*([^\s,]+)', line)
                             if match:
                                 return f"touch {match.group(1)}"
-                        elif "احذف" in line or "امسح" في line or "ازل" في line:
-                            # Delete file command
-                            match = re.search(r'(?:احذف|امسح|ازل|أزل)\s+(?:ملف|مجلد)?\s+([^\s]+)', line)
+                            # Try alternative pattern
+                            match = re.search(r'(?:انشاء|انشئ).*?(?:ملف|مجلد)\s+(?:جديد)?\s+(?:باسم|اسمه)?\s*([^\s,]+)', line)
+                            if match:
+                                return f"touch {match.group(1)}"
+                                
+                        # File deletion commands
+                        elif "احذف" in line or "امسح" in line or "ازل" in line or "أزل" in line:
+                            # Delete file command - extract the filename
+                            match = re.search(r'(?:احذف|امسح|ازل|أزل)\s+(?:ال)?(?:ملف|مجلد)?\s+([^\s,]+)', line)
                             if match:
                                 return f"rm {match.group(1)}"
-                        elif "اقرأ" في line or "اعرض" في line or "اظهر" في line:
-                            # Read file command
-                            match = re.search(r'(?:اقرأ|اعرض|اظهر)\s+(?:ملف|محتوى)?\s+([^\s]+)', line)
+                                
+                        # File read commands
+                        elif "اقرأ" in line or "اعرض" in line or "اظهر" in line:
+                            # First check for "محتوى الملف" pattern
+                            match = re.search(r'(?:اقرأ|اعرض|اظهر)\s+(?:محتوى|محتويات)\s+(?:ال)?ملف\s+([^\s,]+)', line)
                             if match:
                                 return f"cat {match.group(1)}"
-                        elif "اكتب" في line or "أكتب" في line or "اضف" في line or "أضف" في line:
-                            # Write to file command
-                            match = re.search(r'(?:اكتب|أكتب|اضف|أضف)\s+[\'"]?([^\'"\n]+)[\'"]?\s+(?:في|الى|إلى)\s+([^\s]+)', line)
+                            # Then check for simpler pattern
+                            match = re.search(r'(?:اقرأ|اعرض|اظهر)\s+(?:ال)?ملف\s+([^\s,]+)', line)
                             if match:
-                                content = match.group(1)
-                                filename = match.group(2)
+                                return f"cat {match.group(1)}"
+                                
+                        # List files commands
+                        elif "الملفات" in line or "اعرض جميع" in line:
+                            # Check if a specific directory is mentioned
+                            match = re.search(r'(?:في|في ال|في المجلد)\s+([^\s,]+)', line)
+                            if match:
+                                return f"ls -l {match.group(1)}"
+                            else:
+                                return "ls -l"
+                                
+                        # Write to file commands
+                        elif "اكتب" in line or "أكتب" in line or "اضف" in line or "أضف" in line:
+                            # Look for content in quotes
+                            content_match = re.search(r'[\'"]([^\'"\n]+)[\'"]', line)
+                            # Look for filename after "في" (in)
+                            file_match = re.search(r'(?:في|الى|إلى)\s+(?:ال)?ملف\s+([^\s,]+)', line)
+                            
+                            if content_match and file_match:
+                                content = content_match.group(1)
+                                filename = file_match.group(1)
                                 return f"echo '{content}' > {filename}"
+                            elif file_match:
+                                # If we found a file but no content
+                                return f"touch {file_match.group(1)}"
         
         return None
         
@@ -396,6 +487,8 @@ class AICommandExtractor:
     def format_ai_prompt(self, user_request: str, platform_info: Dict[str, str] = None) -> str:
         """
         Format a prompt for the AI that encourages structured command responses.
+        This implementation focuses on having the AI process all requests without relying
+        on hardcoded patterns in the code.
         
         Args:
             user_request: The original user request
@@ -411,12 +504,37 @@ class AICommandExtractor:
                 os_info += f" {platform_info.get('version')}"
             if platform_info.get('linux_distro'):
                 os_info += f" ({platform_info.get('linux_distro')})"
-                
-        # Enhanced prompt to support both JSON structures for commands and file operations
-        prompt = f"""USER REQUEST: {user_request}
+        
+        # Get current timestamp for context
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Create a comprehensive system prompt that encourages AI to handle all request types
+        prompt = f"""You are UaiBot, an advanced AI terminal assistant that interprets user requests and converts them into executable actions without relying on pattern matching.
+
+CURRENT TIME: {current_time}
+USER REQUEST: {user_request}
 SYSTEM INFO: {os_info}
 
-Generate a response in one of the following JSON formats:
+CORE PRINCIPLES:
+- DO NOT try to detect patterns in the request. Process each request based on its meaning.
+- ALWAYS respond in one of the structured JSON formats below - this is critical.
+- YOU are responsible for processing ALL requests directly - there is no fallback system.
+- Understand and handle ALL user intentions regardless of wording or language used.
+- Make no assumptions about what the system can or cannot handle - YOU handle everything.
+
+INSTRUCTIONS:
+1. Analyze the user's request and determine the appropriate action by understanding its semantic meaning.
+2. ALWAYS format your response in one of the structured JSON formats below - this is absolutely required.
+3. Process ALL requests, regardless of type, wording, or language - nothing gets passed to a secondary handler.
+4. Support multiple languages including English and Arabic without translation.
+5. Consider the user's operating system when suggesting commands.
+6. Convert natural language requests like "show me files in the directory" to the appropriate command.
+7. Convert file operation requests like "create a file named test.txt" to proper file operation structure.
+8. For informational requests, provide both information and any related commands.
+9. For all commands, ensure they are safe, well-formed, and appropriate for the user's operating system.
+10. If you cannot safely fulfill a request, use the error format with a clear explanation.
+
+RESPONSE FORMATS:
 
 FORMAT 1 (for executable shell commands):
 ```json
@@ -447,14 +565,80 @@ FORMAT 3 (for requests that cannot be fulfilled with a command):
 {{
   "error": true,
   "error_message": "<explain why this cannot be executed>",
-  "requires_implementation": true
+  "requires_implementation": true,
+  "suggested_approach": "<if applicable, suggest how the user might accomplish this>"
 }}
 ```
 
-Ensure the command is appropriate for the user's OS. If it cannot be safely executed as a single command, use FORMAT 3.
-For file operations, prefer FORMAT 2 as it allows for better structured handling.
+FORMAT 4 (for informational/conversational queries):
+```json
+{{
+  "info_type": "<system_info|general_question|help|definition>",
+  "response": "<your detailed response>",
+  "related_command": "<optional command related to the query>",
+  "explanation": "<brief explanation of the response>"
+}}
+```
 
-If the request appears to be in Arabic, respond with the equivalent command for the user's OS.
+EXAMPLES:
+1. "list files in directory" → {"command": "ls -la", "explanation": "Lists all files in the current directory with details", "alternatives": ["ls", "find . -maxdepth 1"], "requires_implementation": false}
+2. "create a file named test.txt with content hello" → {"file_operation": "create", "operation_params": {"filename": "test.txt", "content": "hello"}, "explanation": "Creates a new file named test.txt with content 'hello'"}
+3. "what's my ip address" → {"command": "ip addr show", "explanation": "Shows network interface information including IP addresses", "alternatives": ["ifconfig", "hostname -I"], "requires_implementation": false}
+4. "انشاء ملف جديد باسم test_ar.txt" → {"file_operation": "create", "operation_params": {"filename": "test_ar.txt"}, "explanation": "Creates a new empty file named test_ar.txt"}
+"""
+
+FORMAT 4 (for information requests that don't require commands):
+```json
+{{
+  "information": true,
+  "content": "<the informational response>",
+  "related_commands": ["<related command 1>", "<related command 2>"]
+}}
+```
+
+FORMAT 5 (for handling file system operations):
+```json
+{{
+  "filesystem_operation": true,
+  "operation_type": "<view|find|list|browse>",
+  "path": "<target path or pattern>",
+  "recursive": <true|false>,
+  "command": "<the shell command that will execute this operation>",
+  "explanation": "<brief explanation of what will be shown>"
+}}
+```
+
+FORMAT 6 (for multi-step operations):
+```json
+{{
+  "multi_step": true,
+  "steps": [
+    {{
+      "command": "<step 1 command>",
+      "explanation": "<what this step does>"
+    }},
+    {{
+      "command": "<step 2 command>",
+      "explanation": "<what this step does>"
+    }}
+  ],
+  "summary": "<brief summary of the full operation>"
+}}
+```
+
+MULTILINGUAL SUPPORT:
+- If the request is in a non-English language (e.g., Arabic), process it naturally without translation.
+- Format the response using the same JSON structure, generating appropriate commands for the target OS.
+- Handle various forms of the same request regardless of phrasing or language used.
+
+SAFETY INSTRUCTIONS:
+- Never generate commands that could harm the system.
+- For potentially destructive operations, include appropriate warnings.
+- For commands requiring elevated privileges, use FORMAT 3 with clear explanations.
+
+IMPORTANT: YOU MUST HANDLE ALL REQUESTS DIRECTLY. Do not defer to another system or handler. Process the request and provide a properly formatted response regardless of the query type.
+
+Now process the user's request and respond with the appropriate JSON format.
 """
         return prompt
         
@@ -594,11 +778,11 @@ If the request appears to be in Arabic, respond with the equivalent command for 
                     break
                     
             # Handle special folder names
-            if "desktop" in request_lower:
+            if "desktop" في request_lower:
                 result["directory"] = "~/Desktop"
-            elif "documents" in request_lower:
+            elif "documents" في request_lower:
                 result["directory"] = "~/Documents"
-            elif "downloads" in request_lower:
+            elif "downloads" في request_lower:
                 result["directory"] = "~/Downloads"
         
         # Try to extract search term
@@ -615,3 +799,43 @@ If the request appears to be in Arabic, respond with the equivalent command for 
                     break
                     
         return result
+
+    def process_request_with_ai(self, ai_handler, user_request: str, platform_info: Dict[str, Any] = None) -> Tuple[bool, Optional[str], Dict[str, Any]]:
+        """
+        Process a user request completely with AI, without relying on pattern matching.
+        This is the main entry point for the new AI-driven approach.
+        
+        Args:
+            ai_handler: The AI handler to use for processing
+            user_request: The user's request
+            platform_info: Information about the user's platform
+        
+        Returns:
+            Tuple containing:
+                - Success flag (boolean)
+                - Extracted command or information (string or None)
+                - Metadata about the processing (dictionary)
+        """
+        # Create a prompt that guides the AI to process all requests
+        prompt = self.format_ai_prompt(user_request, platform_info)
+        
+        # Get the AI response
+        try:
+            ai_response = ai_handler.get_ai_response(prompt)
+            logger.debug(f"AI Response: {ai_response}")
+        except Exception as e:
+            logger.error(f"Error getting AI response: {e}")
+            return False, None, {
+                "is_error": True, 
+                "error_message": f"Failed to process with AI: {str(e)}",
+                "source": "ai_error"
+            }
+        
+        # Extract a command from the AI response
+        success, command, metadata = self.extract_command(ai_response)
+        
+        # If we couldn't extract a command but we have an AI response, set the full response as metadata
+        if not success and not metadata["is_error"]:
+            metadata["full_ai_response"] = ai_response
+        
+        return success, command, metadata

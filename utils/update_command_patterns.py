@@ -122,24 +122,57 @@ def update_command_patterns(add_patterns=True):
             ],
             "current_directory": [
                 r"(where\s+am\s+i|current\s+directory|present\s+working\s+directory|pwd)",
-                r"(what\s+directory|which\s+directory|what\s+folder|which\s+folder)"
+                r"(what\s+directory|which\s+directory|what\s+folder|which\s+folder)",
+                r"(what\s+is\s+active\s+folder|what\s+is\s+current\s+folder|active\s+folder|current\s+folder\s+now)"
             ]
         },
-        # Arabic language patterns - new section
+        # Arabic language patterns - improved section
         "arabic_commands": {
             "file_operations": [
-                r"(انشاء|انشئ|جديد|اعمل)\s+(ملف|مجلد)",
-                r"(احذف|امسح|ازل)\s+(ملف|مجلد)",
-                r"(اقرأ|اعرض|اظهر)\s+(ملف|محتوى)",
-                r"(انسخ|انقل|غير اسم)\s+(ملف|مجلد)"
+                # Create file patterns - improved to capture filename
+                r"(انشاء|انشئ|عمل|اعمل)\s+(ملف|مجلد)(?:\s+(?:جديد|جديدة))?(?:\s+(?:باسم|اسمه)\s+([^\s]+))?",
+                r"(ملف|مجلد)\s+(جديد|جديدة)(?:\s+(?:باسم|اسمه)\s+([^\s]+))?",
+                
+                # Delete file patterns - improved to capture filename
+                r"(احذف|امسح|ازل|أزل)\s+(?:ال)?(ملف|مجلد)(?:\s+([^\s]+))?",
+                
+                # Read file patterns - improved to capture filename
+                r"(اقرأ|اعرض|اظهر)\s+(?:ال)?(ملف|محتوى)(?:\s+([^\s]+))?",
+                r"(اقرأ|اعرض|اظهر)\s+(?:محتويات|محتوى)\s+(?:ال)?(ملف)(?:\s+([^\s]+))?",
+                
+                # Write to file patterns - improved content and filename capture
+                r"(اكتب|أكتب)\s+(?:في)?\s+(?:ال)?(ملف)(?:\s+([^\s]+))?",
+                r"(اكتب|أكتب)\s+['\"]([^'\"]+)['\"](?:\s+في\s+(?:ال)?(ملف)(?:\s+([^\s]+))?)?",
+                
+                # List files patterns
+                r"(اعرض|اظهر)\s+(?:جميع)?\s+(?:ال)?(ملفات|المجلدات)(?:\s+في\s+(?:ال)?(مجلد|المجلد)\s+(?:الحالي|([^\s]+)))?",
+                r"(قائمة|عرض)\s+(?:ال)?(ملفات|المجلدات)(?:\s+في\s+(?:ال)?(مجلد|المجلد)\s+(?:الحالي|([^\s]+)))?"
             ],
             "system_info": [
-                r"(كم|ما هو|اظهر)\s+(الذاكرة|المساحة|التخزين)",
-                r"(ما هو|اظهر)\s+(النظام|الجهاز)"
+                r"(كم|ما هو|اظهر|أظهر)\s+(الذاكرة|المساحة|التخزين)",
+                r"(ما هو|اظهر|أظهر)\s+(النظام|الجهاز)"
             ],
             "search": [
-                r"(ابحث|جد|أين)\s+(ملف|مجلد|عن)",
+                r"(ابحث|جد|أين)\s+(عن|ملف|مجلد|عن ملف|عن مجلد)",
                 r"(اين|وين)\s+(الملفات|المجلدات)"
+            ],
+            "file_management": [
+                # More specific list operations
+                r"(اعرض|اظهر|قائمة)\s+(الملفات|المجلدات|محتوى)(?:\s+في\s+(?:ال)?(مجلد|المجلد)\s+(?:الحالي|([^\s]+)))?",
+                
+                # Open/close operations
+                r"(افتح|اغلق)\s+(ملف|مجلد)(?:\s+([^\s]+))?",
+                
+                # Create and write combined patterns
+                r"(انشئ|اكتب)\s+(ملف جديد|نص|محتوى)(?:\s+(?:باسم|اسمه)\s+([^\s]+))?(?:\s+(?:و|و اكتب|واكتب)\s+(?:فيه|به|داخله)\s+['\"]?([^'\"]+)['\"]?)?"
+            ],
+            "command_execution": [
+                r"(نفذ|اجر|قم بتشغيل)\s+(.+)",
+                r"(شغل|ابدأ|افتح)\s+(برنامج|تطبيق|أمر)"
+            ],
+            "system_queries": [
+                r"(أين\s+أنا|المجلد\s+الحالي|الدليل\s+الحالي)",
+                r"(ما\s+هو\s+المجلد\s+النشط|ما\s+هو\s+المجلد\s+الحالي)"
             ]
         }
     }

@@ -116,20 +116,20 @@ def validate_output(output, command, language="English"):
             return True, "Directory content mentioned"
         return False, "No directory listing found"
         
-    elif "system" in command.lower() or "نظام التشغيل" في command:
+    elif "system" in command.lower() or "نظام التشغيل" in command:
         platforms = ["windows", "mac", "linux", "ubuntu", "darwin", "ويندوز", "لينكس", "ماك"]
         if any(platform in output.lower() for platform in platforms):
             return True, "OS information found"
         return False, "No OS information found"
         
-    elif "disk" in command.lower() or "المساحة" في command:
+    elif "disk" in command.lower() or "المساحة" in command:
         if "gb" in output.lower() or "mb" in output.lower() or "جيجا" in output or "ميجا" in output:
             return True, "Disk space information found"
         if "available" in output.lower() or "free" in output.lower() or "متاحة" in output:
             return True, "Available space mentioned"
         return False, "No disk space information found"
         
-    elif "delete" in command.lower() or "احذف" في command:
+    elif "delete" in command.lower() or "احذف" in command:
         if "deleted" in output.lower() or "removed" in output.lower() or "تم حذف" in output:
             return True, "File deletion confirmed"
         if "test_output" in output.lower():
@@ -183,7 +183,7 @@ def run_tests(language="both", debug=False, verbose=True):
             
         # Special handling for potentially dangerous commands
         no_safe_mode = False
-        if "delete" in case['command'].lower() or "احذف" في case['command']:
+        if "delete" in case['command'].lower() or "احذف" in case['command']:
             no_safe_mode = True
         
         # Run the command
