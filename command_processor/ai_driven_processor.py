@@ -216,7 +216,7 @@ class AIDrivenProcessor:
         ])
         
         # Create a comprehensive system prompt that encourages AI to handle all request types
-
+        prompt = f"""
 CURRENT TIME: {current_time}
 USER REQUEST: {user_request}
 SYSTEM INFO: {os_info}
@@ -579,13 +579,40 @@ Now process the user's request and respond with ONLY the appropriate JSON format
         if self.use_cache and self.response_cache:
             return self.response_cache.get_stats()
         return {"enabled": False}
-
-    def process_request(self, request: str) -> Dict[str, Any]:
+        
+    def _get_platform_info(self) -> Dict[str, Any]:
         """
-        Process a user request and return the result.
+        Get information about the current platform.
+        
+        Returns:
+            Dictionary with platform details
+        """
+        system = platform.system()
+        platform_info = {
+            "system": system,
+            "version": platform.version(),
+            "processor": platform.processor()
+        }
+        
+        # Add Linux distribution info if available
+        if system == "Linux":
+            try:
+                import distro
+                platform_info["linux_distro"] = distro.name(pretty=True)
+            except ImportError:
+                pass
+                
+        return platform_info
+
+    def process_request_with_extractors(self, request: str, ai_handler, command_extractor) -> Dict[str, Any]:
+        """
+        Process a user request using provided extractors and handler.
+        Used for advanced processing that requires direct access to extractors.
         
         Args:
             request: The user request string
+            ai_handler: The AI handler to use for generating responses
+            command_extractor: The command extractor to use
             
         Returns:
             Dictionary containing the processing result
@@ -594,22 +621,22 @@ Now process the user's request and respond with ONLY the appropriate JSON format
         platform_info = self._get_platform_info()
         
         # Generate a cache key based on the request and platform info
-        cache_key = self._cache.generate_key(request, platform_info)
-        
-        # Check if we have a cached response
-        cached_result = self._cache.get(cache_key)
-        if cached_result:
-            logger.debug(f"Cache hit for request: {request[:30]}...")
-            return cached_result
+        if self.use_cache and self.response_cache:
+            cached_key = f"{request}_{platform_info.get('system', '')}"
+            cached_result = self.response_cache.get(cached_key)
+            
+            if cached_result:
+                logger.debug(f"Cache hit for request: {request[:30]}...")
+                return cached_result
         
         # Format the AI prompt with the request and platform info
-        ai_prompt = self._ai_command_extractor.format_ai_prompt(request, platform_info)
+        ai_prompt = self.format_ai_prompt(request, platform_info)
         
         # Get the AI response
-        ai_response = self._ai_handler.get_response(ai_prompt)
+        ai_response = ai_handler.get_ai_response(ai_prompt)
         
-        # Use parallel extraction for better performance
-        success, command, metadata = self._ai_command_extractor.extract_command_parallel(ai_response)
+        # Extract the command and metadata
+        success, command, metadata = self.extract_command(ai_response)
         
         # Prepare the result
         result = {
@@ -620,6 +647,8 @@ Now process the user's request and respond with ONLY the appropriate JSON format
         }
         
         # Cache the result for future use
-        self._cache.put(cache_key, result)
+        if self.use_cache and self.response_cache:
+            cached_key = f"{request}_{platform_info.get('system', '')}"
+            self.response_cache.put(cached_key, result)
         
         return result

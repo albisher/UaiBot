@@ -9,6 +9,7 @@ similar queries.
 import hashlib
 import json
 import time
+import re
 from typing import Dict, Any, Optional, Tuple
 import logging
 
