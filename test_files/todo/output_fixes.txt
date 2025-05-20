@@ -1,20 +1,34 @@
 # UaiBot Output Formatting Issues and Fixes
 
+## Output Philosophy & Flow (NEW)
+- Show 'thinking' only if no direct command is found or user asks for explanation.
+- Always execute the command to be executed (in a clear line/box).
+- Always show the result of the command (in a result box/section).
+- Only show AI explanation if user asks for it or no direct command is possible.
+- Never show duplicate outputs of any type.
+- All modules must use the output handler/facade to enforce this.
+
 ## Issues Identified
-- Output is shown multiple times (3x duplication)
-- Some outputs don't follow the consistent format
-- Logger is outputting the same information multiple times
-- Thinking box is shown multiple times
+- Output is shown multiple times (3x duplication) [RESOLVED]
+- Some outputs don't follow the consistent format [RESOLVED]
+- Logger is outputting the same information multiple times [RESOLVED]
+- Thinking box is shown multiple times [RESOLVED]
+- main.py and integration tests fail due to ImportError: cannot import name 'ShellHandler' from 'command_processor' [RESOLVED]
+- AIHandler initialization error (Unsupported model type) [RESOLVED]
 
 ## Fixed Items
 - Created dedicated output formatter module
-- Patched main script to prevent duplicate outputs
+- Patched main script to prevent duplicate outputs [REVALIDATED after fixing import errors]
 - Added single-output printer to ensure each message is shown once
 - Fixed log duplication with a custom filter
+- Fixed ImportError and AIHandler config issues in main.py
+- Integrated output formatter into main.py for all outputs
 
 ## To Do
-- Integrate output formatter into all UaiBot modules 
-- Add configuration option for output verbosity
+- Refactor command_processor and all modules to use the output handler/facade for all output
+- Enforce the new output flow in all modules and tests
+- Revalidate output formatting in all modules and integration tests
+- Add configuration option for output verbosity [DONE]
 - Create a proper output facade pattern to centralize all output handling
 - Add unit tests for output formatting
 - Consider adding color formatting for better readability

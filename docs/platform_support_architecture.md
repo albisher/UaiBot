@@ -98,3 +98,7 @@ To add support for a new platform:
 ## Testing Platform Support
 
 The `tests/test_platform_support.py` script can be used to verify that platform detection and handler initialization work correctly on your system.
+
+## Test File Structure
+
+All test files should be located in the `test_files/` directory for better organization and clarity.

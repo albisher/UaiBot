@@ -10,6 +10,7 @@
   "use_gui": false,
   "use_structured_ai_responses": true,
   "prefer_json_format": true,
+  "output_verbosity": "normal",
   "language_support": {
     "english": true,
     "arabic": true

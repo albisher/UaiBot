@@ -128,3 +128,9 @@ See the [LICENSE](LICENSE) file for complete details on the free use license.
 See the [COMMERCIAL_LICENSE](COMMERCIAL_LICENSE) file for details on commercial licensing.
 
 Commercial licensing inquiries should be directed to [YOUR_CONTACT_INFORMATION].
+
+## Project Structure
+
+- `src/` - Source code for UaiBot
+- `demo/` - Demos showcasing UaiBot's capabilities
+- `test_files/` - All test files are located in this directory for better organization and clarity.

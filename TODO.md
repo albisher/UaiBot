@@ -63,6 +63,11 @@
 - [ ] Add comprehensive docstrings to all public methods
 - [ ] Implement cleaner configuration management
 
+## Test Organization
+- [ ] Ensure all test files are located in the `test_files/` directory
+- [ ] Verify all test files are testing new code implementations
+- [ ] Update documentation to reflect test file locations
+
 ## Performance Improvements
 - [ ] Optimize JSON parsing in command extractor
 - [ ] Add caching for common AI responses
@@ -76,3 +81,15 @@
 - [ ] Add benchmarking tests for performance monitoring
 - [ ] Implement testing for multilingual support
 - [ ] Add coverage reporting to CI pipeline
+
+## Output Formatting & Integration [HIGH PRIORITY]
+- [x] Fix ImportError in main.py and command_processor/__init__.py (blocks all integration and output validation)
+- [x] Fix AIHandler initialization error (Unsupported model type)
+- [x] Integrate output formatter into main.py for all outputs
+- [ ] Refactor command_processor and all modules to use the output handler/facade for all output, enforcing the new output flow (see output_fixes.txt)
+- [ ] Ensure AI explanations are only shown if user asks for it or no direct command is possible
+- [ ] Revalidate output formatting in all modules and integration tests
+- [x] Add configuration option for output verbosity
+- [ ] Create a proper output facade pattern to centralize all output handling
+- [ ] Add/expand unit and integration tests for output formatting (success, error, info, thinking, command execution)
+- [ ] Update documentation to reflect new output philosophy and flow

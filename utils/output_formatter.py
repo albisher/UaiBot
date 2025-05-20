@@ -2,6 +2,14 @@
 """
 Output formatter for UaiBot.
 Provides consistent formatting for all UaiBot outputs.
+
+Output Philosophy & Flow:
+- Show 'thinking' only if no direct command is found or user asks for explanation.
+- Always show the command to be executed (in a clear line/box).
+- Always show the result of the command (in a result box/section).
+- Only show AI explanation if user asks for it or no direct command is possible.
+- Never show duplicate outputs of any type.
+- This module should be used by all modules to enforce the above.
 """
 
 import os

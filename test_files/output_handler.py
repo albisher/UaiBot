@@ -5,6 +5,18 @@ import os
 from datetime import datetime
 from typing import List, Dict, Any
 
+"""
+OutputHandler for UaiBot
+
+Output Philosophy & Flow:
+- Show 'thinking' only if no direct command is found or user asks for explanation.
+- Always show the command to be executed (in a clear line/box).
+- Always show the result of the command (in a result box/section).
+- Only show AI explanation if user asks for it or no direct command is possible.
+- Never show duplicate outputs of any type.
+- This handler enforces the above for all UaiBot output.
+"""
+
 class OutputHandler:
     """
     A class to handle and process UaiBot output to ensure consistent formatting

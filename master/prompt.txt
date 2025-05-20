@@ -1,0 +1,5 @@
+First and most important is to follow main_prompt.txt precisly to remember who you are and how we deal with things.
+
+Then, start thinking, does all test py files do the correct new code related tests? are all tests located in the correct folder? is the destination folder clearly named as test_files ?
+
+once you come up with a plan, prepare all in related files (logs, todo, tests, checks, documentations updates and corrections), and start executing the needed changes on the code. Apply final tests if needed, observe confimations, finalize.
