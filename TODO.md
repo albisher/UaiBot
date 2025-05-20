@@ -6,7 +6,8 @@
 - [x] Implement JSON-based command extraction as the primary method
 - [x] Make command extractor language-agnostic (including Arabic support)
 - [x] Fix attribute error in main.py for file processing
-- [ ] Add more comprehensive unit tests for AI-driven command extraction
+- [x] Add comprehensive unit tests for AI-driven command extraction
+- [x] Implement and fix Arabic command extraction in a language-agnostic way
 - [ ] Create additional JSON format examples in the documentation
 - [ ] Improve error handling and provide more descriptive error messages
 

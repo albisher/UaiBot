@@ -275,6 +275,15 @@ class AICommandExtractor:
         Returns:
             Optional[str]: Extracted Arabic command or None
         """
+        # Special case for the write with content pattern: "اكتب 'content' في ملف filename"
+        if "اكتب" in ai_response and "في ملف" in ai_response:
+            content_match = re.search(r"'([^']*)'", ai_response)
+            filename_match = re.search(r"في ملف\s+(\S+)", ai_response)
+            if content_match and filename_match:
+                content = content_match.group(1)
+                filename = filename_match.group(1)
+                return f"echo '{content}' > {filename}"
+            
         # First priority: Look for JSON structures in the response
         json_patterns = [
             r'```json\s*(\{[\s\S]*?\})\s*```',  # JSON in code blocks
@@ -342,11 +351,12 @@ class AICommandExtractor:
                 # Find the index of the Arabic command indicator
                 for i, word in enumerate(words):
                     if indicator in word:
-                        # Extract filename after the indicator
-                        if i + 1 < len(words) and "ملف" in words[i+1]:
-                            # The pattern is typically: [arabic command] ملف [filename]
-                            if i + 2 < len(words):
-                                filename = words[i+2]
+                        # Handle more complex filenames with "باسم" (meaning "named")
+                        if "باسم" in ai_response:
+                            # Extract the filename after "باسم" (named)
+                            name_idx = words.index("باسم") if "باسم" in words else -1
+                            if name_idx >= 0 and name_idx + 1 < len(words):
+                                filename = words[name_idx + 1]
                                 
                                 # Map Arabic command indicators to shell commands
                                 if indicator in ["احذف", "امسح", "ازل", "أزل"]:
@@ -363,6 +373,40 @@ class AICommandExtractor:
                                         return f"echo '{content}' > {filename}"
                                     else:
                                         return f"touch {filename}"
+                        
+                        # Extract filename after the indicator with "ملف" (file)
+                        elif i + 1 < len(words) and "ملف" in words[i+1]:
+                            # The pattern is typically: [arabic command] ملف [filename]
+                            if i + 2 < len(words):
+                                filename = words[i+2]
+                                
+                                # If the filename is followed by "في" (in), then the actual filename comes after
+                                if "في" in ai_response and "ملف" in ai_response:
+                                    try:
+                                        # Find the word "في" (in) followed by "ملف" (file)
+                                        if "في" in words and "ملف" in words:
+                                            في_idx = words.index("في")
+                                            if في_idx + 2 < len(words) and words[في_idx + 1] == "ملف":
+                                                filename = words[في_idx + 2]
+                                    except (ValueError, IndexError):
+                                        pass
+                                    
+                                # Map Arabic command indicators to shell commands
+                                if indicator in ["احذف", "امسح", "ازل", "أزل"]:
+                                    return f"rm {filename}"
+                                elif indicator in ["اقرأ", "اعرض"]:
+                                    return f"cat {filename}"
+                                elif indicator in ["انشئ", "انشاء"]:
+                                    return f"touch {filename}"
+                                elif indicator in ["اكتب", "أكتب", "اضف", "أضف"]:
+                                    # Look for content in single quotes
+                                    content_match = re.search(r"'([^']*)'", ai_response)
+                                    if content_match:
+                                        content = content_match.group(1)
+                                        return f"echo '{content}' > {filename}"
+                                    else:
+                                        return f"touch {filename}"
+                        
                         # Special case for directory listing
                         elif "المجلد" in ai_response and "الحالي" in ai_response:
                             return "ls -l"
@@ -580,3 +624,94 @@ class AICommandExtractor:
                 return True, "The requested command cannot be safely executed."
                 
         return False, None
+                
+    def format_ai_prompt(self, user_request: str, platform_info: Dict[str, str]) -> str:
+        """
+        Format a prompt for the AI model that will encourage structured responses.
+        
+        Args:
+            user_request: The user's original request text
+            platform_info: Information about the user's platform (OS, version, etc.)
+            
+        Returns:
+            A formatted prompt string for the AI model
+        """
+        # Basic platform info
+        os_info = f"OS: {platform_info.get('system', 'Unknown')}"
+        if 'linux_distro' in platform_info:
+            os_info += f" ({platform_info['linux_distro']} {platform_info.get('version', '')})"
+        elif 'version' in platform_info:
+            os_info += f" {platform_info['version']}"
+            
+        # Core principles to guide the AI
+        core_principles = """
+CORE PRINCIPLES:
+1. SAFETY: Do not suggest destructive or irreversible commands without clear warnings.
+2. CLARITY: Explain what each command does in simple terms.
+3. PRECISION: Address the user's exact request without unnecessary operations.
+4. STRUCTURE: Always use the structured response formats described below.
+5. ALTERNATIVES: When helpful, suggest alternative approaches to solve the problem.
+"""
+
+        # Structured response formats
+        formats = """
+RESPONSE FORMATS (always use one of these):
+
+FORMAT 1: Executable Commands
+```json
+{
+  "command": "<executable shell command>",
+  "explanation": "<brief explanation of what the command does>",
+  "alternatives": ["<alternative command 1>", "<alternative command 2>"],
+  "requires_implementation": false
+}
+```
+
+FORMAT 2: File Operations
+```json
+{
+  "file_operation": "<create|read|write|delete|search|list>",
+  "operation_params": {
+    "filename": "<filename>",
+    "content": "<content to write if applicable>",
+    "directory": "<directory path if applicable>",
+    "search_term": "<search term if applicable>"
+  },
+  "explanation": "<brief explanation of the operation>"
+}
+```
+
+FORMAT 3: Error Responses
+```json
+{
+  "error": true,
+  "error_message": "<explain why this cannot be executed>",
+  "requires_implementation": true,
+  "suggested_approach": "<if applicable, suggest how the user might accomplish this>"
+}
+```
+
+FORMAT 4: Information Responses
+```json
+{
+  "info_type": "<system_info|general_question|help|definition>",
+  "response": "<your detailed response>",
+  "related_command": "<optional command related to the query>",
+  "explanation": "<brief explanation of the response>"
+}
+```
+"""
+
+        # Complete prompt
+        prompt = f"""USER REQUEST: {user_request}
+
+SYSTEM INFORMATION:
+{os_info}
+
+{core_principles}
+
+{formats}
+
+Parse the user's request and provide a response in one of the structured formats above.
+"""
+        return prompt
