@@ -50,6 +50,8 @@
 ## Code Refactoring
 
 ### Priority Tasks
+- [x] Refactor the CommandProcessor class to be more modular
+- [ ] Split AIHandler into smaller, specialized classes
 - [ ] Remove all remaining pattern-matching code that's redundant with AI-driven approach
 - [ ] Consolidate duplicate arg parsing code in main.py
 - [ ] Clean up error handling throughout the codebase
