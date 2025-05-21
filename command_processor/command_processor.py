@@ -12,6 +12,10 @@ from typing import Dict, Any, Tuple, Optional
 
 # Import from the core
 from core.ai_handler import get_system_info
+from core.file_search import FileSearch
+from core.shell_handler import ShellHandler
+from core.query_processor import QueryProcessor
+from core.system_info_gatherer import SystemInfoGatherer
 
 # Import from the device_manager for USB detection
 from device_manager.usb_detector import USBDetector
@@ -61,7 +65,7 @@ class CommandProcessor:
         # Initialize our specialized handlers
         self.screen_manager = ScreenSessionManager(quiet_mode=quiet_mode)
         self.usb_handler = USBQueryHandler(shell_handler, quiet_mode=quiet_mode)
-        self.folder_handler = FolderSearchHandler(shell_handler, quiet_mode=quiet_mode)
+        self.folder_handler = FolderSearchHandler(quiet_mode=quiet_mode)
         self.direct_handler = DirectExecutionHandler(shell_handler, quiet_mode=quiet_mode)
         
         # Initialize the AI command extractor and logger
@@ -94,6 +98,10 @@ class CommandProcessor:
             "through screen", "in screen session", "other system", "screened system",
             "connected system", "device usb"
         ]
+        
+        self.file_search = FileSearch(quiet_mode=quiet_mode)
+        self.query_processor = QueryProcessor(self.ai_handler, getattr(self.ai_handler, 'config', {}))
+        self.system_info = SystemInfoGatherer()
     
     def log(self, message):
         """Print a message if not in quiet mode"""

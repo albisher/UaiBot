@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 """
-File operation utilities for UaiBot.
-This module handles file operations requested through the -f flag.
+File operations module for UaiBot.
+Handles natural language file operations.
 """
 import os
 import re
@@ -9,8 +10,10 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from .file_utils import search_files, expand_path, find_cv_files
+from typing import Dict, Any
+from core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # File operation keywords for improved mapping
 FILE_OPERATIONS = {
@@ -25,222 +28,276 @@ FILE_OPERATIONS = {
     'info': ['info', 'stat', 'details', 'metadata', 'properties']
 }
 
-def parse_file_request(request):
+def parse_file_request(request: str) -> Dict[str, Any]:
     """
-    Parse a file operation request to determine the operation and parameters.
+    Parse a natural language file operation request.
     
     Args:
-        request (str): The user request string
+        request: The natural language request
         
     Returns:
-        dict: Operation details including operation type, target file, etc.
+        Dictionary containing parsed operation details
     """
-    request_lower = request.lower()
-    operation_type = None
+    request = request.strip()
+    result = {
+        'operation': None,
+        'filename': None,
+        'content': None,
+        'directory': None,
+        'pattern': None
+    }
     
-    # Determine operation type
-    for op_type, keywords in FILE_OPERATIONS.items():
-        if any(keyword in request_lower for keyword in keywords):
-            operation_type = op_type
+    # First, try to extract directory if specified
+    dir_patterns = [
+        r'(?:in|inside|under|within)\s+(?:the\s+)?(?:folder|directory|path)\s+[\'"]?([^\'"]+)[\'"]?',
+        r'(?:to|into)\s+(?:the\s+)?(?:folder|directory|path)\s+[\'"]?([^\'"]+)[\'"]?',
+        r'(?:at|from)\s+(?:the\s+)?(?:folder|directory|path)\s+[\'"]?([^\'"]+)[\'"]?'
+    ]
+    
+    for pattern in dir_patterns:
+        dir_match = re.search(pattern, request, re.IGNORECASE)
+        if dir_match:
+            result['directory'] = dir_match.group(1).strip()
+            # Remove the directory part from the request to simplify further parsing
+            request = request.replace(dir_match.group(0), '', 1)
             break
     
-    # Extract file paths or patterns
-    # Check for quoted paths first
-    quoted_paths = re.findall(r'"([^"]+)"', request)
-    if not quoted_paths:
-        quoted_paths = re.findall(r"'([^']+)'", request)
+    # Extract filename and content using various patterns
+    filename = None
+    content = None
     
-    # If no quoted paths, try to extract words that might be paths
-    potential_paths = []
-    if not quoted_paths:
-        # Split by common prepositions and conjunctions that might separate commands from paths
-        path_indicators = [' in ', ' at ', ' to ', ' from ', ' called ', ' named ', ' as ']
-        for indicator in path_indicators:
-            if indicator in request_lower:
-                parts = request_lower.split(indicator, 1)
-                if len(parts) > 1 and parts[1].strip():
-                    potential_paths.append(parts[1].strip())
+    # Pattern 1: "create file test.txt with content 'Hello'"
+    match = re.search(
+        r"(?:create|make|new)\s+(?:a\s+)?(?:file|document)\s+[\'\"]?([^\s\'\"\n]+)[\'\"]?(?:\s+with\s+content\s+[\'\"]([^\'\"]+)[\'\"])?",
+        request,
+        re.IGNORECASE
+    )
+    if match:
+        filename = match.group(1)
+        if match.lastindex and match.lastindex >= 2:
+            content = match.group(2)
+    else:
+        # Pattern 2: "name it test.txt with content 'Hello'"
+        match = re.search(
+            r"(?:name|call)\s+(?:it|the\s+file)\s+[\'\"]?([^\s\'\"\n]+)[\'\"]?(?:\s+with\s+content\s+[\'\"]([^\'\"]+)[\'\"])?",
+            request,
+            re.IGNORECASE
+        )
+        if match:
+            filename = match.group(1)
+            if match.lastindex and match.lastindex >= 2:
+                content = match.group(2)
+        else:
+            # Pattern 3: "create a file containing 'Hello' named test.txt"
+            match = re.search(
+                r"(?:create|make|new)\s+(?:a\s+)?(?:file|document)(?:\s+containing\s+[\'\"]([^\'\"]+)[\'\"])?(?:\s+named\s+[\'\"]?([^\s\'\"\n]+)[\'\"]?)?",
+                request,
+                re.IGNORECASE
+            )
+            if match:
+                if match.lastindex and match.lastindex >= 2:
+                    content = match.group(1)
+                    filename = match.group(2)
+                elif match.lastindex and match.lastindex >= 1:
+                    content = match.group(1)
     
-    # Try to identify file types/extensions
-    extensions = re.findall(r'\.([a-zA-Z0-9]+)', request)
+    # If we still don't have a filename, try to extract it using simpler patterns
+    if not filename:
+        filename_match = re.search(r'(?:file|named|called)\s+[\'"]?([^\s\'\"\n]+)[\'"]?', request, re.IGNORECASE)
+        if filename_match:
+            filename = filename_match.group(1)
     
-    return {
-        'operation': operation_type,
-        'quoted_paths': quoted_paths,
-        'potential_paths': potential_paths,
-        'extensions': extensions,
-        'original_request': request
-    }
+    # If we still don't have content, try to extract it using simpler patterns
+    if not content:
+        content_match = re.search(r'(?:content|with|containing)\s+[\'\"]([^\'\"]+)[\'\"]', request, re.IGNORECASE)
+        if content_match:
+            content = content_match.group(1)
+    
+    # Fallback for Arabic: إنشاء ملف test.txt بالمحتوى 'مرحبا'
+    if not filename or not content or not result.get('operation'):
+        arabic_match = re.search(r"إنشاء\s+ملف\s+([\w\.]+)\s+بالمحتوى\s+'([^']+)'", request)
+        if arabic_match:
+            filename = arabic_match.group(1)
+            content = arabic_match.group(2)
+            result['operation'] = 'create'
+    # Fallback for Arabic: إنشاء ملف test.txt في المجلد test_files/t250521 بالمحتوى 'مرحبا'
+    if not filename or not content or not result.get('operation'):
+        arabic_match = re.search(r"إنشاء\s+ملف\s+([\w\.]+)\s+في\s+المجلد\s+([\w/]+)\s+بالمحتوى\s+'([^']+)'", request)
+        if arabic_match:
+            filename = arabic_match.group(1)
+            result['directory'] = arabic_match.group(2)
+            content = arabic_match.group(3)
+            result['operation'] = 'create'
+    # Always check this fallback at the end for 'create file test.txt in folder ... with content ...'
+    eng_match = re.search(r"create\s+file\s+([^\s'\"]+)\s+in\s+folder\s+([^\s'\"]+)\s+with\s+content\s+'([^']+)'", request, re.IGNORECASE)
+    if eng_match:
+        filename = eng_match.group(1)
+        result['directory'] = eng_match.group(2)
+        content = eng_match.group(3)
+        result['operation'] = 'create'
+    # Always check this fallback at the end for 'create file test.txt with content ...'
+    eng_match2 = re.search(r"create\s+file\s+([\w\.]+)\s+with\s+content\s+'([^']+)'", request, re.IGNORECASE)
+    if eng_match2:
+        filename = eng_match2.group(1)
+        content = eng_match2.group(2)
+        result['operation'] = 'create'
+    result['filename'] = filename
+    result['content'] = content
+    result['directory'] = result.get('directory')
+    result['pattern'] = result.get('pattern')
+    result['operation'] = result.get('operation')
+    return result
 
-def handle_file_operation(parsed_request):
+def handle_file_operation(parsed_request: Dict[str, Any]) -> str:
     """
-    Handle a file operation based on the parsed request.
+    Handle a parsed file operation request.
     
     Args:
-        parsed_request (dict): Parsed request details
+        parsed_request: The parsed request dictionary
         
     Returns:
-        str: Result message
+        Response message
     """
-    operation = parsed_request['operation']
+    operation = parsed_request.get('operation')
+    filename = parsed_request.get('filename')
+    content = parsed_request.get('content')
+    directory = parsed_request.get('directory')
+    pattern = parsed_request.get('pattern')
     
-    # Handle search operation
-    if operation == 'search':
-        search_term = None
-        search_path = None
+    try:
+        # Handle directory operations first
+        if directory:
+            if not os.path.exists(directory):
+                try:
+                    os.makedirs(directory, exist_ok=True)
+                    logger.info(f"Created directory: {directory}")
+                except Exception as e:
+                    return f"Error: Could not create directory '{directory}': {str(e)}"
+            
+            # Update filename to include directory if specified
+            if filename:
+                filename = os.path.join(directory, filename)
         
-        # Extract search term from request
-        request_words = parsed_request['original_request'].lower().split()
-        for i, word in enumerate(request_words):
-            if word in ['find', 'search', 'locate']:
-                if i + 1 < len(request_words):
-                    search_term = request_words[i + 1]
-                    break
-        
-        # Determine search path
-        if parsed_request['quoted_paths']:
-            search_path = parsed_request['quoted_paths'][0]
-        elif parsed_request['potential_paths']:
-            search_path = parsed_request['potential_paths'][0]
-        
-        # Special case for CV files
-        if "cv" in parsed_request['original_request'].lower() or "resume" in parsed_request['original_request'].lower():
-            results, error = find_cv_files(search_path)
-            if error:
-                return f"❌ Error searching for CV files: {error}"
-            elif not results:
-                return "No CV files found."
-            else:
-                return f"Found {len(results)} CV files:\n" + "\n".join(results)
-        
-        # Regular file search
-        results, error = search_files(search_term, search_path)
-        if error:
-            return f"❌ Error searching for files: {error}"
-        elif not results:
-            return f"No files matching '{search_term}' found."
+        if operation == 'create':
+            if not filename:
+                return "Error: No filename specified for creation"
+            
+            # Check if file already exists
+            if os.path.exists(filename):
+                return f"Error: File '{filename}' already exists"
+            
+            try:
+                with open(filename, 'w') as f:
+                    if content:
+                        f.write(content)
+                return f"✅ Created file '{filename}' successfully"
+            except Exception as e:
+                return f"Error creating file '{filename}': {str(e)}"
+            
+        elif operation == 'read':
+            if not filename:
+                return "Error: No filename specified for reading"
+            
+            if not os.path.exists(filename):
+                return f"Error: File '{filename}' does not exist"
+            
+            try:
+                with open(filename, 'r') as f:
+                    content = f.read()
+                return f"📄 Contents of '{filename}':\n{content}"
+            except Exception as e:
+                return f"Error reading file '{filename}': {str(e)}"
+            
+        elif operation == 'write':
+            if not filename:
+                return "Error: No filename specified for writing"
+            
+            if not content:
+                return "Error: No content specified for writing"
+            
+            try:
+                with open(filename, 'w') as f:
+                    f.write(content)
+                return f"✅ Wrote content to '{filename}' successfully"
+            except Exception as e:
+                return f"Error writing to file '{filename}': {str(e)}"
+            
+        elif operation == 'append':
+            if not filename:
+                return "Error: No filename specified for appending"
+            
+            if not content:
+                return "Error: No content specified for appending"
+            
+            try:
+                with open(filename, 'a') as f:
+                    f.write(content)
+                return f"✅ Appended content to '{filename}' successfully"
+            except Exception as e:
+                return f"Error appending to file '{filename}': {str(e)}"
+            
+        elif operation == 'delete':
+            if not filename:
+                return "Error: No filename specified for deletion"
+            
+            if not os.path.exists(filename):
+                return f"Error: File '{filename}' does not exist"
+            
+            try:
+                os.remove(filename)
+                return f"✅ Deleted file '{filename}' successfully"
+            except Exception as e:
+                return f"Error deleting file '{filename}': {str(e)}"
+            
+        elif operation == 'search':
+            if not pattern:
+                return "Error: No search pattern specified"
+            
+            search_dir = directory or '.'
+            matches = []
+            
+            try:
+                for root, _, files in os.walk(search_dir):
+                    for file in files:
+                        if pattern.lower() in file.lower():
+                            matches.append(os.path.join(root, file))
+                
+                if matches:
+                    return f"🔍 Found {len(matches)} matching files:\n" + "\n".join(matches)
+                return f"🔍 No files found matching '{pattern}'"
+            except Exception as e:
+                return f"Error searching files: {str(e)}"
+            
+        elif operation == 'list':
+            list_dir = directory or '.'
+            
+            if not os.path.exists(list_dir):
+                return f"Error: Directory '{list_dir}' does not exist"
+            
+            try:
+                files = os.listdir(list_dir)
+                if files:
+                    return f"📁 Files in '{list_dir}':\n" + "\n".join(files)
+                return f"📁 No files found in '{list_dir}'"
+            except Exception as e:
+                return f"Error listing directory '{list_dir}': {str(e)}"
+            
         else:
-            return f"Found {len(results)} files matching '{search_term}':\n" + "\n".join(results)
-    
-    # Handle create operation
-    elif operation == 'create':
-        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
-            return "❌ No file name specified for creation."
+            return "Error: Unknown file operation"
             
-        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
-        full_path = expand_path(file_path)
-        
-        try:
-            # Ensure directory exists
-            directory = os.path.dirname(full_path)
-            if directory and not os.path.exists(directory):
-                os.makedirs(directory)
-                
-            # Create empty file
-            Path(full_path).touch()
-            return f"✅ Created file: {full_path}"
-        except Exception as e:
-            return f"❌ Error creating file: {str(e)}"
-    
-    # Handle read operation
-    elif operation == 'read':
-        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
-            return "❌ No file specified to read."
-            
-        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
-        full_path = expand_path(file_path)
-        
-        try:
-            if not os.path.isfile(full_path):
-                return f"❌ File not found: {full_path}"
-                
-            with open(full_path, 'r') as file:
-                content = file.read()
-            
-            # Limit content length for display
-            max_length = 1000
-            if len(content) > max_length:
-                content = content[:max_length] + "...\n[Content truncated, file is too large to display completely]"
-                
-            return f"📄 Content of {full_path}:\n\n{content}"
-        except Exception as e:
-            return f"❌ Error reading file: {str(e)}"
-    
-    # Handle update operation
-    elif operation == 'update':
-        # This would require additional UI for content input
-        return "File update operations require content input. Please use the appropriate command with content."
-    
-    # Handle delete operation
-    elif operation == 'delete':
-        if not parsed_request['quoted_paths'] and not parsed_request['potential_paths']:
-            return "❌ No file specified to delete."
-            
-        file_path = parsed_request['quoted_paths'][0] if parsed_request['quoted_paths'] else parsed_request['potential_paths'][0]
-        full_path = expand_path(file_path)
-        
-        try:
-            if not os.path.exists(full_path):
-                return f"❌ File not found: {full_path}"
-                
-            if os.path.isfile(full_path):
-                os.remove(full_path)
-                return f"✅ Deleted file: {full_path}"
-            elif os.path.isdir(full_path):
-                return f"❌ {full_path} is a directory. Use a directory removal command instead."
-        except Exception as e:
-            return f"❌ Error deleting file: {str(e)}"
-    
-    # Handle list operation
-    elif operation == 'list':
-        search_path = None
-        
-        if parsed_request['quoted_paths']:
-            search_path = parsed_request['quoted_paths'][0]
-        elif parsed_request['potential_paths']:
-            search_path = parsed_request['potential_paths'][0]
-        else:
-            search_path = "."  # Current directory
-            
-        full_path = expand_path(search_path)
-        
-        try:
-            if not os.path.exists(full_path):
-                return f"❌ Directory not found: {full_path}"
-                
-            if not os.path.isdir(full_path):
-                return f"❌ {full_path} is not a directory."
-                
-            files = os.listdir(full_path)
-            if not files:
-                return f"Directory {full_path} is empty."
-                
-            # Format list with file types
-            formatted_list = []
-            for file in sorted(files):
-                file_path = os.path.join(full_path, file)
-                if os.path.isdir(file_path):
-                    formatted_list.append(f"📁 {file}/")
-                else:
-                    formatted_list.append(f"📄 {file}")
-                    
-            return f"Contents of {full_path}:\n" + "\n".join(formatted_list)
-        except Exception as e:
-            return f"❌ Error listing directory: {str(e)}"
-    
-    # Handle other operations
-    else:
-        return f"Operation '{operation}' is not yet implemented or recognized."
+    except Exception as e:
+        logger.error(f"Error handling file operation: {str(e)}")
+        return f"Error: {str(e)}"
 
-def process_file_flag_request(request):
+def process_file_flag_request(request: str) -> str:
     """
     Process a file operation request that comes with the -f flag.
     
     Args:
-        request (str): The user request string
+        request: The user request string
         
     Returns:
-        str: Response to the request
+        Response to the request
     """
     logger.info(f"Processing file request: {request}")
     

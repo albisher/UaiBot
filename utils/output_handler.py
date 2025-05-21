@@ -21,7 +21,9 @@ from typing import List, Dict, Any, Optional, Union, Tuple
 
 # Import the style manager
 from utils.output_style_manager import OutputStyleManager
+from core.logging_config import get_logger
 
+logger = get_logger(__name__)
 
 class OutputHandler:
     """
@@ -54,6 +56,7 @@ class OutputHandler:
         # Special display flags
         self.verbose_mode = False  # When True, shows more details
         self.debug_mode = False    # When True, shows debugging information
+        self.verbosity = 'normal'  # Default verbosity level
     
     def start_capture(self) -> None:
         """Start capturing output for later retrieval."""
@@ -381,6 +384,37 @@ class OutputHandler:
         output = re.sub(log_pattern, "", output)
         
         return output.strip()
+    
+    def set_verbosity(self, level: str) -> None:
+        """
+        Set the verbosity level for output.
+        
+        Args:
+            level: Verbosity level ('quiet', 'normal', 'verbose')
+        """
+        if level not in ['quiet', 'normal', 'verbose']:
+            logger.warning(f"Invalid verbosity level: {level}. Using 'normal' instead.")
+            level = 'normal'
+        self.verbosity = level
+    
+    def info(self, message: str) -> None:
+        """Display an informational message."""
+        if self.verbosity != 'quiet':
+            print(f"ℹ️  {message}")
+    
+    def success(self, message: str) -> None:
+        """Display a success message."""
+        if self.verbosity != 'quiet':
+            print(f"✅ {message}")
+    
+    def error(self, message: str) -> None:
+        """Display an error message."""
+        print(f"❌ {message}")
+    
+    def warning(self, message: str) -> None:
+        """Display a warning message."""
+        if self.verbosity != 'quiet':
+            print(f"⚠️  {message}")
 
 
 # Create a singleton instance

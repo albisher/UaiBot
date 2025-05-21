@@ -13,119 +13,112 @@ import sys
 import logging
 import warnings
 import urllib3
-from core.logging_config import setup_logging
+import argparse
 from pathlib import Path
-from core.file_utils import search_files, expand_path, find_cv_files
+from typing import Optional, Dict, Any
 from datetime import datetime
-from platform_uai.platform_manager import PlatformManager
-from utils.output_formatter import get_terminal_width
 
 # Add project root to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = current_dir
 sys.path.append(project_root)
 
-# Import the OutputFacade singleton
+# Import core components
+from core.logging_config import setup_logging, get_logger
+from core.exceptions import UaiBotError, AIError, ConfigurationError, CommandError
+from core.cache_manager import CacheManager
+from platform_uai.platform_manager import PlatformManager
+from command_processor import CommandProcessor, ShellHandler
+from core.ai_handler import AIHandler
 from utils.output_facade import output
+from core.file_operations import process_file_flag_request
 
-# Alias for backward compatibility
-def format_uaibot_output(message, msg_type="info"):
-    """
-    Format output using the output facade.
-    This is a legacy function maintained for backward compatibility.
-    Uses the new OutputFacade internally.
-    """
-    # Convert legacy message types to appropriate OutputFacade method calls
-    if msg_type == "info":
-        return output.box(message, "Information")
-    elif msg_type == "success":
-        output.success(message)
-        return message
-    elif msg_type == "error":
-        output.error(message)
-        return message
-    elif msg_type == "warning":
-        output.warning(message)
-        return message
-    elif msg_type == "robot":
-        return output.box(message, "UaiBot")
-    elif msg_type == "tip":
-        output.info(message) 
-        return message
-    else:
-        output.info(message)
-        return message
+# Set up logging
+logger = get_logger(__name__)
 
 # Disable httpx INFO level logging to prevent duplicate request logs
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-# Set up logging with proper configuration to prevent duplicate messages
-setup_logging(log_level=logging.INFO, log_file="logs/uaibot.log")
-logger = logging.getLogger(__name__)
-
 # Suppress all urllib3 warnings
 warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings("ignore", category=urllib3.exceptions.NotOpenSSLWarning)
-
-# Disable other urllib3 warnings
 urllib3.disable_warnings()
-
-# Import core components
-from core.utils import load_config
-from command_processor import CommandProcessor, ShellHandler
 
 class UaiBot:
     """Main UaiBot class that handles user interaction."""
     
-    def __init__(self):
-        # Initialize platform manager
-        self.platform_manager = PlatformManager()
-        if not self.platform_manager.platform_supported:
-            logger.error(f"Unsupported platform: {self.platform_manager.platform_name}")
-            output.error(f"Unsupported platform: {self.platform_manager.platform_name}")
-            sys.exit(1)
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """
+        Initialize UaiBot with configuration.
+        
+        Args:
+            config: Optional configuration dictionary
+        """
+        try:
+            # Initialize platform manager
+            self.platform_manager = PlatformManager()
+            if not self.platform_manager.platform_supported:
+                raise ConfigurationError(f"Unsupported platform: {self.platform_manager.platform_name}")
             
-        # Initialize platform components
-        logger.info("Initializing platform components...")
-        self.platform_manager.initialize()
-        
-        # Load configuration
-        config = load_config() or {}
-        
-        # Configure output facade with verbosity settings
-        output_verbosity = config.get('output_verbosity', 'normal')
-        
-        # Initialize shell handler and command processor
-        self.shell_handler = ShellHandler()
-        from core.ai_handler import AIHandler
-        
-        model_type = config.get('default_ai_provider', 'ollama')
-        ollama_base_url = config.get('ollama_base_url', 'http://localhost:11434')
-        google_api_key = config.get('google_api_key')
-        google_model_name = config.get('default_google_model', 'gemini-pro')
-        if model_type == 'google':
-            self.ai_handler = AIHandler(model_type='google', api_key=google_api_key, google_model_name=google_model_name)
-        else:
-            self.ai_handler = AIHandler(model_type='ollama', ollama_base_url=ollama_base_url)
-        self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler)
-        
-        # Welcome message with platform info
-        platform_info = self.platform_manager.get_platform_info()
-        self.welcome_message = f"""
+            # Initialize platform components
+            logger.info("Initializing platform components...")
+            self.platform_manager.initialize()
+            
+            # Load configuration
+            self.config = config or {}
+            
+            # Configure output facade with verbosity settings
+            output_verbosity = self.config.get('output_verbosity', 'normal')
+            output.set_verbosity(output_verbosity)
+            
+            # Initialize shell handler and command processor
+            self.shell_handler = ShellHandler()
+            
+            # Initialize AI handler with caching
+            model_type = self.config.get('default_ai_provider', 'ollama')
+            ollama_base_url = self.config.get('ollama_base_url', 'http://localhost:11434')
+            google_api_key = self.config.get('google_api_key')
+            google_model_name = self.config.get('default_google_model', 'gemini-pro')
+            
+            self.ai_handler = AIHandler(
+                model_type=model_type,
+                api_key=google_api_key,
+                google_model_name=google_model_name,
+                ollama_base_url=ollama_base_url,
+                cache_ttl=self.config.get('cache_ttl', 3600),
+                cache_size_mb=self.config.get('cache_size_mb', 100)
+            )
+            
+            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler)
+            
+            # Welcome message with platform info
+            platform_info = self.platform_manager.get_platform_info()
+            self.welcome_message = f"""
 🤖 Welcome to UaiBot!
-I'm your AI assistant.
-Type commands or questions for help.
+I'm your AI assistant, ready to help you with your tasks.
 Running on: {platform_info['name']}
+Type 'help' for available commands or just ask me anything!
 """
-        # Set output verbosity based on config
-        self.output_verbosity = output_verbosity
+            logger.info("UaiBot initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize UaiBot: {str(e)}")
+            raise
     
-    def start(self):
+    def start(self) -> None:
         """Start the UaiBot interactive session."""
-        print(format_uaibot_output(self.welcome_message, "robot"))
-        self._interactive_loop()
+        try:
+            output.box(self.welcome_message, "Welcome")
+            self._interactive_loop()
+        except KeyboardInterrupt:
+            output.info("👋 Session interrupted. Goodbye!")
+        except Exception as e:
+            logger.error(f"Error in interactive session: {str(e)}")
+            output.error(f"An error occurred: {str(e)}")
+        finally:
+            self.cleanup()
     
-    def _interactive_loop(self):
+    def _interactive_loop(self) -> None:
         """Main interactive loop for UaiBot."""
         while True:
             try:
@@ -135,53 +128,118 @@ Running on: {platform_info['name']}
                     continue
                 
                 if user_input.lower() in ['exit', 'quit', 'bye']:
-                    print(format_uaibot_output("👋 Goodbye! Have a great day!", "success"))
-                    
-                    # Clean up platform resources
-                    self.platform_manager.cleanup()
+                    output.success("👋 Goodbye! Have a great day!")
                     break
                 
+                if user_input.lower() == 'help':
+                    self._show_help()
+                    continue
+                
+                if user_input.lower() == 'clear':
+                    self.ai_handler.clear_cache()
+                    output.success("Cache cleared successfully")
+                    continue
+                
                 response = self.command_processor.process_command(user_input)
-                print(format_uaibot_output(response, "info"))
+                output.info(response)
                 
             except KeyboardInterrupt:
-                print(format_uaibot_output("👋 Session interrupted. Goodbye!", "warning"))
-                
-                # Clean up platform resources
-                self.platform_manager.cleanup()
-                break
+                raise
+            except CommandError as e:
+                output.error(f"Command error: {str(e)}")
+            except AIError as e:
+                output.error(f"AI processing error: {str(e)}")
             except Exception as e:
-                print(format_uaibot_output(f"❌ An error occurred: {str(e)}", "error"))
-                print(format_uaibot_output("🔄 Let's continue. What else can I help you with?", "tip"))
-                logger.error(f"Error in interactive loop: {str(e)}", exc_info=True)
+                logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+                output.error(f"An unexpected error occurred: {str(e)}")
     
-    def process_single_command(self, command):
-        """Process a single command and return the result."""
+    def _show_help(self) -> None:
+        """Show help information."""
+        help_text = """
+Available commands:
+- help: Show this help message
+- clear: Clear the AI response cache
+- exit/quit/bye: Exit UaiBot
+
+You can also:
+- Ask me to execute shell commands
+- Ask questions about your system
+- Request file operations
+- Get system information
+"""
+        output.box(help_text, "Help")
+    
+    def process_single_command(self, command: str) -> str:
+        """
+        Process a single command and return the result.
+        
+        Args:
+            command: The command to process
+            
+        Returns:
+            The command response
+        """
         try:
             result = self.command_processor.process_command(command)
-            print(format_uaibot_output(result, "info"))
             return result
         finally:
-            # Clean up platform resources even after a single command
+            self.cleanup()
+    
+    def cleanup(self) -> None:
+        """Clean up resources."""
+        try:
             self.platform_manager.cleanup()
+            logger.info("Resources cleaned up successfully")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {str(e)}")
 
+def main():
+    """Main entry point for UaiBot."""
+    try:
+        # Set up logging
+        setup_logging(
+            log_level=logging.INFO,
+            log_file="logs/uaibot.log",
+            max_bytes=10 * 1024 * 1024,  # 10MB
+            backup_count=5
+        )
+        
+        # Parse command-line arguments
+        parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant")
+        parser.add_argument("-f", "--file", action="store_true", help="Enable file operations mode")
+        parser.add_argument("-c", "--command", type=str, help="Command to execute")
+        parser.add_argument("--no-safe-mode", action="store_true", help="Disable safe mode for file operations")
+        parser.add_argument("--gui", "-g", action="store_true", help="Start in GUI mode")
+        args = parser.parse_args()
+        
+        # Check if GUI mode is requested
+        if args.gui:
+            output.info("GUI mode requested. Please use 'python start_uaibot.py --gui' instead.")
+            sys.exit(1)
+        
+        # Initialize and start UaiBot
+        bot = UaiBot()
+        
+        if args.file and args.command:
+            # Handle file operations
+            result = process_file_flag_request(args.command)
+            output.info(result)
+        elif len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
+            # If command line arguments are provided, process them as a single command
+            command = " ".join(sys.argv[1:])
+            result = bot.process_single_command(command)
+            output.info(result)
+        else:
+            # Otherwise start interactive mode
+            bot.start()
+            
+    except KeyboardInterrupt:
+        output.info("\n👋 Goodbye!")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Fatal error: {str(e)}", exc_info=True)
+        output.error(f"Fatal error: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    # Parse command-line arguments
-    args = sys.argv[1:]
-    
-    # Check if GUI mode is requested
-    if "--gui" in args or "-g" in args:
-        print("GUI mode requested. Please use 'python start_uaibot.py --gui' instead.")
-        sys.exit(1)
-        
-    bot = UaiBot()
-    
-    if len(args) > 0 and not args[0].startswith("-"):
-        # If command line arguments are provided, process them as a single command
-        command = " ".join(args)
-        result = bot.process_single_command(command)
-        print(f"UaiBot: {result}")
-    else:
-        # Otherwise start interactive mode
-        bot.start()
+    main()

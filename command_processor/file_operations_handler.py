@@ -13,6 +13,7 @@ import shlex
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional, List, Union
 from datetime import datetime
+from core.file_search import FileSearch
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ class FileOperationsHandler:
             except Exception as e:
                 logger.warning(f"Could not create test_files directory: {e}")
                 
+        self.file_search = FileSearch(quiet_mode=quiet_mode)
+        
     def log(self, message, level="info"):
         """Log a message with specified level."""
         if not self.quiet_mode or level in ["warning", "error"]:
@@ -281,90 +284,85 @@ class FileOperationsHandler:
         except Exception as e:
             return f"❌ Error deleting file: {str(e)}"
     
-    def handle_search(self, params: Dict[str, Any]) -> str:
+    def handle_search(self, query: str) -> str:
         """
-        Handle file search operation.
+        Handle a file search query.
+        
+        This method processes the query to extract search parameters and
+        uses the FileSearch class to perform the search.
         
         Args:
-            params: Operation parameters
+            query (str): The search query to process
             
         Returns:
-            Operation result message
+            str: Formatted search results
         """
-        # Get parameters
-        search_term = params.get("search_term")
-        directory = params.get("directory", ".")
-        file_type = params.get("file_type")
-        max_results = params.get("max_results", 20)
-        
-        # Check required parameters
-        if not search_term:
-            return "❌ No search term specified"
-            
-        # Handle relative paths
-        directory = self._resolve_path(directory)
-        
         try:
-            # Check if directory exists
-            if not os.path.exists(directory):
-                return f"❌ Directory not found: {directory}"
-                
-            if not os.path.isdir(directory):
-                return f"❌ {directory} is not a directory"
-                
-            # Execute search command using shell handler if available
-            if self.shell_handler:
-                # Construct a find command for the search
-                if file_type:
-                    # Search by name and extension
-                    cmd = f"find {shlex.quote(directory)} -type f -name \"*{search_term}*{file_type}\" | head -n {max_results}"
-                else:
-                    # Search by name only
-                    cmd = f"find {shlex.quote(directory)} -type f -name \"*{search_term}*\" | head -n {max_results}"
-                    
-                # Execute the command
-                result = self.shell_handler.execute_command(cmd)
-                
-                # Process the results
-                if not result.strip():
-                    return f"No files matching '{search_term}' found in {directory}"
-                    
-                files = result.strip().split('\n')
-                if len(files) == max_results:
-                    return f"🔍 Found at least {max_results} files matching '{search_term}' in {directory}:\n" + \
-                           "\n".join([f"  📄 {file}" for file in files]) + \
-                           f"\n\n(Results limited to {max_results} files. Use 'max_results' parameter to see more.)"
-                else:
-                    return f"🔍 Found {len(files)} files matching '{search_term}' in {directory}:\n" + \
-                           "\n".join([f"  📄 {file}" for file in files])
-            else:
-                # Fallback to Python's os.walk if shell_handler is not available
-                matched_files = []
-                
-                for root, _, files in os.walk(directory):
-                    for file in files:
-                        if search_term.lower() in file.lower() and \
-                           (not file_type or file.endswith(file_type)):
-                            file_path = os.path.join(root, file)
-                            matched_files.append(file_path)
-                            if len(matched_files) >= max_results:
-                                break
-                    if len(matched_files) >= max_results:
-                        break
-                
-                if not matched_files:
-                    return f"No files matching '{search_term}' found in {directory}"
-                    
-                if len(matched_files) == max_results:
-                    return f"🔍 Found at least {max_results} files matching '{search_term}' in {directory}:\n" + \
-                           "\n".join([f"  📄 {file}" for file in matched_files]) + \
-                           f"\n\n(Results limited to {max_results} files. Use 'max_results' parameter to see more.)"
-                else:
-                    return f"🔍 Found {len(matched_files)} files matching '{search_term}' in {directory}:\n" + \
-                           "\n".join([f"  📄 {file}" for file in matched_files])
-                
+            # Extract search parameters from query
+            file_pattern, location, max_results = self._parse_query(query)
+            
+            # Perform the search using FileSearch
+            return self.file_search.find_files(file_pattern, location, max_results)
+            
         except Exception as e:
-            return f"❌ Error searching for files: {str(e)}"
+            error_msg = f"Error processing file search: {str(e)}"
+            if not self.quiet_mode:
+                logger.error(error_msg)
+            return error_msg
+    
+    def _parse_query(self, query: str) -> tuple[str, str, int]:
+        """
+        Parse a file search query to extract search parameters.
+        
+        Args:
+            query (str): The search query to parse
+            
+        Returns:
+            tuple[str, str, int]: Tuple containing (file_pattern, location, max_results)
+        """
+        # Default values
+        file_pattern = ""
+        location = "~"
+        max_results = 20
+        
+        # Extract file pattern
+        if "named" in query:
+            parts = query.split("named", 1)
+            if len(parts) > 1:
+                file_pattern = parts[1].strip()
+        elif "containing" in query:
+            parts = query.split("containing", 1)
+            if len(parts) > 1:
+                file_pattern = parts[1].strip()
+        else:
+            # Try to extract file pattern from common patterns
+            import re
+            patterns = [
+                r"find files? (?:named|containing|with) ['\"](.+?)['\"]",
+                r"search for files? (?:named|containing|with) ['\"](.+?)['\"]",
+                r"look for files? (?:named|containing|with) ['\"](.+?)['\"]"
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, query, re.IGNORECASE)
+                if match:
+                    file_pattern = match.group(1)
+                    break
+        
+        # Extract location if specified
+        if "in" in query:
+            parts = query.split("in", 1)
+            if len(parts) > 1:
+                location = parts[1].strip()
+        
+        # Extract max results if specified
+        if "limit" in query or "max" in query:
+            import re
+            match = re.search(r"(?:limit|max)(?:\s+results?)?\s+(\d+)", query, re.IGNORECASE)
+            if match:
+                max_results = int(match.group(1))
+        
+        return file_pattern, location, max_results
     
     def handle_list(self, params: Dict[str, Any]) -> str:
         """

@@ -1,80 +1,124 @@
 """
-Folder search handling module for UaiBot.
-Handles searching for files and folders.
+Folder search handler module for UaiBot.
+
+This module provides a handler for folder search queries, using the FileSearch
+class to perform efficient and reliable folder searches.
+
+Features:
+- Folder search query processing
+- Integration with FileSearch for reliable searching
+- Support for cloud storage and notes applications
+- Configurable search parameters
+
+Example:
+    >>> handler = FolderSearchHandler(quiet_mode=False)
+    >>> result = handler.handle_folder_search("find folders named Documents")
 """
-import re
 import logging
-from typing import Tuple, Optional
+from typing import Optional
+from core.file_search import FileSearch
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 class FolderSearchHandler:
-    def __init__(self, shell_handler, quiet_mode: bool = False):
+    """
+    A class to handle folder search queries.
+    
+    This class processes folder search queries and uses the FileSearch class
+    to perform efficient and reliable folder searches.
+    
+    Attributes:
+        quiet_mode (bool): If True, reduces terminal output
+        file_search (FileSearch): Instance of FileSearch for folder operations
+    """
+    
+    def __init__(self, quiet_mode: bool = False) -> None:
         """
-        Initialize the FolderSearchHandler.
+        Initialize the FolderSearchHandler class.
         
         Args:
-            shell_handler: Shell handler instance for executing commands
             quiet_mode (bool): If True, reduces terminal output
         """
-        self.shell_handler = shell_handler
         self.quiet_mode = quiet_mode
+        self.file_search = FileSearch(quiet_mode=quiet_mode)
     
-    def handle_folder_search(self, query: str) -> Tuple[bool, str]:
+    def handle_folder_search(self, query: str) -> str:
         """
-        Handle folder search queries.
+        Handle a folder search query.
+        
+        This method processes the query to extract search parameters and
+        uses the FileSearch class to perform the search.
         
         Args:
-            query (str): The search query
+            query (str): The search query to process
             
         Returns:
-            tuple: (bool, str) - (True, result) if handled, (False, "") otherwise
-        """
-        query_lower = query.lower()
-        
-        # Special case for Apple Notes
-        if "notes" in query_lower and ("folder" in query_lower or 
-                                      "app" in query_lower or
-                                      "show me" in query_lower or
-                                      "where" in query_lower):
-            return True, self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
-        
-        # Check if this is a file/folder search request
-        if "find" in query_lower or "search" in query_lower:
-            # Extract search term if any
-            search_terms = ["file", "folder", "directory"]
-            for term in search_terms:
-                if term in query_lower:
-                    pattern = rf"(?:find|search)(?:\s+for)?\s+(?:a|the)?\s+{term}(?:s)?\s+(?:named|called)?\s+['\"]*([a-zA-Z0-9_\-\.\s]+)['\"\s]*"
-                    match = re.search(pattern, query_lower)
-                    if match:
-                        search_name = match.group(1).strip()
-                        if term in ["folder", "directory"]:
-                            return True, self.shell_handler.find_folders(search_name)
-                        else:
-                            # Use find with both files and directories for generic file search
-                            return True, self._try_direct_execution(f'find ~ -name "*{search_name}*" -type f 2>/dev/null | head -n 20')
-        
-        return False, ""
-    
-    def _try_direct_execution(self, command: str) -> str:
-        """
-        Try to execute a command directly.
-        
-        Args:
-            command (str): The command to execute
-            
-        Returns:
-            str: Command output or error message
+            str: Formatted search results
         """
         try:
-            return self.shell_handler.execute_command(command)
+            # Extract search parameters from query
+            folder_name, location, max_results = self._parse_query(query)
+            
+            # Perform the search using FileSearch
+            return self.file_search.find_folders(folder_name, location, max_results)
+            
         except Exception as e:
-            logger.error(f"Error executing command: {str(e)}")
-            return f"Error executing command: {str(e)}"
+            error_msg = f"Error processing folder search: {str(e)}"
+            if not self.quiet_mode:
+                logger.error(error_msg)
+            return error_msg
     
-    def log(self, message: str) -> None:
-        """Print a message if not in quiet mode"""
-        if not self.quiet_mode:
-            print(message) 
+    def _parse_query(self, query: str) -> tuple[str, str, int]:
+        """
+        Parse a folder search query to extract search parameters.
+        
+        Args:
+            query (str): The search query to parse
+            
+        Returns:
+            tuple[str, str, int]: Tuple containing (folder_name, location, max_results)
+        """
+        # Default values
+        folder_name = ""
+        location = "~"
+        max_results = 20
+        
+        # Extract folder name
+        if "named" in query:
+            parts = query.split("named", 1)
+            if len(parts) > 1:
+                folder_name = parts[1].strip()
+        elif "containing" in query:
+            parts = query.split("containing", 1)
+            if len(parts) > 1:
+                folder_name = parts[1].strip()
+        else:
+            # Try to extract folder name from common patterns
+            import re
+            patterns = [
+                r"find folders? (?:named|containing|with) ['\"](.+?)['\"]",
+                r"search for folders? (?:named|containing|with) ['\"](.+?)['\"]",
+                r"look for folders? (?:named|containing|with) ['\"](.+?)['\"]"
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, query, re.IGNORECASE)
+                if match:
+                    folder_name = match.group(1)
+                    break
+        
+        # Extract location if specified
+        if "in" in query:
+            parts = query.split("in", 1)
+            if len(parts) > 1:
+                location = parts[1].strip()
+        
+        # Extract max results if specified
+        if "limit" in query or "max" in query:
+            import re
+            match = re.search(r"(?:limit|max)(?:\s+results?)?\s+(\d+)", query, re.IGNORECASE)
+            if match:
+                max_results = int(match.group(1))
+        
+        return folder_name, location, max_results 

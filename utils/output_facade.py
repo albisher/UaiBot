@@ -16,10 +16,12 @@ Output Philosophy & Flow:
 import sys
 import os
 from typing import Optional, Any, Dict, Union, List
+from core.logging_config import get_logger
 
 # Import the OutputHandler as our implementation class
 from utils.output_handler import OutputHandler
 
+logger = get_logger(__name__)
 
 class OutputFacade:
     """
@@ -225,6 +227,12 @@ class OutputFacade:
     def stop_capture(self) -> str:
         """Stop capturing and return captured output."""
         return self._handler.stop_capture()
+
+    def set_verbosity(self, verbosity: str) -> None:
+        """
+        Public method to set verbosity, calls the internal _set_verbosity.
+        """
+        self._set_verbosity(verbosity)
 
 
 # Create the global instance

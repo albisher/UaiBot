@@ -3,49 +3,104 @@ Logging configuration for UaiBot.
 Sets up proper logging to avoid duplicate logs and maintain consistent output.
 """
 import logging
-import sys
+import logging.handlers
+import json
 import os
 from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict, Any
 
-def setup_logging(log_level=logging.INFO, log_file=None):
+class StructuredLogFormatter(logging.Formatter):
+    """Custom formatter for structured JSON logging."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as JSON."""
+        log_data: Dict[str, Any] = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno
+        }
+        
+        # Add exception info if present
+        if record.exc_info:
+            log_data["exception"] = {
+                "type": record.exc_info[0].__name__,
+                "message": str(record.exc_info[1]),
+                "traceback": self.formatException(record.exc_info)
+            }
+        
+        # Add extra fields if present
+        if hasattr(record, "extra"):
+            log_data.update(record.extra)
+            
+        return json.dumps(log_data)
+
+def setup_logging(
+    log_level: int = logging.INFO,
+    log_file: Optional[str] = None,
+    max_bytes: int = 10 * 1024 * 1024,  # 10MB
+    backup_count: int = 5
+) -> None:
     """
-    Configure logging for the application to prevent duplicate logs
+    Set up logging configuration with both file and console handlers.
     
     Args:
-        log_level: The logging level (default: INFO)
-        log_file: Optional log file path
+        log_level: The logging level to use
+        log_file: Path to the log file (optional)
+        max_bytes: Maximum size of each log file
+        backup_count: Number of backup log files to keep
     """
-    # Clear any existing handlers to prevent duplicates
+    # Create logs directory if it doesn't exist
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Configure root logger
     root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    
+    # Remove existing handlers
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
     
-    # Configure the root logger
-    root_logger.setLevel(log_level)
-    
-    # Create a formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    
-    # Add console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
     
-    # Add file handler if specified
+    # Create file handler if log_file is specified
     if log_file:
-        # Make sure the log directory exists
-        log_dir = os.path.dirname(log_file)
-        if log_dir:
-            Path(log_dir).mkdir(parents=True, exist_ok=True)
-            
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file,
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+            encoding='utf-8'
+        )
+        file_handler.setLevel(log_level)
+        file_formatter = StructuredLogFormatter()
+        file_handler.setFormatter(file_formatter)
         root_logger.addHandler(file_handler)
     
-    # Configure specific loggers to prevent propagation and duplicate messages
-    for name in logging.root.manager.loggerDict:
-        logger = logging.getLogger(name)
-        logger.handlers = []  # Remove existing handlers
-        logger.propagate = False  # Prevent propagation to root logger
+    # Set logging levels for specific modules
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Get a logger instance with the specified name.
+    
+    Args:
+        name: The name for the logger
         
-    return root_logger
+    Returns:
+        A configured logger instance
+    """
+    return logging.getLogger(name)

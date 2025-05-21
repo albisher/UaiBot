@@ -4,11 +4,16 @@ import json
 import platform
 import subprocess
 import re
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from .model_manager import ModelManager
 from .query_processor import QueryProcessor
 from .system_info_gatherer import SystemInfoGatherer
 from .logging_manager import LoggingManager
+from .config_manager import ConfigManager
+from core.logging_config import get_logger
+logger = get_logger(__name__)
+from core.cache_manager import CacheManager
+from core.exceptions import AIError, ConfigurationError
 
 try:
     import google.generativeai as genai
@@ -314,119 +319,130 @@ def get_system_info():
     return system_str
 
 class AIHandler:
-    def __init__(self, model_type: str = "local", api_key: Optional[str] = None,
-                 ollama_base_url: str = "http://localhost:11434",
-                 google_model_name: str = "gemini-pro",
-                 quiet_mode: bool = False):
-        """
-        Initialize the AIHandler.
-        
-        Args:
-            model_type (str): Type of model to use ("google" or "ollama")
-            api_key (Optional[str]): API key for Google AI
-            ollama_base_url (str): Base URL for Ollama API
-            google_model_name (str): Name of the Google AI model to use
-            quiet_mode (bool): If True, reduces terminal output
-        """
-        # Initialize logging
-        self.logging_manager = LoggingManager(quiet_mode=quiet_mode)
-        self.logger = self.logging_manager.get_logger(__name__)
-        
-        # Initialize components
-        self.model_manager = ModelManager(
-            model_type=model_type,
-            api_key=api_key,
-            ollama_base_url=ollama_base_url,
-            google_model_name=google_model_name,
-            quiet_mode=quiet_mode
-        )
-        
-        self.query_processor = QueryProcessor(
-            model_manager=self.model_manager,
-            quiet_mode=quiet_mode
-        )
-        
-        self.system_info_gatherer = SystemInfoGatherer()
-        
-        self.logger.info("AIHandler initialized successfully")
+    """Handles AI model interactions with caching and error handling."""
     
-    def process_query(self, query: str) -> Tuple[bool, str]:
+    def __init__(
+        self,
+        model_type: str,
+        api_key: Optional[str] = None,
+        google_model_name: str = "gemini-pro",
+        ollama_base_url: str = "http://localhost:11434",
+        cache_ttl: int = 3600,  # 1 hour default TTL
+        cache_size_mb: int = 100  # 100MB default max size
+    ):
         """
-        Process a user query using the AI model.
+        Initialize the AI handler.
         
         Args:
-            query (str): The user's query
+            model_type: Type of AI model to use ('ollama' or 'google')
+            api_key: API key for Google AI (required for Google model)
+            google_model_name: Name of the Google AI model to use
+            ollama_base_url: Base URL for Ollama API
+            cache_ttl: Cache TTL in seconds
+            cache_size_mb: Maximum cache size in megabytes
+        """
+        self.model_type = model_type.lower()
+        self.google_model_name = google_model_name
+        self.ollama_base_url = ollama_base_url
+        
+        # Initialize cache
+        self.cache = CacheManager(ttl_seconds=cache_ttl, max_size_mb=cache_size_mb)
+        
+        # Initialize model client
+        try:
+            if self.model_type == 'google':
+                if not api_key:
+                    raise ConfigurationError("API key is required for Google AI model")
+                self._init_google_client(api_key)
+            elif self.model_type == 'ollama':
+                self._init_ollama_client()
+            else:
+                raise ConfigurationError(f"Unsupported model type: {model_type}")
+        except Exception as e:
+            logger.error(f"Failed to initialize AI client: {str(e)}")
+            raise AIError(f"Failed to initialize AI client: {str(e)}")
+    
+    def _init_google_client(self, api_key: str) -> None:
+        """Initialize Google AI client."""
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel(self.google_model_name)
+            logger.info(f"Initialized Google AI client with model: {self.google_model_name}")
+        except ImportError:
+            raise ConfigurationError("Google AI package not installed")
+        except Exception as e:
+            raise AIError(f"Failed to initialize Google AI client: {str(e)}")
+    
+    def _init_ollama_client(self) -> None:
+        """Initialize Ollama client."""
+        try:
+            from ollama import Client
+            self.client = Client(host=self.ollama_base_url)
+            logger.info(f"Initialized Ollama client with base URL: {self.ollama_base_url}")
+        except ImportError:
+            raise ConfigurationError("Ollama package not installed")
+        except Exception as e:
+            raise AIError(f"Failed to initialize Ollama client: {str(e)}")
+    
+    def process_command(self, command: str) -> Dict[str, Any]:
+        """
+        Process a command using the AI model.
+        
+        Args:
+            command: The command to process
             
         Returns:
-            Tuple[bool, str]: (success, response)
+            Dictionary containing the processed command and metadata
+            
+        Raises:
+            AIError: If there's an error processing the command
         """
+        # Check cache first
+        cached_response = self.cache.get(command)
+        if cached_response:
+            logger.info("Using cached response for command")
+            return cached_response
+        
         try:
-            # Gather system information
-            system_info = self.system_info_gatherer.get_system_info()
-            
-            # Process the query
-            success, response = self.query_processor.process_query(query, system_info)
-            
-            if success:
-                self.logger.info("Query processed successfully")
+            if self.model_type == 'google':
+                response = self._process_google_command(command)
             else:
-                self.logger.error(f"Query processing failed: {response}")
+                response = self._process_ollama_command(command)
             
-            return success, response
+            # Cache the response
+            self.cache.set(command, response)
+            return response
             
         except Exception as e:
-            error_msg = f"Error processing query: {str(e)}"
-            self.logger.error(error_msg)
-            return False, error_msg
+            logger.error(f"Error processing command: {str(e)}")
+            raise AIError(f"Failed to process command: {str(e)}")
     
-    def set_model(self, model_name: str) -> bool:
-        """
-        Set the AI model to use.
-        
-        Args:
-            model_name (str): Name of the model to use
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
+    def _process_google_command(self, command: str) -> Dict[str, Any]:
+        """Process command using Google AI."""
         try:
-            if self.model_manager.model_type == "google":
-                self.model_manager.set_google_model(model_name)
-            elif self.model_manager.model_type == "ollama":
-                self.model_manager.set_ollama_model(model_name)
-            else:
-                raise ValueError(f"Unsupported model type: {self.model_manager.model_type}")
-            
-            self.logger.info(f"Model set to: {model_name}")
-            return True
-            
+            response = self.model.generate_content(command)
+            return {
+                "command": response.text,
+                "confidence": 0.95,  # Google AI doesn't provide confidence scores
+                "model": self.google_model_name
+            }
         except Exception as e:
-            error_msg = f"Error setting model: {str(e)}"
-            self.logger.error(error_msg)
-            return False
+            raise AIError(f"Google AI processing error: {str(e)}")
     
-    def clear_history(self) -> None:
-        """Clear the conversation history"""
-        self.query_processor.clear_history()
-        self.logger.info("Conversation history cleared")
+    def _process_ollama_command(self, command: str) -> Dict[str, Any]:
+        """Process command using Ollama."""
+        try:
+            response = self.client.generate(command)
+            return {
+                "command": response["response"],
+                "confidence": response.get("confidence", 0.95),
+                "model": "ollama"
+            }
+        except Exception as e:
+            raise AIError(f"Ollama processing error: {str(e)}")
     
-    def set_quiet_mode(self, quiet: bool) -> None:
-        """
-        Set quiet mode for all components.
-        
-        Args:
-            quiet (bool): If True, reduces terminal output
-        """
-        self.logging_manager.set_quiet_mode(quiet)
-        self.model_manager.quiet_mode = quiet
-        self.query_processor.quiet_mode = quiet
-        self.logger.info(f"Quiet mode set to: {quiet}")
-    
-    def get_current_log_file(self) -> Optional[str]:
-        """
-        Get the path of the current log file.
-        
-        Returns:
-            Optional[str]: Path to the current log file, or None if not found
-        """
-        return self.logging_manager.get_current_log_file()
+    def clear_cache(self) -> None:
+        """Clear the response cache."""
+        self.cache.clear()
+        logger.info("AI response cache cleared")
