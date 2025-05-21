@@ -59,21 +59,43 @@ class AICommandExtractor:
                 - Extracted command (string or None)
                 - Metadata about the extraction (dictionary)
         """
-        # Initialize metadata dictionary
         metadata = {
-            "source": None,  # Where the command was extracted from
-            "confidence": 0.0,  # Confidence in command correctness
-            "is_error": False,  # Whether response indicates an error
-            "error_message": None,  # Error message if applicable
-            "suggested_alternatives": [],  # Alternative commands if any
-            "requires_implementation": False,  # Whether this needs human implementation
-            "parsed_json": None,  # Parsed JSON if response contained it
-            "file_operation": None,  # What file operation (create, read, write, delete, etc.)
-            "operation_params": {},  # Parameters for file operations
-            "info_response": None,  # Informational response content
-            "related_commands": [],  # Related commands for informational responses
+            "source": None,
+            "confidence": 0.0,
+            "is_error": False,
+            "error_message": None,
+            "suggested_alternatives": [],
+            "requires_implementation": False,
+            "parsed_json": None,
+            "file_operation": None,
+            "operation_params": {},
+            "info_response": None,
+            "related_commands": [],
         }
-        
+
+        # If the response is already a dict, treat as parsed JSON
+        if isinstance(ai_response, dict):
+            metadata["parsed_json"] = ai_response
+            metadata["source"] = "json"
+            metadata["confidence"] = 0.95
+            if "command" in ai_response:
+                command = ai_response["command"]
+                if "explanation" in ai_response:
+                    metadata["explanation"] = ai_response["explanation"]
+                if "alternatives" in ai_response:
+                    metadata["suggested_alternatives"] = ai_response["alternatives"]
+                if "requires_implementation" in ai_response:
+                    metadata["requires_implementation"] = ai_response["requires_implementation"]
+                if "file_operation" in ai_response:
+                    metadata["file_operation"] = ai_response["file_operation"]
+                    if "operation_params" in ai_response:
+                        metadata["operation_params"] = ai_response["operation_params"]
+                logger.debug(f"Extracted command from JSON: {command}")
+                return True, command, metadata
+            # If no command, treat as info
+            metadata["info_response"] = ai_response
+            return False, None, metadata
+
         # First priority: Extract JSON from the AI response
         try:
             # Look for code blocks containing JSON
@@ -269,24 +291,25 @@ class AICommandExtractor:
         
         return blocks
     
-    def _extract_code_blocks(self, text: str) -> List[str]:
-        """Extract code blocks from text."""
-        blocks = []
+    def _extract_code_blocks(self, text: str) -> list:
+        """Extract code blocks from text or dict."""
+        if isinstance(text, dict):
+            # No code blocks in dicts
+            return []
         lines = text.split('\n')
-        in_code_block = False
+        in_block = False
         current_block = []
-        
+        blocks = []
         for line in lines:
             if any(line.strip().startswith(marker) for marker in self.code_block_markers):
-                in_code_block = True
+                in_block = True
                 current_block = []
-            elif in_code_block and line.strip().startswith('```'):
-                in_code_block = False
+            elif in_block and line.strip().startswith('```'):
+                in_block = False
                 if current_block:
                     blocks.append('\n'.join(current_block))
-            elif in_code_block:
+            elif in_block:
                 current_block.append(line)
-        
         return blocks
     
     def _extract_inline_code(self, text: str) -> List[str]:

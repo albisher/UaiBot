@@ -252,7 +252,7 @@ class CommandProcessor:
         if not user_input or not user_input.strip():
             return "Please enter a command."
             
-        # First, check if this is a file or folder search query
+        # First, check if this is a file or folder search query (AI-driven only)
         is_folder_search, folder_result = self._handle_folder_search(user_input)
         if is_folder_search:
             return folder_result
@@ -279,21 +279,8 @@ class CommandProcessor:
             # Special case for Apple Notes - ensure we handle it directly
             return self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
             
-        # Check if this is a file/folder search request
-        if "find" in query_lower or "search" in query_lower:
-            # Extract search term if any
-            search_terms = ["file", "folder", "directory"]
-            for term in search_terms:
-                if term in query_lower:
-                    pattern = rf"(?:find|search)(?:\s+for)?\s+(?:a|the)?\s+{term}(?:s)?\s+(?:named|called)?\s+['\"]*([a-zA-Z0-9_\-\.\s]+)['\"\s]*"
-                    match = re.search(pattern, query_lower)
-                    if match:
-                        search_name = match.group(1).strip()
-                        if term in ["folder", "directory"]:
-                            return self.shell_handler.find_folders(search_name)
-                        else:
-                            # Use find with both files and directories for generic file search
-                            return self._try_direct_execution(f'find ~ -name "*{search_name}*" -type f 2>/dev/null | head -n 20')
+        # Remove regex-based file/folder search extraction here
+        # All file/folder search detection is now AI-driven
         
         # Handle based on AI response
         return self._handle_with_ai(user_input)
@@ -382,7 +369,7 @@ class CommandProcessor:
         
         # Get response from AI
         try:
-            ai_response = self.ai_handler.get_ai_response(prompt)
+            ai_response = self.ai_handler.process_command(prompt)
         except Exception as e:
             error_msg = f"Error getting AI response: {str(e)}"
             if self.output:
@@ -403,41 +390,43 @@ class CommandProcessor:
         # Handle browser automation intent
         if metadata.get("intent") == "browser_automation":
             from core.browser_handler import BrowserAutomationHandler
-            browser = metadata.get("browser", "")
-            url = metadata.get("url", "")
-            actions = metadata.get("actions", [])
+            # Use fields from metadata or parsed_json
+            browser = metadata.get("browser")
+            url = metadata.get("url")
+            actions = metadata.get("actions")
+            # Fallback to parsed_json if needed
+            if not (browser and url and actions) and metadata.get("parsed_json"):
+                pj = metadata["parsed_json"]
+                browser = browser or pj.get("browser")
+                url = url or pj.get("url")
+                actions = actions or pj.get("actions")
             handler = BrowserAutomationHandler()
             result = handler.execute_actions(browser, url, actions)
             return result
 
-        if success and command:
+        # Only execute as shell command if intent is 'command' and command is present
+        if metadata.get("intent") == "command" and success and command:
             # Show the command that will be executed
             if self.output:
                 self.output.command(command)
             else:
                 self.log(f"AI suggested command: {command}")
-            
             # Execute the command
             result = self._try_direct_execution(command)
-            
             # Show the result
             if self.output:
                 self.output.result(True, result)
-                
                 # If there's an explanation, add it
                 if metadata.get("parsed_json") and metadata["parsed_json"].get("explanation"):
                     self.output.explanation(metadata["parsed_json"]["explanation"])
-                    
                 # Return a simpler response for the calling function
                 return result
             else:
                 # Format the response for legacy output path
                 formatted_response = f"📋 I ran this command for you:\n{command}\n\n📊 Result:\n{result}"
-                
                 # If there's an explanation in the metadata, add it
                 if metadata.get("parsed_json") and metadata["parsed_json"].get("explanation"):
                     formatted_response += f"\n\n💡 {metadata['parsed_json']['explanation']}"
-                    
                 return formatted_response
         
         elif metadata["is_error"]:
@@ -476,8 +465,10 @@ class CommandProcessor:
         else:
             # No command found but no explicit error - treat as general response
             # Clean up the AI response to make it user-friendly
-            clean_response = ai_response.replace("```json", "").replace("```", "").strip()
-            
+            if isinstance(ai_response, dict):
+                clean_response = json.dumps(ai_response)
+            else:
+                clean_response = ai_response.replace("```json", "").replace("```", "").strip()
             # Try to parse as JSON to extract any useful info
             try:
                 data = json.loads(clean_response)
@@ -485,14 +476,12 @@ class CommandProcessor:
                     if "error" in data and data["error"]:
                         # This is an error response in JSON format
                         error_message = data.get("error_message", "This request cannot be handled by a simple command.")
-                        
                         # Log the implementation requirement
                         self.command_logger.log_implementation_needed(
                             user_input, 
                             error_message, 
                             {"reason": error_message}
                         )
-                        
                         # Display using output handler if available
                         if self.output:
                             self.output.error(f"Unable to execute this request: {error_message}")
@@ -500,7 +489,6 @@ class CommandProcessor:
                             return error_message
                         else:
                             return f"❌ I'm unable to execute this request: {error_message}\n\nThis request has been logged for future implementation."
-                    
                     # There might be other useful information in the JSON
                     if "explanation" in data:
                         if self.output:
@@ -508,16 +496,9 @@ class CommandProcessor:
                             return data['explanation']
                         else:
                             return f"💡 {data['explanation']}"
-            except json.JSONDecodeError:
-                # Not valid JSON, just use the raw response
+            except Exception:
                 pass
-            
-            # Return a clean version of the AI response as information
-            if self.output:
-                self.output.explanation(clean_response)
-                return clean_response
-            else:    
-                return f"💡 {clean_response}"
+            return clean_response
             
     def _handle_folder_search(self, query):
         """

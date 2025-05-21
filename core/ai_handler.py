@@ -433,11 +433,12 @@ class AIHandler:
     def _process_ollama_command(self, command: str) -> Dict[str, Any]:
         """Process command using Ollama."""
         try:
-            response = self.client.generate(command)
+            model_name = getattr(self, 'ollama_model_name', None) or 'gemma3:4b'
+            response = self.client.generate(model=model_name, prompt=command)
             return {
                 "command": response["response"],
                 "confidence": response.get("confidence", 0.95),
-                "model": "ollama"
+                "model": model_name
             }
         except Exception as e:
             raise AIError(f"Ollama processing error: {str(e)}")

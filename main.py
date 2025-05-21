@@ -223,8 +223,13 @@ def main():
         bot = UaiBot(debug=args.debug)
         
         if args.file:
-            # Process the command in file/automation mode (AI-driven)
-            result = bot.process_single_command(args.file)
+            # If the argument is a file, read its contents as the prompt. Otherwise, treat it as a direct prompt.
+            if os.path.isfile(args.file):
+                with open(args.file, 'r') as f:
+                    prompt = f.read().strip()
+            else:
+                prompt = args.file.strip()
+            result = bot.process_single_command(prompt)
             output.info(result)
         elif args.command:
             result = bot.process_single_command(args.command)

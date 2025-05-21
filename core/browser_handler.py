@@ -185,40 +185,66 @@ class BrowserAutomationHandler:
 
     def open_browser(self, browser: str, url: str):
         import webbrowser
+        import subprocess
+        print(f"[BrowserAutomationHandler] Attempting to open browser: {browser} with URL: {url}")
         # Try to use the specified browser, fallback to default
         try:
             if browser:
                 browser = browser.lower()
                 if browser in ["chrome", "google chrome"]:
-                    webbrowser.get("google-chrome").open(url)
+                    print("[BrowserAutomationHandler] Using google-chrome")
+                    try:
+                        webbrowser.get("google-chrome").open(url)
+                    except webbrowser.Error:
+                        print("[BrowserAutomationHandler] google-chrome not registered, trying xdg-open")
+                        subprocess.Popen(["xdg-open", url])
                 elif browser in ["firefox", "mozilla firefox"]:
-                    webbrowser.get("firefox").open(url)
+                    print("[BrowserAutomationHandler] Using firefox")
+                    try:
+                        webbrowser.get("firefox").open(url)
+                    except webbrowser.Error:
+                        print("[BrowserAutomationHandler] firefox not registered, trying xdg-open")
+                        subprocess.Popen(["xdg-open", url])
                 elif browser in ["brave", "brave-browser"]:
-                    webbrowser.get("brave-browser").open(url)
+                    print("[BrowserAutomationHandler] Using brave-browser")
+                    try:
+                        webbrowser.get("brave-browser").open(url)
+                    except webbrowser.Error:
+                        print("[BrowserAutomationHandler] brave-browser not registered, trying xdg-open")
+                        subprocess.Popen(["xdg-open", url])
                 else:
+                    print("[BrowserAutomationHandler] Using default webbrowser.open")
                     webbrowser.open(url)
             else:
+                print("[BrowserAutomationHandler] No browser specified, using default webbrowser.open")
                 webbrowser.open(url)
-        except Exception:
-            webbrowser.open(url)
+        except Exception as e:
+            print(f"[BrowserAutomationHandler] Exception occurred: {e}. Trying xdg-open as fallback.")
+            try:
+                subprocess.Popen(["xdg-open", url])
+            except Exception as e2:
+                print(f"[BrowserAutomationHandler] Fallback xdg-open also failed: {e2}")
 
     def execute_actions(self, browser: str, url: str, actions: list):
         import time
+        print(f"[BrowserAutomationHandler] execute_actions called with browser={browser}, url={url}, actions={actions}")
         self.open_browser(browser, url)
+        print(f"[BrowserAutomationHandler] Waiting {self.default_wait} seconds for browser to open...")
         time.sleep(self.default_wait)
         for action in actions:
             atype = action.get("type")
+            print(f"[BrowserAutomationHandler] Performing action: {action}")
             if atype == "wait":
+                print(f"[BrowserAutomationHandler] Waiting {action.get('seconds', 1)} seconds")
                 time.sleep(action.get("seconds", 1))
             elif atype == "click":
-                # For now, support only center of screen or named targets
-                # TODO: Add vision-based click for named targets
                 if "x" in action and "y" in action:
+                    print(f"[BrowserAutomationHandler] Moving to ({action['x']}, {action['y']}) and clicking")
                     self.pyautogui.moveTo(action["x"], action["y"], duration=0.2)
                     self.pyautogui.click()
                 elif "target" in action:
-                    # Try to locate on screen by image if provided
                     img = action["target"]
+                    print(f"[BrowserAutomationHandler] Looking for image target: {img}")
                     if img.endswith(".png") and os.path.exists(img):
                         loc = self.pyautogui.locateOnScreen(img, confidence=0.8)
                         if loc:
@@ -226,19 +252,24 @@ class BrowserAutomationHandler:
                             self.pyautogui.moveTo(center.x, center.y, duration=0.2)
                             self.pyautogui.click()
                 else:
-                    # Default: click center
                     w, h = self.pyautogui.size()
+                    print(f"[BrowserAutomationHandler] Clicking center of screen at ({w//2}, {h//2})")
                     self.pyautogui.moveTo(w//2, h//2, duration=0.2)
                     self.pyautogui.click()
             elif atype == "type":
+                print(f"[BrowserAutomationHandler] Typing text: {action.get('text', '')}")
                 self.pyautogui.write(action.get("text", ""), interval=0.08)
             elif atype == "press":
+                print(f"[BrowserAutomationHandler] Pressing key: {action.get('key', 'enter')}")
                 self.pyautogui.press(action.get("key", "enter"))
             elif atype == "hotkey":
                 keys = action.get("keys", [])
+                print(f"[BrowserAutomationHandler] Pressing hotkey: {keys}")
                 if keys:
                     self.pyautogui.hotkey(*keys)
             elif atype == "screenshot":
                 fname = action.get("filename", "screenshot.png")
+                print(f"[BrowserAutomationHandler] Taking screenshot and saving to {fname}")
                 self.pyautogui.screenshot(fname)
+        print("[BrowserAutomationHandler] All actions completed.")
         return "Browser automation actions completed."
