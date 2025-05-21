@@ -20,8 +20,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Union, Tuple
 
 # Import the style manager
-from utils.output_style_manager import OutputStyleManager
-from core.logging_config import get_logger
+from uaibot.utils.output_style_manager import OutputStyleManager
+from uaibot.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 

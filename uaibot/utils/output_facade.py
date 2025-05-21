@@ -16,10 +16,10 @@ Output Philosophy & Flow:
 import sys
 import os
 from typing import Optional, Any, Dict, Union, List
-from core.logging_config import get_logger
+from uaibot.core.logging_config import get_logger
 
 # Import the OutputHandler as our implementation class
-from utils.output_handler import OutputHandler
+from uaibot.utils.output_handler import OutputHandler
 
 logger = get_logger(__name__)
 

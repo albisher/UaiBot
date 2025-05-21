@@ -1,5 +1,5 @@
 {
-  "google_api_key": "AIzaSyCqD5LAj3SzfkJApDpb_yNkI_jcCA-dhpk",
+  "google_api_key": "fffff-dhpk",
   "ollama_base_url": "http://localhost:11434",
   "default_ollama_model": "gemma3:4b",
   "default_google_model": "gemini-pro",

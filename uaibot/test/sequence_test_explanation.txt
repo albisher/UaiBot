@@ -2,7 +2,7 @@ Test Sequence Explanation
 
 This test sequence is designed to verify the functionality of UaiBot by executing a series of commands in a specific order. The sequence is broken down into the following steps:
 
-1. **Set up the environment**: This step sets the `PYTHONPATH` environment variable to ensure that the UaiBot modules can be imported correctly.
+1. **Set up the environment**: This step environment to ensure that the UaiBot modules can be imported correctly.
 
 2. **Run the first command**: This step executes the command "where is Kuwait" using UaiBot. It tests the ability of UaiBot to process and execute a search command.
 
@@ -19,3 +19,11 @@ This test sequence is designed to verify the functionality of UaiBot by executin
 8. **Run the seventh command**: This step executes the command "play that and cast it to my tv" using UaiBot. It tests the ability of UaiBot to play media and cast it to a TV.
 
 Each step is logged to the console to provide visibility into the progress of the test sequence. This helps in identifying any issues that may arise during the execution of the commands. 
+
+
+python -m uaibot "open chrome"
+python -m uaibot "move mouse to that chrome you just opened"
+python -m uaibot "click in the main bar not the search bar"
+python -m uaibot "in main bar write google.com"
+python -m uaibot "in the same page search bar write Kuwait"
+python -m uaibot "on same page hit enter"

@@ -1,259 +1,394 @@
-import logging
-import webbrowser
-from typing import Dict, Any, Optional, List, Tuple
+#!/usr/bin/env python3
+"""
+Browser integration for UaiBot.
+Provides functionality to interact with web browsers, get open tabs,
+and browser content.
 
-logger = logging.getLogger(__name__)
+Copyright (c) 2025 UaiBot Team
+License: Custom license - free for personal and educational use.
+Commercial use requires a paid license. See LICENSE file for details.
+"""
+
+import os
+import platform
+import subprocess
+import json
+import tempfile
+import time
+import re
+import pyautogui
+
+from uaibot.utils import run_command
 
 class BrowserHandler:
-    """Handles browser-related commands and operations."""
+    """Handler for browser interactions."""
     
-    def __init__(self):
-        self.supported_browsers = {
-            'chrome': 'google-chrome',
-            'firefox': 'firefox',
-            'safari': 'safari',
-            'edge': 'microsoft-edge',
-            'brave': 'brave-browser',
-            'opera': 'opera'
-        }
-        
-        self.search_engines = {
-            'google': 'https://www.google.com/search?q=',
-            'duckduckgo': 'https://duckduckgo.com/?q=',
-            'bing': 'https://www.bing.com/search?q=',
-            'yahoo': 'https://search.yahoo.com/search?p=',
-            'duckduck': 'https://duckduckgo.com/?q=',
-            'ddg': 'https://duckduckgo.com/?q='
-        }
-        
-        # Common phrases that indicate a search intent
-        self.search_indicators = [
-            # Direct search commands
-            "search for",
-            "search",
-            "look for",
-            "find",
-            "query",
-            "look up",
-            "google",
-            
-            # Question formats
-            "what is",
-            "who is",
-            "where is",
-            "how to",
-            "what's",
-            "what are",
-            "when is",
-            "why is",
-            "which is",
-            
-            # Polite requests
-            "can you find",
-            "could you search",
-            "please search",
-            "would you search",
-            "i want to know",
-            "i need to know",
-            "tell me about",
-            "show me",
-            "get information about",
-            "find out about",
-            
-            # Time and weather related
-            "what's the weather",
-            "weather in",
-            "current time in",
-            "time in",
-            "what time is it in",
-            
-            # General information requests
-            "information about",
-            "details about",
-            "learn about",
-            "read about",
-            "know about",
-            
-            # Action requests
-            "how do i",
-            "how can i",
-            "where can i",
-            "what should i",
-            "when should i",
-            
-            # Comparison requests
-            "compare",
-            "difference between",
-            "versus",
-            "vs",
-            
-            # Location based
-            "near me",
-            "around here",
-            "in this area",
-            "local",
-            
-            # News and updates
-            "latest news about",
-            "recent updates on",
-            "what's new in",
-            "what's happening with"
-        ]
-        
-        # Common browser-related phrases
-        self.browser_indicators = [
-            "in",
-            "using",
-            "with",
-            "open",
-            "launch",
-            "start",
-            "run",
-            "go to",
-            "navigate to",
-            "visit",
-            "browse to"
-        ]
+    def __init__(self, shell_handler=None):
+        self.shell_handler = shell_handler
+        self.system = platform.system().lower()
     
-    def execute_command(self, command: str) -> Dict[str, Any]:
-        """Execute a browser command."""
+    def get_browser_content(self, browser_name=None):
+        """
+        Get content from browser tabs (titles and URLs).
+        
+        Args:
+            browser_name (str, optional): Specific browser to target
+                                         ("chrome", "firefox", "safari", "edge")
+        
+        Returns:
+            str: Formatted browser content or error message
+        """
+        if browser_name:
+            browser_name = browser_name.lower()
+        
+        if self.system == "darwin":  # macOS
+            return self._get_browser_content_macos(browser_name)
+        elif self.system == "linux":
+            return self._get_browser_content_linux(browser_name)
+        elif self.system == "windows":
+            return self._get_browser_content_windows(browser_name)
+        else:
+            return "Unsupported operating system for browser content retrieval."
+            
+    def _get_browser_content_macos(self, browser_name=None):
+        """Get browser content on macOS using AppleScript."""
         try:
-            # Clean the command
-            cleaned_command = self._clean_query(command, None)
-            # Open the default browser with the cleaned command
-            webbrowser.open(f"https://www.google.com/search?q={cleaned_command}")
-            return {"status": "success", "message": f"Opened browser with search: {cleaned_command}"}
-        except Exception as e:
-            return {"status": "error", "message": f"Error executing browser command: {str(e)}"}
-    
-    def _clean_query(self, query: str, search_engine: Optional[str]) -> str:
-        """Clean the search query."""
-        # Remove common command words
-        words_to_remove = ["search", "look for", "find", "query", "look up", "google"]
-        cleaned_query = query.lower()
-        for word in words_to_remove:
-            cleaned_query = cleaned_query.replace(word, "")
-        return cleaned_query.strip()
-    
-    def _parse_command(self, command: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
-        """Parse the command to extract browser, search engine, and query using natural language understanding."""
-        command = command.lower()
-        
-        # Extract browser
-        browser = self._extract_browser(command)
-        
-        # Extract search engine
-        search_engine = self._extract_search_engine(command)
-        
-        # Extract query
-        query = self._extract_query(command, search_engine)
-        
-        return browser, search_engine, query
-    
-    def _extract_browser(self, command: str) -> Optional[str]:
-        """Extract browser name from command using various patterns."""
-        # First check for explicit browser mentions
-        for browser in self.supported_browsers:
-            if browser in command:
-                return browser
-        
-        # Check for browser-related phrases
-        for indicator in self.browser_indicators:
-            if indicator in command:
-                # Look for browser name after the indicator
-                parts = command.split(indicator)
-                if len(parts) > 1:
-                    for browser in self.supported_browsers:
-                        if browser in parts[1]:
-                            return browser
-        
-        return None
-    
-    def _extract_search_engine(self, command: str) -> Optional[str]:
-        """Extract search engine from command."""
-        # Check for explicit search engine mentions
-        for engine in self.search_engines:
-            if engine in command:
-                return engine
-        
-        # Check for common variations
-        if "duckduck" in command or "ddg" in command:
-            return "duckduckgo"
-        
-        return None
-    
-    def _extract_query(self, command: str, search_engine: Optional[str]) -> Optional[str]:
-        """Extract search query from command using natural language patterns."""
-        # Try to find query after search indicators
-        for indicator in self.search_indicators:
-            if indicator in command:
-                parts = command.split(indicator)
-                if len(parts) > 1:
-                    query = parts[-1].strip()
-                    # Clean up the query
-                    query = self._clean_query(query, search_engine)
-                    if query:
-                        return query
-        
-        # If no search indicator found, try to extract query after search engine
-        if search_engine:
-            parts = command.split(search_engine)
-            if len(parts) > 1:
-                query = parts[-1].strip()
-                query = self._clean_query(query, search_engine)
-                if query:
-                    return query
-        
-        # If still no query found, try to extract meaningful content
-        # by removing common words and phrases
-        query = self._extract_meaningful_content(command)
-        return query if query else None
-    
-    def _extract_meaningful_content(self, command: str) -> Optional[str]:
-        """Extract meaningful content from command when no clear search pattern is found."""
-        # Remove browser and search engine references
-        cleaned = command
-        for browser in self.supported_browsers:
-            cleaned = cleaned.replace(browser, "")
-        for engine in self.search_engines:
-            cleaned = cleaned.replace(engine, "")
-        
-        # Remove common command words
-        for indicator in self.browser_indicators + self.search_indicators:
-            cleaned = cleaned.replace(indicator, "")
-        
-        # Clean up the result
-        cleaned = self._clean_query(cleaned, None)
-        
-        # Only return if we have meaningful content
-        return cleaned if len(cleaned.split()) > 0 else None
-    
-    def _construct_search_url(self, search_engine: str, query: str) -> str:
-        """Construct the search URL for the given search engine and query."""
-        if search_engine not in self.search_engines:
-            raise ValueError(f"Unsupported search engine: {search_engine}")
-        
-        base_url = self.search_engines[search_engine]
-        return f"{base_url}{query.replace(' ', '+')}"
-    
-    def _open_browser(self, browser: str, url: str) -> None:
-        """Open the specified browser with the given URL."""
-        try:
-            if browser == "default":
-                webbrowser.open(url)
-                return
+            if not browser_name or browser_name == "safari":
+                # Try Safari first if no specific browser requested or Safari explicitly requested
+                safari_script = """
+                tell application "Safari"
+                    set windowList to every window
+                    set tabData to ""
+                    repeat with w in windowList
+                        set tabList to every tab of w
+                        repeat with t in tabList
+                            set tabData to tabData & "• " & (name of t) & " - " & (URL of t) & "\n"
+                        end repeat
+                    end repeat
+                    return tabData
+                end tell
+                """
+                result = run_command(['osascript', '-e', safari_script], capture_output=True, text=True)
+                if result['success'] and result['stdout'].strip():
+                    return "Open tabs in Safari:\n\n" + result['stdout']
+            
+            if not browser_name or browser_name in ["firefox", "mozilla firefox"]:
+                # Try Firefox if no specific browser requested or Firefox explicitly requested
+                firefox_script = """
+                tell application "Firefox"
+                    activate
+                    delay 0.5
+                    set tabData to ""
+                    
+                    -- Create temporary JavaScript file
+                    set tempFile to (path to temporary items as string) & "firefox_tabs.txt"
+                    do shell script "touch " & quoted form of POSIX path of tempFile
+                    
+                    -- Execute JavaScript to get tabs
+                    tell application "System Events"
+                        keystroke "j" using {command down, option down, shift down}
+                        delay 0.5
+                        keystroke "var tabs = ''; for (let win of Services.wm.getEnumerator('navigator:browser')) { for (let browser of win.gBrowser.browsers) { tabs += '• ' + browser.contentTitle + ' - ' + browser.currentURI.spec + '\\n'; } } require('resource://devtools/shared/DevToolsUtils.js').dumpn(tabs); undefined;"
+                        keystroke return
+                        delay 0.5
+                        keystroke "w" using {command down, option down, shift down}
+                    end tell
+                    
+                    -- Read from Browser Console output
+                    delay 1
+                    set tabData to do shell script "cat /tmp/firefox-browser-console.log | tail -n 20 | grep -v '\\[\\|JavaScript'  | grep -v '};'" as string
+                    
+                    return tabData
+                end tell
+                """
+                result = run_command(['osascript', '-e', firefox_script], capture_output=True, text=True)
+                if result['success'] and result['stdout'].strip():
+                    return "Open tabs in Firefox:\n\n" + result['stdout']
+            
+            # Return error if no browser found or specified browser not found
+            if browser_name:
+                return f"Could not access {browser_name.title()}. Make sure it's running and you've granted necessary permissions."
+            else:
+                return "No supported browser (Safari, Firefox) appears to be running."
                 
-            if browser not in self.supported_browsers:
-                raise ValueError(f"Unsupported browser: {browser}")
-            
-            browser_name = self.supported_browsers[browser]
-            try:
-                webbrowser.get(browser_name).open(url)
-            except webbrowser.Error:
-                # If specific browser not found, use default browser
-                logger.warning(f"Could not find {browser}, using default browser")
-                webbrowser.open(url)
         except Exception as e:
-            logger.error(f"Error opening browser: {str(e)}")
-            # Fallback to default browser
-            webbrowser.open(url) 
+            return f"Error reading browser content: {str(e)}"
+            
+    def _get_browser_content_linux(self, browser_name=None):
+        """Get browser content on Linux."""
+        # Implementation for Linux browsers would go here
+        return "Browser content retrieval is not yet implemented for Linux."
+        
+    def _get_browser_content_windows(self, browser_name=None):
+        """Get browser content on Windows."""
+        # Implementation for Windows browsers would go here
+        return "Browser content retrieval is not yet implemented for Windows."
+
+    def perform_search(self, url: str, query: str, wait_time: float = 2.0) -> str:
+        """
+        Open the default browser, navigate to a URL, and perform a search using PyAutoGUI.
+        Args:
+            url (str): The URL to open (e.g., 'https://www.duckduckgo.com')
+            query (str): The search query to type
+            wait_time (float): Seconds to wait for the browser to load
+        Returns:
+            str: Status message
+        """
+        import subprocess
+        import time
+        import webbrowser
+
+        try:
+            # Open the browser to the URL
+            webbrowser.open(url)
+            time.sleep(wait_time)
+
+            # Try to find the search bar visually (optional: can be improved)
+            # For now, just focus the window and type
+            pyautogui.hotkey('ctrl', 'l')  # Focus address bar
+            time.sleep(0.2)
+            pyautogui.typewrite(url)
+            pyautogui.press('enter')
+            time.sleep(wait_time)
+
+            # For DuckDuckGo, the search bar is focused by default, so type the query
+            pyautogui.typewrite(query)
+            pyautogui.press('enter')
+            return f"Opened {url} and searched for '{query}'."
+        except Exception as e:
+            return f"Error performing browser search: {str(e)}"
+
+class BrowserAutomationHandler:
+    """Executes browser automation actions based on AI-provided JSON."""
+    def __init__(self):
+        import pyautogui
+        self.pyautogui = pyautogui
+        self.default_wait = 2
+        self.available_browsers = ["firefox", "safari", "edge"]
+        self.current_browser_index = 0
+        self.last_opened_browser = None
+        self.last_window_details = None
+
+    def open_browser(self, browser: str, url: str):
+        import webbrowser
+        import subprocess
+        print(f"[BrowserAutomationHandler] Attempting to open browser: {browser} with URL: {url}")
+        
+        # If no specific browser is requested, try browsers in order
+        if not browser:
+            browser = self.available_browsers[self.current_browser_index]
+            self.current_browser_index = (self.current_browser_index + 1) % len(self.available_browsers)
+        
+        try:
+            browser = browser.lower()
+            if browser in ["firefox", "mozilla firefox"]:
+                print("[BrowserAutomationHandler] Using firefox")
+                try:
+                    webbrowser.get("firefox").open(url)
+                except webbrowser.Error:
+                    print("[BrowserAutomationHandler] firefox not registered, trying next browser")
+                    return self.open_browser(None, url)  # Try next browser
+            elif browser in ["safari"]:
+                print("[BrowserAutomationHandler] Using safari")
+                try:
+                    webbrowser.get("safari").open(url)
+                except webbrowser.Error:
+                    print("[BrowserAutomationHandler] safari not registered, trying next browser")
+                    return self.open_browser(None, url)  # Try next browser
+            elif browser in ["edge", "microsoft edge"]:
+                print("[BrowserAutomationHandler] Using microsoft-edge")
+                try:
+                    webbrowser.get("microsoft-edge").open(url)
+                except webbrowser.Error:
+                    print("[BrowserAutomationHandler] microsoft-edge not registered, trying next browser")
+                    return self.open_browser(None, url)  # Try next browser
+            elif browser in ["chrome", "google chrome"]:
+                print("[BrowserAutomationHandler] Using chrome")
+                import sys
+                if sys.platform == "darwin":
+                    try:
+                        subprocess.run(['open', '-a', 'Google Chrome', url], check=True)
+                    except Exception as e:
+                        print(f"[BrowserAutomationHandler] Failed to open Chrome with subprocess: {e}. Falling back to default webbrowser.open.")
+                        webbrowser.open(url)
+                else:
+                    try:
+                        webbrowser.get("chrome").open(url)
+                    except webbrowser.Error:
+                        print("[BrowserAutomationHandler] chrome not registered, falling back to default webbrowser.open")
+                        webbrowser.open(url)
+            else:
+                print("[BrowserAutomationHandler] Using default webbrowser.open")
+                webbrowser.open(url)
+            self.last_opened_browser = browser
+            # TODO: Persist last_window_details to disk after opening a browser, and load it on initialization, so that sequential commands in separate processes can share window state.
+            # Capture the window details of the newly opened browser window
+            import time
+            time.sleep(1)  # Wait for the window to open
+            try:
+                if sys.platform == "darwin":
+                    import subprocess
+                    script = """
+                    tell application \"System Events\"
+                        set frontApp to first application process whose frontmost is true
+                        set frontAppName to name of frontApp
+                        set frontWindow to first window of frontApp
+                        set windowTitle to name of frontWindow
+                        set windowPosition to position of frontWindow
+                        set windowSize to size of frontWindow
+                        return frontAppName & "," & windowTitle & "," & windowPosition & "," & windowSize
+                    end tell
+                    """
+                    result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        raw = result.stdout.strip()
+                        details = raw.split(',')
+                        try:
+                            if len(details) >= 6:
+                                app_name = details[0]
+                                title = details[1]
+                                left = int(details[2])
+                                top = int(details[3])
+                                width = int(details[4])
+                                height = int(details[5])
+                                self.last_window_details = {
+                                    "title": title,
+                                    "left": left,
+                                    "top": top,
+                                    "width": width,
+                                    "height": height
+                                }
+                                print(f"[BrowserAutomationHandler] Captured window details: {self.last_window_details}")
+                            else:
+                                print(f"[BrowserAutomationHandler] AppleScript output incomplete: '{raw}', window details not captured.")
+                        except Exception as e:
+                            print(f"[BrowserAutomationHandler] Error parsing AppleScript output: '{raw}', error: {e}")
+                    else:
+                        print(f"[BrowserAutomationHandler] AppleScript failed with return code {result.returncode}.")
+                else:
+                    # For non-macOS platforms, use PyAutoGUI if available
+                    try:
+                        window = self.pyautogui.getActiveWindow()
+                        if window:
+                            self.last_window_details = {
+                                "title": window.title,
+                                "left": window.left,
+                                "top": window.top,
+                                "width": window.width,
+                                "height": window.height
+                            }
+                            print(f"[BrowserAutomationHandler] Captured window details: {self.last_window_details}")
+                    except Exception as e:
+                        print(f"[BrowserAutomationHandler] Failed to capture window details with PyAutoGUI: {e}")
+            except Exception as e:
+                print(f"[BrowserAutomationHandler] Failed to capture window details: {e}")
+        except Exception as e:
+            print(f"[BrowserAutomationHandler] Exception occurred: {e}. Trying next browser.")
+            return self.open_browser(None, url)  # Try next browser
+
+    def execute_actions(self, browser: str, url: str, actions: list):
+        import time
+        print(f"[BrowserAutomationHandler] execute_actions called with browser={browser}, url={url}, actions={actions}")
+        
+        # Try to execute actions with the specified browser
+        try:
+            self.open_browser(browser, url)
+            print(f"[BrowserAutomationHandler] Waiting {self.default_wait} seconds for browser to open...")
+            time.sleep(self.default_wait)
+            
+            for action in actions:
+                atype = action.get("type")
+                print(f"[BrowserAutomationHandler] Performing action: {action}")
+                if atype == "wait":
+                    print(f"[BrowserAutomationHandler] Waiting {action.get('seconds', 1)} seconds")
+                    time.sleep(action.get("seconds", 1))
+                elif atype == "click":
+                    if "x" in action and "y" in action:
+                        print(f"[BrowserAutomationHandler] Moving to ({action['x']}, {action['y']}) and clicking")
+                        self.pyautogui.moveTo(action["x"], action["y"], duration=0.2)
+                        self.pyautogui.click()
+                    elif "target" in action:
+                        img = action["target"]
+                        print(f"[BrowserAutomationHandler] Looking for image target: {img}")
+                        if img.endswith(".png") and os.path.exists(img):
+                            loc = self.pyautogui.locateOnScreen(img, confidence=0.8)
+                            if loc:
+                                center = self.pyautogui.center(loc)
+                                self.pyautogui.moveTo(center.x, center.y, duration=0.2)
+                                self.pyautogui.click()
+                    else:
+                        w, h = self.pyautogui.size()
+                        print(f"[BrowserAutomationHandler] Clicking center of screen at ({w//2}, {h//2})")
+                        self.pyautogui.moveTo(w//2, h//2, duration=0.2)
+                        self.pyautogui.click()
+                elif atype == "type":
+                    print(f"[BrowserAutomationHandler] Typing text: {action.get('text', '')}")
+                    self.pyautogui.write(action.get("text", ""), interval=0.08)
+                elif atype == "press":
+                    print(f"[BrowserAutomationHandler] Pressing key: {action.get('key', 'enter')}")
+                    self.pyautogui.press(action.get("key", "enter"))
+                elif atype == "hotkey":
+                    keys = action.get("keys", [])
+                    print(f"[BrowserAutomationHandler] Pressing hotkey: {keys}")
+                    if keys:
+                        self.pyautogui.hotkey(*keys)
+                elif atype == "screenshot":
+                    fname = action.get("filename", "screenshot.png")
+                    print(f"[BrowserAutomationHandler] Taking screenshot and saving to {fname}")
+                    self.pyautogui.screenshot(fname)
+                elif atype == "type_in_address_bar":
+                    text = action.get("text")
+                    if text:
+                        # Check if we have last_window_details and activate the window
+                        if self.last_window_details:
+                            window = self.last_window_details
+                            self.pyautogui.moveTo(window["left"] + window["width"] // 2, window["top"] + 10)
+                            self.pyautogui.click()
+                            time.sleep(0.2)
+                        else:
+                            # Fallback: move to top center of main screen
+                            screen_w, screen_h = self.pyautogui.size()
+                            self.pyautogui.moveTo(screen_w // 2, 10)
+                            self.pyautogui.click()
+                            time.sleep(0.2)
+                        pyautogui.hotkey('ctrl', 'l')  # Focus address bar
+                        time.sleep(0.2)
+                        pyautogui.typewrite(text)
+                        logger.debug(f"Typed in address bar: {text}")
+                        return {"status": "success", "message": f"Typed {text} in address bar"}
+                    else:
+                        return {"status": "error", "message": "Missing text for type_in_address_bar operation"}
+                elif atype == "type_in_search_bar":
+                    text = action.get("text")
+                    if text:
+                        # Check if we have last_window_details and activate the window
+                        if self.last_window_details:
+                            window = self.last_window_details
+                            self.pyautogui.moveTo(window["left"] + window["width"] // 2, window["top"] + 10)
+                            self.pyautogui.click()
+                            time.sleep(0.2)
+                        else:
+                            # Fallback: move to top center of main screen
+                            screen_w, screen_h = self.pyautogui.size()
+                            self.pyautogui.moveTo(screen_w // 2, 10)
+                            self.pyautogui.click()
+                            time.sleep(0.2)
+                        pyautogui.hotkey('ctrl', 'l')  # Focus search bar
+                        time.sleep(0.2)
+                        pyautogui.typewrite(text)
+                        logger.debug(f"Typed in search bar: {text}")
+                        return {"status": "success", "message": f"Typed {text} in search bar"}
+                    else:
+                        return {"status": "error", "message": "Missing text for type_in_search_bar operation"}
+            
+            print("[BrowserAutomationHandler] All actions completed.")
+            return "Browser automation actions completed."
+            
+        except Exception as e:
+            print(f"[BrowserAutomationHandler] Error with current browser: {e}")
+            if browser:  # If we were using a specific browser, try without specifying one
+                print("[BrowserAutomationHandler] Trying with a different browser...")
+                return self.execute_actions(None, url, actions)
+            else:
+                print("[BrowserAutomationHandler] All browsers failed.")
+                return f"Error: All browsers failed. Last error: {str(e)}" 

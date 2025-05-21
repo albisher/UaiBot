@@ -15,3 +15,5 @@ important notes:
 - test_files/t250521 is the correct folder to start with for todays tests results.
 - .py test files needs to be in tests folder.
 - human instrucions folder to contain files that are named to areas of needed instructions inside the file the natural human instruction list relted to the file name will be written.
+- always run code in .venv 
+- always do installations in .venv

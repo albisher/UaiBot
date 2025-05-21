@@ -7,6 +7,9 @@ from uaibot.core.utils import Utils
 from uaibot.core.browser_handler import BrowserHandler
 from uaibot.core.browser_interaction import BrowserInteractionHandler
 from uaibot.core.memory_handler import MemoryHandler
+from uaibot.core.browser_handler import BrowserAutomationHandler
+import pyautogui
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,7 @@ class CommandProcessor:
         self.browser_handler = BrowserHandler()
         self.browser_interaction = BrowserInteractionHandler()
         self.memory = MemoryHandler()
+        self.browser_automation = BrowserAutomationHandler()
         
         # Command history
         self.command_history = []
@@ -260,6 +264,35 @@ class CommandProcessor:
         elif any(word in command_lower for word in ["errors", "show errors"]):
             return {"type": "utility", "operation": "errors"}
             
+        # Open Chrome
+        if "open" in command_lower and "chrome" in command_lower:
+            return {"type": "browser_interaction", "operation": "open_browser", "browser": "chrome"}
+
+        # In main bar write
+        if command.startswith("in main bar write"):
+            text = command.replace("in main bar write", "").strip()
+            return {
+                "type": "browser_interaction",
+                "operation": "type_in_address_bar",
+                "text": text
+            }
+
+        # In the same page search bar write Kuwait
+        if "in the same page search bar write" in command_lower:
+            text = command_lower.split("in the same page search bar write", 1)[-1].strip()
+            return {"type": "browser_interaction", "operation": "type_in_search_bar", "text": text}
+
+        # On same page hit enter
+        if "on same page hit enter" in command_lower:
+            return {"type": "browser_interaction", "operation": "press_enter"}
+
+        # Move mouse to that chrome you just opened
+        if command.startswith("move mouse to that chrome you just opened"):
+            return {
+                "type": "browser_interaction",
+                "operation": "move_mouse_to_last_chrome"
+            }
+
         return {"type": "error", "message": "Unknown command"}
         
     def _extract_filename(self, command: str) -> str:
@@ -375,7 +408,19 @@ class CommandProcessor:
         try:
             if operation["type"] == "browser":
                 if operation["operation"] == "search":
-                    result = self.browser_handler.execute_command(operation["command"])
+                    # Use 'query' if present, fallback to 'command' for compatibility
+                    search_query = operation.get("query", operation.get("command"))
+                    # Use perform_search instead of execute_command
+                    # Default to DuckDuckGo for now
+                    url = "https://duckduckgo.com"
+                    result_message = self.browser_handler.perform_search(url, search_query)
+                    result = {
+                        "status": "success" if "Opened" in result_message else "error",
+                        "message": result_message,
+                        "browser": None,
+                        "url": url,
+                        "browser_automation": True
+                    }
                     logger.debug(f"Browser search result: {result}")
                     # Store the browser and search info in memory
                     browser = result.get("browser")
@@ -383,15 +428,19 @@ class CommandProcessor:
                     if browser:
                         self.memory.update_browser_state(browser, state)
                     url = result.get("url", "")
-                    self.memory.update_search(operation["command"], url)
+                    self.memory.update_search(search_query, url)
                     return result
             elif operation["type"] == "browser_interaction":
+                # Use last browser from memory if not specified
+                browser = operation.get("browser")
+                if browser is None:
+                    browser = self.memory.get_last_browser()
                 if operation["operation"] == "click_middle_link":
-                    result = self.browser_interaction.click_middle_link(operation["browser"])
+                    result = self.browser_interaction.click_middle_link(browser)
                     logger.debug(f"Click middle link result: {result}")
                     return result
                 elif operation["operation"] == "focus_browser":
-                    result = self.browser_interaction.focus_browser(operation["browser"])
+                    result = self.browser_interaction.focus_browser(browser)
                     logger.debug(f"Focus browser result: {result}")
                     return result
                 elif operation["operation"] == "set_volume":
@@ -399,9 +448,62 @@ class CommandProcessor:
                     logger.debug(f"Set volume result: {result}")
                     return result
                 elif operation["operation"] == "play_and_cast":
-                    result = self.browser_interaction.play_media(operation["media"])
+                    result = self.browser_interaction.play_media(operation.get("media"))
                     logger.debug(f"Play media result: {result}")
                     return result
+                elif operation["operation"] == "open_url":
+                    browser = operation.get("browser")
+                    url = operation.get("url")
+                    if browser and url:
+                        result = self.browser_automation.open_browser(browser, url)
+                        logger.debug(f"Open URL result: {result}")
+                        return {"status": "success", "message": result}
+                    else:
+                        return {"status": "error", "message": "Missing browser or URL for open_url operation"}
+                elif operation["operation"] == "open_browser":
+                    browser = operation.get("browser")
+                    if browser:
+                        result = self.browser_automation.open_browser(browser, "https://www.google.com")
+                        logger.debug(f"Open browser result: {result}")
+                        return {"status": "success", "message": result}
+                    else:
+                        return {"status": "error", "message": "Missing browser for open_browser operation"}
+                elif operation["operation"] == "type_in_address_bar":
+                    text = operation.get("text")
+                    if text:
+                        # Check if we have last_window_details and activate the window
+                        if self.browser_automation.last_window_details:
+                            window = self.browser_automation.last_window_details
+                            self.pyautogui.moveTo(window["left"] + window["width"] // 2, window["top"] + 10)
+                            self.pyautogui.click()
+                            time.sleep(0.2)
+                        pyautogui.hotkey('ctrl', 'l')  # Focus address bar
+                        time.sleep(0.2)
+                        pyautogui.typewrite(text)
+                        logger.debug(f"Typed in address bar: {text}")
+                        return {"status": "success", "message": f"Typed {text} in address bar"}
+                    else:
+                        return {"status": "error", "message": "Missing text for type_in_address_bar operation"}
+                elif operation["operation"] == "type_in_search_bar":
+                    text = operation.get("text")
+                    if text:
+                        # Check if we have last_window_details and activate the window
+                        if self.browser_automation.last_window_details:
+                            window = self.browser_automation.last_window_details
+                            self.pyautogui.moveTo(window["left"] + window["width"] // 2, window["top"] + 10)
+                            self.pyautogui.click()
+                            time.sleep(0.2)
+                        pyautogui.hotkey('ctrl', 'l')  # Focus search bar
+                        time.sleep(0.2)
+                        pyautogui.typewrite(text)
+                        logger.debug(f"Typed in search bar: {text}")
+                        return {"status": "success", "message": f"Typed {text} in search bar"}
+                    else:
+                        return {"status": "error", "message": "Missing text for type_in_search_bar operation"}
+                elif operation["operation"] == "press_enter":
+                    pyautogui.press('enter')
+                    logger.debug("Pressed Enter key")
+                    return {"status": "success", "message": "Pressed Enter key"}
             elif operation["type"] == "file":
                 return self._handle_file_command(
                     operation["operation"],
@@ -421,6 +523,15 @@ class CommandProcessor:
                 return self.utils.execute_command(operation["operation"])
             elif operation["type"] == "error":
                 return {"status": "error", "message": operation["message"]}
+            elif operation["type"] == "move_mouse_to_last_chrome":
+                if self.browser_handler.last_window_details:
+                    window = self.browser_handler.last_window_details
+                    self.browser_handler.pyautogui.moveTo(window["left"] + window["width"] // 2, window["top"] + window["height"] // 2)
+                    logger.debug("Moved mouse to last opened Chrome window")
+                    return {"status": "success", "message": "Moved mouse to last opened Chrome window"}
+                else:
+                    logger.error("No last window details available")
+                    return {"status": "error", "message": "No last window details available"}
             return {"status": "error", "message": "Unknown operation type"}
         except Exception as e:
             logger.error(f"Error executing operation: {str(e)}")
