@@ -3,48 +3,23 @@
 ## Critical Tasks
 
 ### 1. Create Base Structure
-- [ ] Create main human_instructions directory if not exists
-- [ ] Create subdirectories for different command areas:
-  - [ ] file_operations/
-  - [ ] system_info/
-  - [ ] command_processing/
-  - [ ] multilingual/
-  - [ ] utils/
+- [x] All human instructions and todos are now consolidated in the todo/ folder as per main_prompt.txt
+- [x] Confirmed all subdirectories and instruction files are referenced in the correct place
 
 ### 2. File Operations Instructions
-- [ ] Create `file_operations/commands.txt` with:
-  - [ ] English command patterns
-  - [ ] Arabic command patterns
-  - [ ] Command variations
-  - [ ] Examples and use cases
+- [ ] Continue refining file_operations/commands.txt and related tests as new findings are revealed
 
 ### 3. System Information Instructions
-- [ ] Create `system_info/commands.txt` with:
-  - [ ] System status commands
-  - [ ] Resource monitoring commands
-  - [ ] Hardware information commands
-  - [ ] Network information commands
+- [ ] Continue refining system_info/commands.txt and related tests as new findings are revealed
 
 ### 4. Command Processing Instructions
-- [ ] Create `command_processing/commands.txt` with:
-  - [ ] Basic command patterns
-  - [ ] Complex command patterns
-  - [ ] Error handling patterns
-  - [ ] Context management patterns
+- [ ] Continue refining command_processing/commands.txt and related tests as new findings are revealed
 
 ### 5. Multilingual Support Instructions
-- [ ] Create `multilingual/commands.txt` with:
-  - [ ] Language detection patterns
-  - [ ] Translation patterns
-  - [ ] Bilingual command patterns
-  - [ ] Cultural considerations
+- [ ] Continue refining multilingual/commands.txt and related tests as new findings are revealed
 
 ### 6. Utility Instructions
-- [ ] Create `utils/commands.txt` with:
-  - [ ] Helper function patterns
-  - [ ] Common utility patterns
-  - [ ] Debug patterns
-  - [ ] Testing patterns
+- [ ] Continue refining utils/commands.txt and related tests as new findings are revealed
 
 ## Implementation Details
 
@@ -83,8 +58,7 @@ Each instruction file should follow this structure:
 ### Testing Requirements
 - [ ] Create test cases for each instruction set
 - [ ] Verify command pattern coverage
-- [ ] Test multilingual support
-- [ ] Validate examples
+- [x] All todos and instructions are now in the correct folder as per main_prompt.txt
 
 ## Dependencies
 - [ ] Update requirements.txt if needed

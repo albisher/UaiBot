@@ -5,7 +5,6 @@ This module implements an AI-driven approach to command processing
 without relying on pattern matching. Instead, it guides the AI
 to format responses in a structured way for direct execution.
 """
-import re
 import json
 import logging
 import platform
@@ -186,9 +185,9 @@ class AIDrivenProcessor:
             if key in self.format_examples:
                 selected_examples.append(self.format_examples[key])
         
-        # Check if request is likely in Arabic or another non-English language
-        arabic_chars = re.search(r'[\u0600-\u06FF]', user_request)
-        if arabic_chars and "arabic_example" in self.format_examples:
+        # Check if request contains Arabic characters using Unicode ranges
+        has_arabic = any('\u0600' <= char <= '\u06FF' for char in user_request)
+        if has_arabic and "arabic_example" in self.format_examples:
             selected_examples.append(self.format_examples["arabic_example"])
         elif "spanish" in user_request.lower() and "spanish_example" in self.format_examples:
             selected_examples.append(self.format_examples["spanish_example"])

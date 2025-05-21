@@ -160,20 +160,12 @@ class CommandProcessor:
            any(indicator in query_lower for indicator in remote_system_indicators):
             
             # Extract command if one is specified
-            device_command_patterns = [
-                r'(?:on|to|with)\s+(?:the\s+)?(?:usb|serial|device|remote|screen).*?(?:do|run|execute|type|send)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]',
-                r'(?:do|run|execute|type|send)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"].*?(?:on|to|with)\s+(?:the\s+)?(?:usb|serial|device|remote|screen)',
-            ]
-            
-            command_match = None
-            for pattern in device_command_patterns:
-                match = re.search(pattern, query_lower)
-                if match:
-                    command_match = match.group(1).strip()
-                    self.log(f"Sending command '{command_match}' to active USB/screen session...")
-                    result = self.shell_handler.send_to_screen_session(command_match)
-                    self.log(result)
-                    return True, result
+            command = self._extract_device_command(query_lower)
+            if command:
+                self.log(f"Sending command '{command}' to active USB/screen session...")
+                result = self.shell_handler.send_to_screen_session(command)
+                self.log(result)
+                return True, result
             
             # Handle device listing based on query
             if "list" in query_lower or "show" in query_lower or "what" in query_lower or "check" in query_lower:
@@ -193,6 +185,55 @@ class CommandProcessor:
                     return True, result
         
         return False, ""
+    
+    def _extract_device_command(self, query: str) -> Optional[str]:
+        """
+        Extract a command from a device-related query using string operations.
+        
+        Args:
+            query (str): The query to extract the command from
+            
+        Returns:
+            Optional[str]: The extracted command or None if no command found
+        """
+        # Keywords that indicate a command follows
+        command_indicators = ["do", "run", "execute", "type", "send"]
+        
+        # Keywords that indicate a device target
+        device_indicators = ["on", "to", "with", "the usb", "the serial", "the device", "the remote", "the screen"]
+        
+        # Split the query into words
+        words = query.split()
+        
+        # Look for command indicators
+        for i, word in enumerate(words):
+            if word in command_indicators and i + 1 < len(words):
+                # Found a command indicator, look for the command
+                command_parts = []
+                
+                # Check if the command is in quotes
+                if i + 1 < len(words) and words[i + 1].startswith(("'", '"')):
+                    # Find the closing quote
+                    quote_char = words[i + 1][0]
+                    command_parts.append(words[i + 1][1:])  # Remove opening quote
+                    
+                    for j in range(i + 2, len(words)):
+                        if words[j].endswith(quote_char):
+                            command_parts.append(words[j][:-1])  # Remove closing quote
+                            break
+                        command_parts.append(words[j])
+                else:
+                    # No quotes, take the next word as the command
+                    command_parts.append(words[i + 1])
+                
+                # Check if the command is followed by a device indicator
+                command_str = ' '.join(command_parts)
+                remaining_text = ' '.join(words[i + len(command_parts) + 1:])
+                
+                if any(indicator in remaining_text for indicator in device_indicators):
+                    return command_str
+        
+        return None
     
     def process_command(self, user_input):
         """

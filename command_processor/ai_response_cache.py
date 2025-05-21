@@ -9,13 +9,12 @@ similar queries.
 import hashlib
 import json
 import time
-import re
+import sys
 from typing import Dict, Any, Optional, Tuple
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
-
-import threading
 
 class AIResponseCache:
     """
@@ -49,7 +48,7 @@ class AIResponseCache:
             A string key for the cache
         """
         # Normalize the query by removing extra whitespace and converting to lowercase
-        normalized_query = re.sub(r'\s+', ' ', query.strip().lower())
+        normalized_query = ' '.join(query.strip().lower().split())
         
         # Extract only the relevant parts of the context to avoid unnecessary cache misses
         relevant_context = {}

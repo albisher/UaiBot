@@ -4,6 +4,7 @@ import platform
 import subprocess
 import shlex
 from pathlib import Path
+import os
 
 class CommandProcessor:
     """Process user input and execute commands directly."""
@@ -157,18 +158,268 @@ class CommandProcessor:
     
     def _execute_file_folder_command(self, query):
         """Execute appropriate file/folder command."""
-        if 'note' in query and ('folder' in query or 'app' in query):
+        query_lower = query.lower()
+        words = query_lower.split()
+        
+        # Create file command
+        if any(word in ['create', 'make', 'new'] for word in words) and 'file' in words:
+            return self._handle_create_file(query)
+            
+        # Read file command
+        elif any(word in ['read', 'show', 'display', 'get'] for word in words) and 'content' in words:
+            return self._handle_read_file(query)
+            
+        # Write file command
+        elif any(word in ['write', 'update', 'modify', 'change'] for word in words):
+            return self._handle_write_file(query)
+            
+        # Append file command
+        elif any(word in ['add', 'append'] for word in words):
+            return self._handle_append_file(query)
+            
+        # Delete file command
+        elif any(word in ['delete', 'remove'] for word in words):
+            return self._handle_delete_file(query)
+            
+        # List files command
+        elif any(word in ['list', 'show', 'display'] for word in words) and 'files' in words:
+            return self._handle_list_files()
+            
+        # Search files command
+        elif any(word in ['find', 'search', 'look'] for word in words):
+            return self._handle_search_files(query)
+            
+        # Legacy folder/file search
+        if 'note' in words and ('folder' in words or 'app' in words):
             return self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
             
-        if 'folder' in query or 'director' in query:
+        if 'folder' in words or 'director' in words:
             folder_name = self._extract_search_term(query)
             return self.shell_handler.find_folders(folder_name, location="~", include_cloud=True)
         
-        if 'file' in query:
+        if 'file' in words:
             file_name = self._extract_search_term(query)
             return self.shell_handler.find_files(file_name, location="~")
         
         return "I wasn't able to understand what files or folders you're looking for."
+    
+    def _handle_create_file(self, query):
+        """Handle file creation commands."""
+        words = query.split()
+        filename = None
+        content = None
+        
+        # Find filename
+        for i, word in enumerate(words):
+            if word in ['file', 'named', 'called'] and i + 1 < len(words):
+                filename = words[i + 1]
+                break
+        
+        # Find content between quotes
+        quote_start = query.find('"')
+        if quote_start == -1:
+            quote_start = query.find("'")
+        if quote_start != -1:
+            quote_end = query.find('"', quote_start + 1)
+            if quote_end == -1:
+                quote_end = query.find("'", quote_start + 1)
+            if quote_end != -1:
+                content = query[quote_start + 1:quote_end]
+        
+        if filename and content:
+            try:
+                with open(filename, 'w') as f:
+                    f.write(content)
+                return {
+                    "status": "success",
+                    "file": filename,
+                    "message": f"File {filename} created successfully"
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": str(e)
+                }
+        return None
+
+    def _handle_read_file(self, query):
+        """Handle file reading commands."""
+        words = query.split()
+        filename = None
+        
+        # Find filename
+        for i, word in enumerate(words):
+            if word == 'file' and i + 1 < len(words):
+                filename = words[i + 1]
+                break
+        
+        if filename:
+            try:
+                with open(filename, 'r') as f:
+                    content = f.read()
+                return {
+                    "status": "success",
+                    "file": filename,
+                    "content": content
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": str(e)
+                }
+        return None
+
+    def _handle_write_file(self, query):
+        """Handle file writing commands."""
+        words = query.split()
+        filename = None
+        content = None
+        
+        # Find filename
+        for i, word in enumerate(words):
+            if word == 'file' and i + 1 < len(words):
+                filename = words[i + 1]
+                break
+        
+        # Find content between quotes
+        quote_start = query.find('"')
+        if quote_start == -1:
+            quote_start = query.find("'")
+        if quote_start != -1:
+            quote_end = query.find('"', quote_start + 1)
+            if quote_end == -1:
+                quote_end = query.find("'", quote_start + 1)
+            if quote_end != -1:
+                content = query[quote_start + 1:quote_end]
+        
+        if filename and content:
+            try:
+                with open(filename, 'w') as f:
+                    f.write(content)
+                return {
+                    "status": "success",
+                    "file": filename,
+                    "message": f"File {filename} updated successfully"
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": str(e)
+                }
+        return None
+
+    def _handle_append_file(self, query):
+        """Handle file append commands."""
+        words = query.split()
+        filename = None
+        content = None
+        
+        # Find filename after 'to'
+        for i, word in enumerate(words):
+            if word == 'to' and i + 1 < len(words):
+                filename = words[i + 1]
+                break
+        
+        # Find content between quotes
+        quote_start = query.find('"')
+        if quote_start == -1:
+            quote_start = query.find("'")
+        if quote_start != -1:
+            quote_end = query.find('"', quote_start + 1)
+            if quote_end == -1:
+                quote_end = query.find("'", quote_start + 1)
+            if quote_end != -1:
+                content = query[quote_start + 1:quote_end]
+        
+        if filename and content:
+            try:
+                with open(filename, 'a') as f:
+                    f.write(content)
+                return {
+                    "status": "success",
+                    "file": filename,
+                    "message": f"Content appended to {filename} successfully"
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": str(e)
+                }
+        return None
+
+    def _handle_delete_file(self, query):
+        """Handle file deletion commands."""
+        words = query.split()
+        filename = None
+        
+        # Find filename after 'file' or use last word
+        for i, word in enumerate(words):
+            if word == 'file' and i + 1 < len(words):
+                filename = words[i + 1]
+                break
+        
+        if not filename:
+            filename = words[-1]
+            
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+                return {
+                    "status": "success",
+                    "file": filename,
+                    "message": f"File {filename} deleted successfully"
+                }
+            return {
+                "status": "error",
+                "message": f"File {filename} does not exist"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    def _handle_list_files(self):
+        """Handle list files command."""
+        try:
+            files = os.listdir('.')
+            return {
+                "status": "success",
+                "files": files,
+                "count": len(files)
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    def _handle_search_files(self, query):
+        """Handle search files command."""
+        # Find pattern between quotes
+        quote_start = query.find('"')
+        if quote_start == -1:
+            quote_start = query.find("'")
+        if quote_start != -1:
+            quote_end = query.find('"', quote_start + 1)
+            if quote_end == -1:
+                quote_end = query.find("'", quote_start + 1)
+            if quote_end != -1:
+                pattern = query[quote_start + 1:quote_end]
+                try:
+                    files = [f for f in os.listdir('.') if pattern in f]
+                    return {
+                        "status": "success",
+                        "pattern": pattern,
+                        "files": files,
+                        "count": len(files)
+                    }
+                except Exception as e:
+                    return {
+                        "status": "error",
+                        "message": str(e)
+                    }
+        return None
     
     def _execute_general_command(self, query):
         """Execute a general command based on the query."""
@@ -195,7 +446,6 @@ class CommandProcessor:
     
     def _get_api_key(self, key_name):
         """Get API key from environment variable."""
-        import os
         return os.environ.get(key_name)
 
 

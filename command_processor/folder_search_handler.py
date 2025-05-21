@@ -15,7 +15,7 @@ Example:
     >>> result = handler.handle_folder_search("find folders named Documents")
 """
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 from core.file_search import FileSearch
 
 # Set up logging
@@ -69,7 +69,7 @@ class FolderSearchHandler:
                 logger.error(error_msg)
             return error_msg
     
-    def _parse_query(self, query: str) -> tuple[str, str, int]:
+    def _parse_query(self, query: str) -> Tuple[str, str, int]:
         """
         Parse a folder search query to extract search parameters.
         
@@ -84,41 +84,54 @@ class FolderSearchHandler:
         location = "~"
         max_results = 20
         
-        # Extract folder name
-        if "named" in query:
-            parts = query.split("named", 1)
-            if len(parts) > 1:
-                folder_name = parts[1].strip()
-        elif "containing" in query:
-            parts = query.split("containing", 1)
-            if len(parts) > 1:
-                folder_name = parts[1].strip()
-        else:
-            # Try to extract folder name from common patterns
-            import re
-            patterns = [
-                r"find folders? (?:named|containing|with) ['\"](.+?)['\"]",
-                r"search for folders? (?:named|containing|with) ['\"](.+?)['\"]",
-                r"look for folders? (?:named|containing|with) ['\"](.+?)['\"]"
-            ]
-            
-            for pattern in patterns:
-                match = re.search(pattern, query, re.IGNORECASE)
-                if match:
-                    folder_name = match.group(1)
+        # Convert query to lowercase for case-insensitive matching
+        query_lower = query.lower()
+        
+        # Extract folder name using keyword-based approach
+        folder_keywords = ["named", "containing", "with"]
+        for keyword in folder_keywords:
+            if keyword in query_lower:
+                parts = query.split(keyword, 1)
+                if len(parts) > 1:
+                    # Extract text between quotes if present
+                    text = parts[1].strip()
+                    if text.startswith(("'", '"')) and text.endswith(("'", '"')):
+                        folder_name = text[1:-1]
+                    else:
+                        # If no quotes, take the first word
+                        folder_name = text.split()[0]
                     break
         
+        # If no folder name found yet, try to extract from common patterns
+        if not folder_name:
+            search_verbs = ["find", "search for", "look for"]
+            for verb in search_verbs:
+                if verb in query_lower:
+                    # Get the part after the verb
+                    parts = query.split(verb, 1)
+                    if len(parts) > 1:
+                        # Look for text between quotes
+                        text = parts[1].strip()
+                        if text.startswith(("'", '"')) and text.endswith(("'", '"')):
+                            folder_name = text[1:-1]
+                            break
+        
         # Extract location if specified
-        if "in" in query:
+        if "in" in query_lower:
             parts = query.split("in", 1)
             if len(parts) > 1:
                 location = parts[1].strip()
         
         # Extract max results if specified
-        if "limit" in query or "max" in query:
-            import re
-            match = re.search(r"(?:limit|max)(?:\s+results?)?\s+(\d+)", query, re.IGNORECASE)
-            if match:
-                max_results = int(match.group(1))
+        if "limit" in query_lower or "max" in query_lower:
+            # Find the number after "limit" or "max"
+            words = query_lower.split()
+            for i, word in enumerate(words):
+                if word in ["limit", "max"] and i + 1 < len(words):
+                    try:
+                        max_results = int(words[i + 1])
+                        break
+                    except ValueError:
+                        continue
         
         return folder_name, location, max_results 

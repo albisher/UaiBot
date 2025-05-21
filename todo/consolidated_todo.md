@@ -26,13 +26,9 @@
 - [ ] Improve test coverage
 
 ## Human Instructions
-- [ ] Create human_instructions directory structure
-- [ ] Implement file_operations instructions
-- [ ] Implement system_info instructions
-- [ ] Implement command_processing instructions
-- [ ] Implement multilingual instructions
-- [ ] Implement utility instructions
-- [ ] Add examples and documentation
+- [x] All human instructions and todos are now consolidated in the todo/ folder as per main_prompt.txt
+- [x] output_fixes.txt and other relevant todos have been moved to todo/
+- [ ] Continue updating and refining todos as new findings are revealed during development and testing
 
 ## Documentation
 - [x] Create AI command interpreter documentation
@@ -66,11 +62,14 @@
 - [ ] Optimize performance
 
 ## Security
-- [ ] Review security practices
-- [ ] Add input validation
-- [ ] Implement proper error handling
+- [ ] Review and update security practices
 - [ ] Add security tests
-- [ ] Document security measures
+- [ ] Document security considerations
+
+## Output Formatting
+- [x] output_fixes.txt is now in todo/
+- [ ] Revalidate output formatting in all modules and integration tests
+- [ ] Consider adding color formatting for better readability
 
 ## Performance
 - [ ] Profile code

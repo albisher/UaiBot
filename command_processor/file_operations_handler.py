@@ -6,7 +6,6 @@ Supports creating, reading, writing, deleting, searching, and listing files.
 """
 
 import os
-import re
 import json
 import logging
 import shlex
@@ -53,6 +52,19 @@ class FileOperationsHandler:
                 logger.warning(f"Could not create test_files directory: {e}")
                 
         self.file_search = FileSearch(quiet_mode=quiet_mode)
+        
+        # Command keywords for natural language processing
+        self.command_keywords = {
+            "create": ["create", "make", "new", "generate", "add"],
+            "read": ["read", "show", "display", "get", "view", "open"],
+            "write": ["write", "update", "modify", "change", "edit"],
+            "delete": ["delete", "remove", "erase", "drop"],
+            "search": ["find", "search", "look", "locate", "seek"],
+            "list": ["list", "ls", "dir", "show", "display"]
+        }
+        
+        # File operation indicators
+        self.file_indicators = ["file", "document", "text", "content"]
         
     def log(self, message, level="info"):
         """Log a message with specified level."""
@@ -254,7 +266,6 @@ class FileOperationsHandler:
         """
         # Get parameters
         filename = params.get("filename")
-        force = params.get("force", False)
         
         # Check required parameters
         if not filename:
@@ -268,101 +279,54 @@ class FileOperationsHandler:
             if not os.path.exists(filename):
                 return f"❌ File not found: {filename}"
                 
-            # Check if it's a directory
-            if os.path.isdir(filename) and not force:
-                return f"❌ {filename} is a directory. Use force=True to delete directories."
+            if not os.path.isfile(filename):
+                return f"❌ {filename} is not a file"
                 
-            # Delete file or directory
-            if os.path.isdir(filename):
-                import shutil
-                shutil.rmtree(filename)
-                return f"✅ Deleted directory: {filename}"
-            else:
-                os.remove(filename)
-                return f"✅ Deleted file: {filename}"
-                
+            # Delete the file
+            os.remove(filename)
+            return f"✅ Deleted file: {filename}"
+            
         except Exception as e:
             return f"❌ Error deleting file: {str(e)}"
     
-    def handle_search(self, query: str) -> str:
+    def handle_search(self, params: Dict[str, Any]) -> str:
         """
-        Handle a file search query.
-        
-        This method processes the query to extract search parameters and
-        uses the FileSearch class to perform the search.
+        Handle file search operation.
         
         Args:
-            query (str): The search query to process
+            params: Operation parameters
             
         Returns:
-            str: Formatted search results
+            Operation result message
         """
-        try:
-            # Extract search parameters from query
-            file_pattern, location, max_results = self._parse_query(query)
+        # Get parameters
+        pattern = params.get("pattern")
+        directory = params.get("directory", ".")
+        max_results = params.get("max_results", 10)
+        
+        # Check required parameters
+        if not pattern:
+            return "❌ No search pattern specified"
             
-            # Perform the search using FileSearch
-            return self.file_search.find_files(file_pattern, location, max_results)
+        # Handle relative paths
+        directory = self._resolve_path(directory)
+        
+        try:
+            # Search for files
+            results = self.file_search.search_files(pattern, directory, max_results)
+            
+            if not results:
+                return f"🔍 No files found matching '{pattern}' in {directory}"
+                
+            # Format results
+            result_str = f"🔍 Found {len(results)} files matching '{pattern}' in {directory}:\n\n"
+            for i, result in enumerate(results, 1):
+                result_str += f"{i}. {result}\n"
+                
+            return result_str
             
         except Exception as e:
-            error_msg = f"Error processing file search: {str(e)}"
-            if not self.quiet_mode:
-                logger.error(error_msg)
-            return error_msg
-    
-    def _parse_query(self, query: str) -> tuple[str, str, int]:
-        """
-        Parse a file search query to extract search parameters.
-        
-        Args:
-            query (str): The search query to parse
-            
-        Returns:
-            tuple[str, str, int]: Tuple containing (file_pattern, location, max_results)
-        """
-        # Default values
-        file_pattern = ""
-        location = "~"
-        max_results = 20
-        
-        # Extract file pattern
-        if "named" in query:
-            parts = query.split("named", 1)
-            if len(parts) > 1:
-                file_pattern = parts[1].strip()
-        elif "containing" in query:
-            parts = query.split("containing", 1)
-            if len(parts) > 1:
-                file_pattern = parts[1].strip()
-        else:
-            # Try to extract file pattern from common patterns
-            import re
-            patterns = [
-                r"find files? (?:named|containing|with) ['\"](.+?)['\"]",
-                r"search for files? (?:named|containing|with) ['\"](.+?)['\"]",
-                r"look for files? (?:named|containing|with) ['\"](.+?)['\"]"
-            ]
-            
-            for pattern in patterns:
-                match = re.search(pattern, query, re.IGNORECASE)
-                if match:
-                    file_pattern = match.group(1)
-                    break
-        
-        # Extract location if specified
-        if "in" in query:
-            parts = query.split("in", 1)
-            if len(parts) > 1:
-                location = parts[1].strip()
-        
-        # Extract max results if specified
-        if "limit" in query or "max" in query:
-            import re
-            match = re.search(r"(?:limit|max)(?:\s+results?)?\s+(\d+)", query, re.IGNORECASE)
-            if match:
-                max_results = int(match.group(1))
-        
-        return file_pattern, location, max_results
+            return f"❌ Error searching files: {str(e)}"
     
     def handle_list(self, params: Dict[str, Any]) -> str:
         """
@@ -377,174 +341,200 @@ class FileOperationsHandler:
         # Get parameters
         directory = params.get("directory", ".")
         show_hidden = params.get("show_hidden", False)
+        max_results = params.get("max_results", 50)
         
         # Handle relative paths
         directory = self._resolve_path(directory)
         
         try:
-            # Check if directory exists
-            if not os.path.exists(directory):
-                return f"❌ Directory not found: {directory}"
-                
-            if not os.path.isdir(directory):
-                return f"❌ {directory} is not a directory"
-                
-            # Execute list command using shell handler if available
-            if self.shell_handler:
-                cmd = f"ls -la {shlex.quote(directory)}" if show_hidden else f"ls -l {shlex.quote(directory)}"
-                result = self.shell_handler.execute_command(cmd)
-                
-                return f"📂 Contents of {directory}:\n{result}"
-            else:
-                # Fallback to Python's os.listdir
-                files = os.listdir(directory)
-                
-                if not show_hidden:
-                    # Filter out hidden files
-                    files = [f for f in files if not f.startswith('.')]
+            # List files
+            files = []
+            for item in os.listdir(directory):
+                if not show_hidden and item.startswith('.'):
+                    continue
                     
-                if not files:
-                    return f"Directory {directory} is empty."
-                    
-                # Format list with file types
-                formatted_list = []
-                for file in sorted(files):
-                    file_path = os.path.join(directory, file)
-                    if os.path.isdir(file_path):
-                        formatted_list.append(f"📁 {file}/")
-                    else:
-                        # Get file size
-                        size = os.path.getsize(file_path)
-                        size_str = self._format_size(size)
-                        formatted_list.append(f"📄 {file} ({size_str})")
-                        
-                return f"📂 Contents of {directory}:\n" + "\n".join(formatted_list)
+                path = os.path.join(directory, item)
+                size = os.path.getsize(path)
+                is_dir = os.path.isdir(path)
                 
+                files.append({
+                    'name': item,
+                    'size': self._format_size(size),
+                    'is_dir': is_dir
+                })
+                
+            # Sort files (directories first, then alphabetically)
+            files.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+            
+            # Format results
+            result_str = f"📁 Contents of {directory}:\n\n"
+            for i, file in enumerate(files[:max_results], 1):
+                icon = "📁" if file['is_dir'] else "📄"
+                result_str += f"{i}. {icon} {file['name']} ({file['size']})\n"
+                
+            if len(files) > max_results:
+                result_str += f"\n... and {len(files) - max_results} more items"
+                
+            return result_str
+            
         except Exception as e:
-            return f"❌ Error listing directory: {str(e)}"
+            return f"❌ Error listing files: {str(e)}"
     
     def _resolve_path(self, path: str) -> str:
         """
-        Resolve a path string, expanding special directories and user home.
+        Resolve a path, handling special directories and relative paths.
         
         Args:
-            path: Path string that may contain special directory references
+            path: Path to resolve
             
         Returns:
-            Resolved path
+            Resolved absolute path
         """
         # Handle special directories
-        if path.startswith(tuple(self.default_dirs.keys())):
-            for key, dir_path in self.default_dirs.items():
-                # Check for exact match or directory name followed by / or \
-                if path == key or path.startswith(f"{key}/") or path.startswith(f"{key}\\"):
-                    # Replace just the directory part
-                    return path.replace(key, dir_path, 1)
-        
-        # Expand user home directory (~)
-        return os.path.expanduser(path)
+        if path in self.default_dirs:
+            return self.default_dirs[path]
+            
+        # Handle relative paths
+        if not os.path.isabs(path):
+            return os.path.abspath(path)
+            
+        return path
     
     def _format_size(self, size_bytes: int) -> str:
-        """Format file size in a human-readable format."""
+        """
+        Format file size in human-readable format.
+        
+        Args:
+            size_bytes: Size in bytes
+            
+        Returns:
+            Formatted size string
+        """
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-            if size_bytes < 1024.0 or unit == 'TB':
-                break
+            if size_bytes < 1024.0:
+                return f"{size_bytes:.1f} {unit}"
             size_bytes /= 1024.0
-        return f"{size_bytes:.1f} {unit}"
+        return f"{size_bytes:.1f} PB"
     
     def parse_operation_from_ai_metadata(self, metadata: Dict[str, Any]) -> Tuple[Optional[str], Dict[str, Any]]:
         """
-        Extract file operation information from AI response metadata.
+        Parse file operation from AI response metadata.
         
         Args:
-            metadata: Metadata dictionary from AI command extraction
+            metadata: AI response metadata
             
         Returns:
-            Tuple of (operation_type, operation_params) or (None, {}) if not a file operation
+            Tuple of (operation_type, parameters)
         """
-        if not metadata.get("file_operation"):
+        if not isinstance(metadata, dict):
             return None, {}
             
-        operation_type = metadata["file_operation"]
-        operation_params = metadata.get("operation_params", {})
-        
-        return operation_type, operation_params
+        # Extract operation type
+        operation_type = metadata.get("operation")
+        if not operation_type or operation_type not in self.command_keywords:
+            return None, {}
+            
+        # Extract parameters
+        params = metadata.get("parameters", {})
+        if not isinstance(params, dict):
+            return None, {}
+            
+        return operation_type, params
     
     def extract_operation_from_request(self, request: str) -> Tuple[Optional[str], Dict[str, Any]]:
         """
         Extract file operation from natural language request.
         
         Args:
-            request: User request string
+            request: Natural language request
             
         Returns:
-            Tuple of (operation_type, operation_params) or (None, {}) if not a file operation
+            Tuple of (operation_type, parameters)
         """
         request_lower = request.lower()
+        words = request_lower.split()
         
-        # Define operation mapping
-        operations = {
-            "create": ["create", "new", "make", "touch", "generate", "انشاء", "انشئ", "جديد"],
-            "read": ["read", "show", "display", "cat", "view", "output", "اقرأ", "اعرض", "اظهر"],
-            "write": ["write", "add", "append", "edit", "update", "اكتب", "أكتب", "اضف", "أضف"],
-            "delete": ["delete", "remove", "erase", "destroy", "trash", "rm", "احذف", "امسح", "ازل", "أزل"],
-            "search": ["search", "find", "locate", "where", "which", "ابحث", "جد", "أين", "اين", "وين"],
-            "list": ["list", "ls", "dir", "enumerate", "اظهر", "اعرض", "قائمة"]
-        }
-        
-        # Check for file operation indicators
+        # Find operation type
         operation_type = None
-        for op_type, keywords in operations.items():
-            if any(keyword in request_lower for keyword in keywords):
-                operation_type = op_type
+        for op, keywords in self.command_keywords.items():
+            if any(keyword in words for keyword in keywords):
+                operation_type = op
                 break
                 
         if not operation_type:
             return None, {}
             
-        # Extract operation parameters
+        # Extract parameters based on operation type
         params = {}
         
-        # Extract filename - look for quoted or extension-containing words
-        filename_match = re.search(r'[\'"]([\w\.-]+\.[\w]+)[\'"]|(?:file|filename|document)\s+[\'"]?([\w\.-]+\.[\w]+)[\'"]?', request)
-        if filename_match:
-            filename = filename_match.group(1) or filename_match.group(2)
+        # Extract filename
+        filename = None
+        for indicator in self.file_indicators:
+            if indicator in words:
+                idx = words.index(indicator)
+                if idx + 1 < len(words):
+                    # Check for quoted filename
+                    if '"' in request or "'" in request:
+                        quote_start = request.find('"') if '"' in request else request.find("'")
+                        quote_end = request.find('"', quote_start + 1) if '"' in request else request.find("'", quote_start + 1)
+                        if quote_end != -1:
+                            filename = request[quote_start + 1:quote_end]
+                    else:
+                        # Try to find filename after indicator
+                        potential_filename = words[idx + 1]
+                        if '.' in potential_filename:  # Basic file extension check
+                            filename = potential_filename
+                break
+                
+        if filename:
             params["filename"] = filename
-        elif "test_files" in request_lower:
-            # Default for test_files folder
-            filename_match = re.search(r'test_files/([^\s,]+)', request_lower)
-            if filename_match:
-                params["filename"] = f"test_files/{filename_match.group(1)}"
-            else:
-                params["filename"] = "test_files/file.txt"
-        
-        # Extract content for write operations
-        if operation_type == "write":
-            content_match = re.search(r'[\'"]([^\'"\n]+)[\'"]|content\s+[\'"]?([^\'"\n.]+)[\'"]?', request)
-            if content_match:
-                content = content_match.group(1) or content_match.group(2)
-                params["content"] = content
             
-            # Check for append vs. overwrite
-            params["append"] = any(word in request_lower for word in ["append", "add", "اضف", "أضف"])
-        
-        # Extract directory for list/search operations
-        if operation_type in ["list", "search"]:
-            if "desktop" in request_lower:
-                params["directory"] = "desktop"
-            elif "documents" in request_lower:
-                params["directory"] = "documents"
-            elif "downloads" in request_lower:
-                params["directory"] = "downloads"
-            elif "test_files" in request_lower:
-                params["directory"] = "test_files"
-            else:
-                params["directory"] = "current"
-        
-        # Extract search term for search operations
+        # Extract content for write operations
+        if operation_type in ["create", "write"]:
+            content = None
+            if "with content" in request_lower or "containing" in request_lower:
+                content_start = request_lower.find("with content") + len("with content")
+                if content_start == -1:
+                    content_start = request_lower.find("containing") + len("containing")
+                if content_start != -1:
+                    content = request[content_start:].strip()
+                    if content.startswith('"') or content.startswith("'"):
+                        content = content[1:]
+                    if content.endswith('"') or content.endswith("'"):
+                        content = content[:-1]
+                    params["content"] = content
+                    
+        # Extract search pattern
         if operation_type == "search":
-            search_match = re.search(r'(?:for|containing|with)\s+[\'"]?([^\'"\n.]+)[\'"]?', request_lower)
-            if search_match:
-                params["search_term"] = search_match.group(1)
-        
+            pattern = None
+            if "named" in request_lower or "containing" in request_lower:
+                pattern_start = request_lower.find("named") + len("named")
+                if pattern_start == -1:
+                    pattern_start = request_lower.find("containing") + len("containing")
+                if pattern_start != -1:
+                    pattern = request[pattern_start:].strip()
+                    if pattern.startswith('"') or pattern.startswith("'"):
+                        pattern = pattern[1:]
+                    if pattern.endswith('"') or pattern.endswith("'"):
+                        pattern = pattern[:-1]
+                    params["pattern"] = pattern
+                    
+        # Extract directory
+        if "in" in words:
+            dir_idx = words.index("in")
+            if dir_idx + 1 < len(words):
+                directory = words[dir_idx + 1]
+                if directory in self.default_dirs:
+                    params["directory"] = directory
+                    
+        # Extract max results
+        if "limit" in words or "max" in words:
+            limit_idx = words.index("limit") if "limit" in words else words.index("max")
+            if limit_idx + 2 < len(words) and words[limit_idx + 1] == "results":
+                try:
+                    max_results = int(words[limit_idx + 2])
+                    params["max_results"] = max_results
+                except ValueError:
+                    pass
+                    
         return operation_type, params

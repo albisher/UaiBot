@@ -6,7 +6,6 @@ Formats raw command output into user-friendly results using the OutputStyleManag
 This provides consistent styling across the application with support for theming.
 """
 import platform
-import re
 import json
 import os
 import sys

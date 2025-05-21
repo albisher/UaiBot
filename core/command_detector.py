@@ -2,7 +2,6 @@
 Command Pattern Detector Module
 Provides functionality to analyze command patterns and determine proper routing
 """
-import re
 import shlex
 
 class CommandPatternDetector:
@@ -39,6 +38,11 @@ class CommandPatternDetector:
         ]
         
         self.usb_device_indicators = ['usb', 'serial', 'tty', 'dev/cu', 'dev/tty']
+        
+        # Command extraction patterns
+        self.command_verbs = ["make", "tell", "have", "do", "run", "execute", "type", "send"]
+        self.target_indicators = ["it", "screen", "terminal", "session", "usb", "device", "remote"]
+        self.preposition_indicators = ["in", "on", "at", "to", "with", "through", "via"]
         
     def get_command_type(self, command_str):
         """
@@ -141,17 +145,40 @@ class CommandPatternDetector:
         Returns:
             str or None: The extracted command, or None if no command found
         """
-        # Patterns to extract commands from natural language
-        patterns = [
-            r'(?:make|tell|have)\s+(?:it|screen|terminal|session)\s+(?:do|run|execute|type)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]?',  # make it do X
-            r'(?:in|on|at)\s+(?:the\s+)?(?:screen|terminal|session).*?(?:do|run|execute|type)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]',  # on screen do X
-            r'(?:send|run|do|execute|type)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]?\s+(?:to|in|on|at)\s+(?:the\s+)?(?:screen|terminal|session)',  # send X to screen
-        ]
+        words = query_lower.split()
         
-        for pattern in patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                return match.group(1).strip()
+        # Pattern 1: "make it do X" or "tell screen to do X"
+        for i in range(len(words) - 3):
+            if (words[i] in ["make", "tell", "have"] and 
+                words[i+1] in ["it", "screen", "terminal", "session"] and
+                words[i+2] in ["do", "run", "execute", "type"]):
+                # Extract command after the verb
+                remaining = ' '.join(words[i+3:])
+                return self._extract_quoted_command(remaining)
+        
+        # Pattern 2: "in screen do X" or "on terminal do X"
+        for i in range(len(words) - 3):
+            if (words[i] in ["in", "on", "at"] and
+                words[i+1] in ["the", "screen", "terminal", "session"] and
+                any(words[i+j] in ["do", "run", "execute", "type"] for j in range(2, 4))):
+                # Find the verb
+                verb_idx = i + 2 if words[i+2] in ["do", "run", "execute", "type"] else i + 3
+                # Extract command after the verb
+                remaining = ' '.join(words[verb_idx+1:])
+                return self._extract_quoted_command(remaining)
+        
+        # Pattern 3: "send X to screen" or "run X in terminal"
+        for i in range(len(words) - 3):
+            if words[i] in ["send", "run", "do", "execute", "type"]:
+                # Extract command after the verb
+                remaining = ' '.join(words[i+1:])
+                command = self._extract_quoted_command(remaining)
+                if command:
+                    # Check if the command is followed by a target indicator
+                    remaining_after_command = remaining[len(command):].strip()
+                    if any(indicator in remaining_after_command for indicator in 
+                          ["to", "in", "on", "at", "screen", "terminal", "session"]):
+                        return command
         
         # If no complex pattern matched, check for simple commands
         for cmd in self.common_commands:
@@ -170,20 +197,63 @@ class CommandPatternDetector:
         Returns:
             str or None: The extracted command, or None if no command found
         """
-        # USB device command patterns
-        device_command_patterns = [
-            r'(?:on|to|with)\s+(?:the\s+)?(?:usb|serial|device|remote|screen).*?(?:do|run|execute|type|send)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"]',  # on usb do X
-            r'(?:do|run|execute|type|send)\s+[\'"]?([\w\s\-\.\/\*]+)[\'"].*?(?:on|to|with)\s+(?:the\s+)?(?:usb|serial|device|remote|screen)',  # do X on usb
-        ]
+        words = query_lower.split()
         
-        for pattern in device_command_patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                return match.group(1).strip()
-                
+        # Pattern 1: "on usb do X" or "with device do X"
+        for i in range(len(words) - 3):
+            if (words[i] in ["on", "to", "with"] and
+                words[i+1] in ["the", "usb", "serial", "device", "remote", "screen"] and
+                any(words[i+j] in ["do", "run", "execute", "type", "send"] for j in range(2, 4))):
+                # Find the verb
+                verb_idx = i + 2 if words[i+2] in ["do", "run", "execute", "type", "send"] else i + 3
+                # Extract command after the verb
+                remaining = ' '.join(words[verb_idx+1:])
+                return self._extract_quoted_command(remaining)
+        
+        # Pattern 2: "do X on usb" or "send X to device"
+        for i in range(len(words) - 3):
+            if words[i] in ["do", "run", "execute", "type", "send"]:
+                # Extract command after the verb
+                remaining = ' '.join(words[i+1:])
+                command = self._extract_quoted_command(remaining)
+                if command:
+                    # Check if the command is followed by a target indicator
+                    remaining_after_command = remaining[len(command):].strip()
+                    if any(indicator in remaining_after_command for indicator in 
+                          ["on", "to", "with", "usb", "serial", "device", "remote", "screen"]):
+                        return command
+        
         # If no specific pattern, check for certain verbs or actions
         if any(action in query_lower for action in ['list', 'show', 'check', 'get']):
             if any(term in query_lower for term in ['usb', 'device', 'serial']):
                 return "list_devices"
                 
         return None
+        
+    def _extract_quoted_command(self, text):
+        """
+        Extract a command from quoted text or single word.
+        
+        Args:
+            text (str): The text to extract from
+            
+        Returns:
+            str or None: The extracted command, or None if no command found
+        """
+        text = text.strip()
+        
+        # Check for quoted command
+        if text.startswith(("'", '"')):
+            quote_char = text[0]
+            end_quote = text.find(quote_char, 1)
+            if end_quote != -1:
+                return text[1:end_quote]
+        
+        # Check for backtick command
+        if text.startswith('`'):
+            end_backtick = text.find('`', 1)
+            if end_backtick != -1:
+                return text[1:end_backtick]
+        
+        # If no quotes, take the first word
+        return text.split()[0] if text else None

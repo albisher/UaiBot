@@ -1,0 +1,7 @@
+{
+    "use_regex": false,
+    "default_language": "en",
+    "supported_languages": ["en", "ar"],
+    "debug_mode": false,
+    "log_level": "INFO"
+} 
