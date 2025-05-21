@@ -1,12 +1,90 @@
-/.goose
-/.venv
-/.secret
-
-
-/sudo.txt
-
 # Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Test and output directories
+tests/results/
+logs/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Cache
+.cache/
+uaibot/cache/
+uaibot/data/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Project specific
+.secret/
+.goose/
+
+# Test files
+test_files/
+test.txt
+test_output_ar.txt
+test_file.txt
+pyautogui_test.png
+websearch_kuwait.txt
+browse_kuwait.txt
+custom_note.txt
+inside
+
+# Documentation
+documentation/_build/
+documentation/_static/
+documentation/_templates/
+
+# Backup files
+backup/
+*.bak
+*.backup
+*.old
+
+# Python
 *.pyc
 *.pyo
 *.pyd

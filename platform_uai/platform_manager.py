@@ -8,7 +8,7 @@ import os
 import sys
 import importlib
 import platform
-from core.utils import get_platform_name, get_project_root, load_config
+from uaibot.utils import get_platform_name, get_project_root, load_config
 
 class PlatformManager:
     def __init__(self):

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import UaiBot modules
-from core.utils import run_command
+from uaibot.utils import run_command
 from core.shell_handler import ShellHandler
 
 # Dynamically load the CommandProcessor from the main directory
@@ -60,7 +60,7 @@ class TestDirectCommandExecution(unittest.TestCase):
             self.assertEqual(self.command_processor._extract_command("show my Notes folders"), 
                            """osascript -e 'tell application "Notes" to get name of every folder'""")
 
-    @patch('core.utils.run_command')
+    @patch('uaibot.utils.run_command')
     def test_command_execution(self, mock_run_command):
         """Test that commands are properly executed."""
         # Mock successful command execution

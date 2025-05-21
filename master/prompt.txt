@@ -2,8 +2,7 @@ First and most important is to follow main_prompt.txt precisly to remember who y
 
 Then, start thinking, which of the following is the best to start with, how to make it match the request, and how to make it work. pick one or more of the following:
 
-
-
+reorder all files and folders to match the method described in main_prompt
 
 Once you come up with a plan, prepare all in related files (logs, todo, what should be refined?, tests, checks, documentations updates and corrections, update requirements.txt if needed), and start executing the needed changes on the code. Apply final tests if needed, observe confimations, finalize.
 

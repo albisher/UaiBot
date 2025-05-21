@@ -6,7 +6,7 @@ import subprocess
 import json
 import wave
 import os
-from core.utils import get_project_root
+from uaibot.utils import get_project_root
 from platform_uai.common.audio_handler import BaseAudioHandler, SimulatedAudioHandler
 
 # Try to import pyaudio, fall back to simulation if not available
