@@ -116,45 +116,24 @@ class BrowserHandler:
         ]
     
     def execute_command(self, command: str) -> Dict[str, Any]:
-        """Execute a browser-related command."""
+        """Execute a browser command."""
         try:
-            # Parse the command to extract browser, search engine, and query
-            browser, search_engine, query = self._parse_command(command)
-            
-            if not query:
-                return {
-                    "status": "error",
-                    "message": "Could not understand what you want to search for. Please specify your search query."
-                }
-            
-            # If no browser specified, use default
-            if not browser:
-                browser = "default"
-            
-            # If no search engine specified, use Google
-            if not search_engine:
-                search_engine = "google"
-            
-            # Construct the search URL
-            search_url = self._construct_search_url(search_engine, query)
-            
-            # Open the browser with the search URL
-            self._open_browser(browser, search_url)
-            
-            return {
-                "status": "success",
-                "message": f"Opening {browser} to search {search_engine} for: {query}",
-                "browser": browser,
-                "search_engine": search_engine,
-                "query": query
-            }
-            
+            # Clean the command
+            cleaned_command = self._clean_query(command, None)
+            # Open the default browser with the cleaned command
+            webbrowser.open(f"https://www.google.com/search?q={cleaned_command}")
+            return {"status": "success", "message": f"Opened browser with search: {cleaned_command}"}
         except Exception as e:
-            logger.error(f"Error executing browser command: {str(e)}")
-            return {
-                "status": "error",
-                "message": f"Error executing browser command: {str(e)}"
-            }
+            return {"status": "error", "message": f"Error executing browser command: {str(e)}"}
+    
+    def _clean_query(self, query: str, search_engine: Optional[str]) -> str:
+        """Clean the search query."""
+        # Remove common command words
+        words_to_remove = ["search", "look for", "find", "query", "look up", "google"]
+        cleaned_query = query.lower()
+        for word in words_to_remove:
+            cleaned_query = cleaned_query.replace(word, "")
+        return cleaned_query.strip()
     
     def _parse_command(self, command: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """Parse the command to extract browser, search engine, and query using natural language understanding."""
@@ -229,33 +208,6 @@ class BrowserHandler:
         # by removing common words and phrases
         query = self._extract_meaningful_content(command)
         return query if query else None
-    
-    def _clean_query(self, query: str, search_engine: Optional[str]) -> str:
-        """Clean up the extracted query."""
-        # Remove search engine references
-        if search_engine:
-            query = query.replace(search_engine, "")
-        
-        # Remove browser references
-        for browser in self.supported_browsers:
-            query = query.replace(browser, "")
-        
-        # Remove only command-related words, preserving content words
-        words_to_remove = [
-            "please", "can you", "could you", "would you",
-            "i want", "i need", "show me", "tell me",
-            "search for", "look for", "find", "query",
-            "look up", "google", "using", "with"
-        ]
-        
-        for word in words_to_remove:
-            query = query.replace(word, "")
-        
-        # Clean up extra spaces and punctuation
-        query = " ".join(query.split())
-        query = query.strip(".,!?")
-        
-        return query.strip()
     
     def _extract_meaningful_content(self, command: str) -> Optional[str]:
         """Extract meaningful content from command when no clear search pattern is found."""

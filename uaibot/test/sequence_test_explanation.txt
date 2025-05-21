@@ -1,0 +1,21 @@
+Test Sequence Explanation
+
+This test sequence is designed to verify the functionality of UaiBot by executing a series of commands in a specific order. The sequence is broken down into the following steps:
+
+1. **Set up the environment**: This step sets the `PYTHONPATH` environment variable to ensure that the UaiBot modules can be imported correctly.
+
+2. **Run the first command**: This step executes the command "where is Kuwait" using UaiBot. It tests the ability of UaiBot to process and execute a search command.
+
+3. **Run the second command**: This step executes the command "in that browser click the middle link" using UaiBot. It tests the ability of UaiBot to interact with a web page by clicking a link.
+
+4. **Run the third command**: This step executes the command "make that browser more focused on the text" using UaiBot. It tests the ability of UaiBot to adjust the browser's focus.
+
+5. **Run the fourth command**: This step executes the command "increase volume to 80%" using UaiBot. It tests the ability of UaiBot to adjust the system volume.
+
+6. **Run the fifth command**: This step executes the command "now in safari go to youtube" using UaiBot. It tests the ability of UaiBot to navigate to a specific website in a specified browser.
+
+7. **Run the sixth command**: This step executes the command "in there search for Quran by Al Husay" using UaiBot. It tests the ability of UaiBot to perform a search within a specific context.
+
+8. **Run the seventh command**: This step executes the command "play that and cast it to my tv" using UaiBot. It tests the ability of UaiBot to play media and cast it to a TV.
+
+Each step is logged to the console to provide visibility into the progress of the test sequence. This helps in identifying any issues that may arise during the execution of the commands. 

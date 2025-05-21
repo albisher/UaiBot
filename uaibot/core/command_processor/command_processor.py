@@ -5,6 +5,8 @@ from uaibot.core.system_commands import SystemCommands
 from uaibot.core.multilingual_commands import MultilingualCommands
 from uaibot.core.utils import Utils
 from uaibot.core.browser_handler import BrowserHandler
+from uaibot.core.browser_interaction import BrowserInteractionHandler
+from uaibot.core.memory_handler import MemoryHandler
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,8 @@ class CommandProcessor:
         self.multilingual_commands = MultilingualCommands()
         self.utils = Utils()
         self.browser_handler = BrowserHandler()
+        self.browser_interaction = BrowserInteractionHandler()
+        self.memory = MemoryHandler()
         
         # Command history
         self.command_history = []
@@ -28,18 +32,82 @@ class CommandProcessor:
         command_lower = command.lower()
         command_stripped = command.strip()
 
-        # Check for browser commands first
-        browser_indicators = [
-            # Direct search commands
-            "search", "look for", "find", "query", "look up", "google",
+        # Split command into sequential parts
+        sequential_parts = []
+        current_part = []
+        
+        # Common conjunctions and action separators
+        separators = ["and", "then", "after", "next", "followed by", "subsequently"]
+        
+        # Split the command into words
+        words = command_lower.split()
+        
+        for word in words:
+            if word in separators:
+                if current_part:
+                    sequential_parts.append(" ".join(current_part))
+                    current_part = []
+            else:
+                current_part.append(word)
+        
+        if current_part:
+            sequential_parts.append(" ".join(current_part))
             
+        # If we have multiple parts, return a sequence command
+        if len(sequential_parts) > 1:
+            return {
+                "type": "sequence",
+                "operations": [self._interpret_single_command(part) for part in sequential_parts]
+            }
+            
+        # Otherwise, interpret as a single command
+        return self._interpret_single_command(command)
+        
+    def _interpret_single_command(self, command: str) -> Dict[str, Any]:
+        """Interpret a single command part."""
+        command_lower = command.lower()
+
+        # Browser search
+        if any(word in command_lower for word in ["search", "look for", "find", "query", "look up", "google", "where is", "what is", "who is", "tell me about"]):
+            return {"type": "browser", "operation": "search", "query": command}
+
+        # Click middle link
+        if "click the middle link" in command_lower or "click middle link" in command_lower:
+            return {"type": "browser_interaction", "operation": "click_middle_link"}
+
+        # Focus browser
+        if "focus" in command_lower and "browser" in command_lower or "more focused on the text" in command_lower:
+            return {"type": "browser_interaction", "operation": "focus_browser"}
+
+        # Set volume
+        if "volume" in command_lower:
+            import re
+            match = re.search(r'(\d+)%', command_lower)
+            volume = int(match.group(1)) if match else 80
+            return {"type": "browser_interaction", "operation": "set_volume", "volume": volume}
+
+        # Go to YouTube in Safari
+        if "safari" in command_lower and "youtube" in command_lower:
+            return {"type": "browser_interaction", "operation": "open_url", "browser": "safari", "url": "https://www.youtube.com"}
+
+        # Search in current browser (contextual)
+        if "in there search for" in command_lower:
+            query = command_lower.split("in there search for", 1)[-1].strip()
+            return {"type": "browser", "operation": "search", "query": query}
+
+        # Play and cast to TV
+        if "play" in command_lower and "cast" in command_lower and "tv" in command_lower:
+            return {"type": "browser_interaction", "operation": "play_and_cast", "query": command}
+
+        # Check for browser commands
+        browser_indicators = [
             # Question formats
-            "what is", "who is", "where is", "how to", "what's", "what are",
+            "what's", "what are",
             "when is", "why is", "which is",
             
             # Polite requests
             "can you find", "could you search", "please search", "would you search",
-            "i want to know", "i need to know", "tell me about", "show me",
+            "i want to know", "i need to know", "show me",
             "get information about", "find out about",
             
             # Time and weather related
@@ -192,7 +260,7 @@ class CommandProcessor:
         elif any(word in command_lower for word in ["errors", "show errors"]):
             return {"type": "utility", "operation": "errors"}
             
-        return {"type": "unknown", "operation": "unknown"}
+        return {"type": "error", "message": "Unknown command"}
         
     def _extract_filename(self, command: str) -> str:
         """Extract filename from command."""
@@ -272,91 +340,91 @@ class CommandProcessor:
         return ""
         
     def execute_command(self, command: str) -> Dict[str, Any]:
-        """Execute a command."""
-        # Add to command history
-        self.command_history.append(command)
-        self.current_command = command
-        
-        # Interpret command
-        if self.use_regex:
-            # Use regex-based command interpretation
-            command_lower = command.lower()
+        """Execute the interpreted command."""
+        try:
+            # Store command in history
+            self.command_history.append(command)
+            self.current_command = command
             
-            # File commands
-            if any(word in command_lower for word in ["create", "make", "new file"]):
-                return self._handle_file_command("create", self._extract_filename(command), self._extract_content(command))
-            elif any(word in command_lower for word in ["read", "open", "show", "display", "content"]):
-                return self._handle_file_command("read", self._extract_filename(command))
-            elif any(word in command_lower for word in ["write", "save", "update", "modify", "change"]):
-                return self._handle_file_command("write", self._extract_filename(command), self._extract_content(command))
-            elif any(word in command_lower for word in ["append", "add"]):
-                return self._handle_file_command("append", self._extract_filename(command), self._extract_content(command))
-            elif any(word in command_lower for word in ["delete", "remove"]):
-                return self._handle_file_command("delete", self._extract_filename(command))
-            elif any(word in command_lower for word in ["list", "show all", "show files"]):
-                return self._handle_file_command("list")
-            elif any(word in command_lower for word in ["search", "find", "look for"]):
-                return self._handle_file_command("search", pattern=self._extract_pattern(command))
-                
-            # System commands
-            elif any(word in command_lower for word in ["system status", "system info"]):
-                return self.system_commands.execute_command(command)
-            elif any(word in command_lower for word in ["cpu info", "processor info"]):
-                return self.system_commands.execute_command(command)
-            elif any(word in command_lower for word in ["memory info", "ram info"]):
-                return self.system_commands.execute_command(command)
-            elif any(word in command_lower for word in ["disk info", "storage info"]):
-                return self.system_commands.execute_command(command)
-            elif any(word in command_lower for word in ["network info", "connection info"]):
-                return self.system_commands.execute_command(command)
-            elif any(word in command_lower for word in ["process info", "running processes"]):
-                return self.system_commands.execute_command(command)
-            elif any(word in command_lower for word in ["system logs", "show logs"]):
-                return self.system_commands.execute_command(command)
-                
-            # Language commands
-            elif any(word in command_lower for word in ["set language", "change language"]):
-                return self.multilingual_commands.execute_command(command)
-            elif any(word in command_lower for word in ["detect language", "identify language"]):
-                return self.multilingual_commands.execute_command(command)
-            elif any(word in command_lower for word in ["translate", "convert to"]):
-                return self.multilingual_commands.execute_command(command)
-            elif any(word in command_lower for word in ["supported languages", "available languages"]):
-                return self.multilingual_commands.execute_command(command)
-                
-            # Utility commands
-            elif any(word in command_lower for word in ["help", "show help"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["version", "show version"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["status", "show status"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["configuration", "show config"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["logs", "show logs"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["enable debug", "turn on debug"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["disable debug", "turn off debug"]):
-                return self.utils.execute_command(command)
-            elif any(word in command_lower for word in ["errors", "show errors"]):
-                return self.utils.execute_command(command)
-        else:
-            # Use AI-driven command interpretation
+            # Interpret the command
             interpretation = self.ai_interpret_command(command)
             
-            if interpretation["type"] == "browser":
-                return self.browser_handler.execute_command(command)
-            elif interpretation["type"] == "file":
-                return self._handle_file_command(interpretation["operation"], interpretation.get("filename"), interpretation.get("content"), interpretation.get("pattern"))
-            elif interpretation["type"] == "system":
-                return self.system_commands.execute_command(command)
-            elif interpretation["type"] == "language":
-                return self.multilingual_commands.execute_command(command)
-            elif interpretation["type"] == "utility":
-                return self.utils.execute_command(command)
-                
-        return {"status": "error", "message": "Unknown command"}
+            # Handle sequence commands
+            if interpretation["type"] == "sequence":
+                results = []
+                for operation in interpretation["operations"]:
+                    result = self._execute_single_operation(operation)
+                    results.append(result)
+                    # If any operation fails, stop the sequence
+                    if result.get("status") == "error":
+                        break
+                return {
+                    "status": "success" if all(r.get("status") != "error" for r in results) else "error",
+                    "results": results
+                }
+            
+            # Handle single operation
+            return self._execute_single_operation(interpretation)
+            
+        except Exception as e:
+            logger.error(f"Error executing command: {str(e)}")
+            return {"status": "error", "message": str(e)}
+            
+    def _execute_single_operation(self, operation: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a single operation."""
+        try:
+            if operation["type"] == "browser":
+                if operation["operation"] == "search":
+                    result = self.browser_handler.execute_command(operation["command"])
+                    logger.debug(f"Browser search result: {result}")
+                    # Store the browser and search info in memory
+                    browser = result.get("browser")
+                    state = result.get("browser_state", {})
+                    if browser:
+                        self.memory.update_browser_state(browser, state)
+                    url = result.get("url", "")
+                    self.memory.update_search(operation["command"], url)
+                    return result
+            elif operation["type"] == "browser_interaction":
+                if operation["operation"] == "click_middle_link":
+                    result = self.browser_interaction.click_middle_link(operation["browser"])
+                    logger.debug(f"Click middle link result: {result}")
+                    return result
+                elif operation["operation"] == "focus_browser":
+                    result = self.browser_interaction.focus_browser(operation["browser"])
+                    logger.debug(f"Focus browser result: {result}")
+                    return result
+                elif operation["operation"] == "set_volume":
+                    result = self.browser_interaction.set_volume(operation["volume"])
+                    logger.debug(f"Set volume result: {result}")
+                    return result
+                elif operation["operation"] == "play_and_cast":
+                    result = self.browser_interaction.play_media(operation["media"])
+                    logger.debug(f"Play media result: {result}")
+                    return result
+            elif operation["type"] == "file":
+                return self._handle_file_command(
+                    operation["operation"],
+                    operation.get("filename"),
+                    operation.get("content"),
+                    operation.get("pattern")
+                )
+            elif operation["type"] == "system":
+                return self.system_commands.execute_command(operation["operation"])
+            elif operation["type"] == "language":
+                return self.multilingual_commands.execute_command(
+                    operation["operation"],
+                    operation.get("text"),
+                    operation.get("language")
+                )
+            elif operation["type"] == "utility":
+                return self.utils.execute_command(operation["operation"])
+            elif operation["type"] == "error":
+                return {"status": "error", "message": operation["message"]}
+            return {"status": "error", "message": "Unknown operation type"}
+        except Exception as e:
+            logger.error(f"Error executing operation: {str(e)}")
+            return {"status": "error", "message": str(e)}
         
     def _handle_file_command(self, operation: str, filename: str = None, content: str = None, pattern: str = None) -> Dict[str, Any]:
         """Handle file operations."""
