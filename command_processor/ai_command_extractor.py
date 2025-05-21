@@ -163,6 +163,14 @@ class AICommandExtractor:
                         logger.debug(f"Extracted informational response: {metadata['info_type'] if 'info_type' in metadata else 'general info'}")
                         return False, None, metadata
                         
+                    # After: data = json.loads(json_str)
+                    if "intent" in data and data["intent"] == "browser_automation":
+                        metadata["intent"] = "browser_automation"
+                        metadata["browser"] = data.get("browser", "")
+                        metadata["url"] = data.get("url", "")
+                        metadata["actions"] = data.get("actions", [])
+                        return True, None, metadata
+                    
                 except json.JSONDecodeError:
                     # This particular JSON string was invalid, try the next one
                     continue
@@ -699,93 +707,40 @@ class AICommandExtractor:
                 
         return None
     
-    def format_ai_prompt(self, user_request: str, platform_info: Dict[str, str]) -> str:
+    def format_ai_prompt(self, user_input, system_info):
         """
-        Format a prompt for the AI model that will encourage structured responses.
+        Format the prompt for the AI model, including detailed system information and available tools.
+        Explicitly requests a JSON output with a 'command' field and an optional 'explanation' field.
         
         Args:
-            user_request: The user's original request text
-            platform_info: Information about the user's platform (OS, version, etc.)
-            
+            user_input (str): The user's input command.
+            system_info (dict): System information including OS, version, etc.
+        
         Returns:
-            A formatted prompt string for the AI model
+            str: The formatted prompt for the AI model.
         """
-        # Basic platform info
-        os_info = f"OS: {platform_info.get('system', 'Unknown')}"
-        if 'linux_distro' in platform_info:
-            os_info += f" ({platform_info['linux_distro']} {platform_info.get('version', '')})"
-        elif 'version' in platform_info:
-            os_info += f" {platform_info['version']}"
-            
-        # Core principles to guide the AI
-        core_principles = """
-CORE PRINCIPLES:
-1. SAFETY: Do not suggest destructive or irreversible commands without clear warnings.
-2. CLARITY: Explain what each command does in simple terms.
-3. PRECISION: Address the user's exact request without unnecessary operations.
-4. STRUCTURE: Always use the structured response formats described below.
-5. ALTERNATIVES: When helpful, suggest alternative approaches to solve the problem.
-"""
+        prompt = f"""
+You are an AI assistant running on a system with the following details:
+- OS: {system_info.get('system', 'Unknown')}
+- Version: {system_info.get('version', 'Unknown')}
+- Available tools: file operations, browser automation, shell commands, folder search, USB device queries, and more.
 
-        # Structured response formats
-        formats = """
-RESPONSE FORMATS (always use one of these):
+The user has provided the following command:
+"{user_input}"
 
-FORMAT 1: Executable Commands
-```json
-{
-  "command": "<executable shell command>",
-  "explanation": "<brief explanation of what the command does>",
-  "alternatives": ["<alternative command 1>", "<alternative command 2>"],
-  "requires_implementation": false
-}
-```
+Please analyze this command and determine the appropriate action. If the command is a folder search, set the intent to "folder_search" and include a "folder_name" field. If it's a browser automation command, set the intent to "browser_automation" and include "browser", "url", and "actions" fields. For other commands, set the intent to "command" and provide the command to execute.
 
-FORMAT 2: File Operations
-```json
-{
-  "file_operation": "<create|read|write|delete|search|list>",
-  "operation_params": {
-    "filename": "<filename>",
-    "content": "<content to write if applicable>",
-    "directory": "<directory path if applicable>",
-    "search_term": "<search term if applicable>"
-  },
-  "explanation": "<brief explanation of the operation>"
-}
-```
+Your response must be a valid JSON object with the following structure:
+{{
+    "intent": "<intent>",
+    "command": "<command to execute>",
+    "explanation": "<optional explanation>",
+    "folder_name": "<folder name if intent is folder_search>",
+    "browser": "<browser name if intent is browser_automation>",
+    "url": "<url if intent is browser_automation>",
+    "actions": [<list of actions if intent is browser_automation>]
+}}
 
-FORMAT 3: Error Responses
-```json
-{
-  "error": true,
-  "error_message": "<explain why this cannot be executed>",
-  "requires_implementation": true,
-  "suggested_approach": "<if applicable, suggest how the user might accomplish this>"
-}
-```
-
-FORMAT 4: Information Responses
-```json
-{
-  "info_type": "<system_info|general_question|help|definition>",
-  "response": "<your detailed response>",
-  "related_command": "<optional command related to the query>",
-  "explanation": "<brief explanation of the response>"
-}
-```
-"""
-
-        # Complete prompt
-        prompt = f"""USER REQUEST: {user_request}
-
-SYSTEM INFORMATION:
-{os_info}
-
-{core_principles}
-
-{formats}
-
-Parse the user's request and provide a response in one of the structured formats above.
+Ensure your response is a valid JSON object.
 """
         return prompt

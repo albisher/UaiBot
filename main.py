@@ -47,12 +47,13 @@ urllib3.disable_warnings()
 class UaiBot:
     """Main UaiBot class that handles user interaction."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None, debug: bool = False):
         """
         Initialize UaiBot with configuration.
         
         Args:
             config: Optional configuration dictionary
+            debug: Boolean to enable debug output
         """
         try:
             # Initialize platform manager
@@ -89,7 +90,7 @@ class UaiBot:
                 cache_size_mb=self.config.get('cache_size_mb', 100)
             )
             
-            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler)
+            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler, debug=debug)
             
             # Welcome message with platform info
             platform_info = self.platform_manager.get_platform_info()
@@ -206,10 +207,11 @@ def main():
         
         # Parse command-line arguments
         parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant")
-        parser.add_argument("-f", "--file", action="store_true", help="Enable file operations mode")
+        parser.add_argument("-f", "--file", type=str, help="Command to execute in file/automation mode")
         parser.add_argument("-c", "--command", type=str, help="Command to execute")
         parser.add_argument("--no-safe-mode", action="store_true", help="Disable safe mode for file operations")
         parser.add_argument("--gui", "-g", action="store_true", help="Start in GUI mode")
+        parser.add_argument('--debug', action='store_true', help='Enable debug output for AI prompt/response/decision')
         args = parser.parse_args()
         
         # Check if GUI mode is requested
@@ -218,19 +220,16 @@ def main():
             sys.exit(1)
         
         # Initialize and start UaiBot
-        bot = UaiBot()
+        bot = UaiBot(debug=args.debug)
         
-        if args.file and args.command:
-            # Handle file operations
-            result = process_file_flag_request(args.command)
+        if args.file:
+            # Process the command in file/automation mode (AI-driven)
+            result = bot.process_single_command(args.file)
             output.info(result)
-        elif len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
-            # If command line arguments are provided, process them as a single command
-            command = " ".join(sys.argv[1:])
-            result = bot.process_single_command(command)
+        elif args.command:
+            result = bot.process_single_command(args.command)
             output.info(result)
         else:
-            # Otherwise start interactive mode
             bot.start()
             
     except KeyboardInterrupt:

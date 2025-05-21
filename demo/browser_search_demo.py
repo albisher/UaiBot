@@ -1,92 +1,85 @@
 #!/usr/bin/env python3
 """
 Browser Search Demo for UaiBot
-Demonstrates mouse and keyboard interaction to open a browser and perform a search.
+Demonstrates mouse and keyboard interaction to open a browser and perform a search using vision-based detection.
+Now also takes a silent screenshot for reference and uses a reduced wait time.
 """
 import os
 import sys
 import time
 import subprocess
+from pathlib import Path
 
 # Add project root to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, ".."))
 sys.path.append(project_root)
 
-# Set display environment variables
-os.environ['DISPLAY'] = ':0'
-os.environ['XAUTHORITY'] = os.path.expanduser('~/.Xauthority')
+# Use only PyAutoGUI for automation
+try:
+    import pyautogui
+except ImportError:
+    print("PyAutoGUI is required. Please install it with: pip install pyautogui")
+    sys.exit(1)
 
-from platform_uai.common.input_control.mouse_keyboard_handler import MouseKeyboardHandler
+SCREENSHOT_PATH = os.path.join(current_dir, "screen_capture.png")
 
 def open_browser():
-    """Open the default browser using xdg-open."""
+    """Open the system default browser using xdg-open."""
     try:
-        # Try to open with xdg-open first
-        subprocess.Popen(['xdg-open', 'https://www.google.com'])
-    except Exception:
-        try:
-            # Fallback to google-chrome
-            subprocess.Popen(['google-chrome', 'https://www.google.com'])
-        except Exception:
-            try:
-                # Try firefox as last resort
-                subprocess.Popen(['firefox', 'https://www.google.com'])
-            except Exception as e:
-                print(f"Error opening browser: {e}")
-                return False
-    time.sleep(2)  # Wait for browser to open
-    return True
+        subprocess.run(['xdg-open', 'https://www.google.com'], check=True)
+        time.sleep(1)  # Shorter wait for browser to start
+        return True
+    except Exception as e:
+        print(f"Error opening browser: {e}")
+        return False
 
 def demo_browser_search():
-    """Demonstrate browser interaction using mouse and keyboard control."""
+    """Demonstrate browser interaction using vision-based search bar detection and silent screenshot."""
     print("\n=== Browser Search Demo ===")
     print("This demo will:")
     print("1. Open a new browser window")
     print("2. Navigate to Google")
-    print("3. Search for 'Kuwait'")
-    
-    # Get user confirmation
-    response = input("\nContinue? (y/n): ")
-    if response.lower() != 'y':
-        print("Demo skipped.")
+    print("3. Take a silent screenshot of the screen")
+    print("4. Search for 'Kuwait' using vision-based detection")
+
+    # 1. Open browser
+    print("\nOpening browser...")
+    if not open_browser():
+        print("Failed to open browser. Exiting demo.")
         return
-    
-    # Initialize the input handler
-    handler = MouseKeyboardHandler()
-    
-    try:
-        # Get screen dimensions
-        screen_width, screen_height = handler.get_screen_size()
-        print(f"Screen size: {screen_width}x{screen_height}")
-        
-        # 1. Open browser using xdg-open
-        print("\nOpening browser...")
-        if not open_browser():
-            print("Failed to open browser. Exiting demo.")
-            return
-        
-        # 2. Wait for page to load and move to search bar
-        print("Moving to search bar...")
-        time.sleep(2)  # Wait for page to load
-        
-        # Move to search bar (approximate position)
-        search_x = screen_width // 2
-        search_y = screen_height // 4
-        handler.move_mouse(search_x, search_y)
-        handler.click()
-        time.sleep(0.5)
-        
-        # 3. Type search term
-        print("Searching for Kuwait...")
-        handler.type_text("Kuwait")
-        handler.press_key('enter')
-        
-        print("\nDemo completed successfully!")
-        
-    except Exception as e:
-        print(f"\nError during demo: {str(e)}")
-        print("Please make sure you have a browser installed and the screen is visible.")
+
+    # 2. Wait for page to load (reduced time)
+    print("Waiting for browser and Google to load...")
+    time.sleep(2)
+
+    # 3. Take a silent screenshot
+    print(f"Taking a silent screenshot and saving as {SCREENSHOT_PATH} ...")
+    pyautogui.screenshot(SCREENSHOT_PATH)
+    print("Screenshot taken.")
+
+    # 4. Use the screenshot as the reference image for vision-based detection
+    print("Locating the Google search bar on screen using the screenshot...")
+    location = pyautogui.locateOnScreen(SCREENSHOT_PATH, confidence=0.8)
+    if location is None:
+        print("[ERROR] Could not find the search bar on the screen using the screenshot.")
+        print("Make sure the browser is visible and the search bar is present.")
+        return
+
+    center = pyautogui.center(location)
+    print(f"Found search bar at: {center}")
+
+    # 5. Move mouse and click the search bar
+    pyautogui.moveTo(center.x, center.y, duration=0.3)
+    pyautogui.click()
+    time.sleep(0.2)
+
+    # 6. Type search term and press Enter
+    print("Typing 'Kuwait' and pressing Enter...")
+    pyautogui.write("Kuwait", interval=0.08)
+    pyautogui.press('enter')
+
+    print("\nDemo completed successfully!")
 
 if __name__ == "__main__":
     demo_browser_search() 

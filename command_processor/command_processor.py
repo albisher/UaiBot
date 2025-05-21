@@ -34,7 +34,7 @@ from command_processor.direct_execution_handler import DirectExecutionHandler
 logger = logging.getLogger(__name__)
 
 class CommandProcessor:
-    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False, output_facade=None):
+    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False, output_facade=None, debug=False):
         """
         Initialize the CommandProcessor.
         
@@ -44,6 +44,7 @@ class CommandProcessor:
             quiet_mode (bool): If True, reduces terminal output
             fast_mode (bool): If True, handles errors quickly and exits
             output_facade: Reference to the output facade for UI handling
+            debug (bool): If True, enables debug mode
         """
         self.ai_handler = ai_handler
         self.shell_handler = shell_handler
@@ -102,6 +103,8 @@ class CommandProcessor:
         self.file_search = FileSearch(quiet_mode=quiet_mode)
         self.query_processor = QueryProcessor(self.ai_handler, getattr(self.ai_handler, 'config', {}))
         self.system_info = SystemInfoGatherer()
+        
+        self.debug = debug
     
     def log(self, message):
         """Print a message if not in quiet mode"""
@@ -250,7 +253,7 @@ class CommandProcessor:
             return "Please enter a command."
             
         # First, check if this is a file or folder search query
-        is_folder_search, folder_result = self.folder_handler.handle_folder_search(user_input)
+        is_folder_search, folder_result = self._handle_folder_search(user_input)
         if is_folder_search:
             return folder_result
         
@@ -366,6 +369,9 @@ class CommandProcessor:
             user_input, 
             {"system": system_info, "version": platform.release()}
         )
+
+        if getattr(self, 'debug', False):
+            print("\n[UaiBot DEBUG] AI Prompt Sent:\n", prompt)
         
         # Show thinking process if we have the output handler
         if self.output:
@@ -385,9 +391,25 @@ class CommandProcessor:
                 self.log(error_msg)
             return error_msg
         
+        if getattr(self, 'debug', False):
+            print("\n[UaiBot DEBUG] AI Response Received:\n", ai_response)
+
         # Extract command and metadata from AI response
         success, command, metadata = self.command_extractor.extract_command(ai_response)
+
+        if getattr(self, 'debug', False):
+            print("\n[UaiBot DEBUG] Extracted Command/Metadata:\n", json.dumps({"success": success, "command": command, "metadata": metadata}, indent=2, ensure_ascii=False))
         
+        # Handle browser automation intent
+        if metadata.get("intent") == "browser_automation":
+            from core.browser_handler import BrowserAutomationHandler
+            browser = metadata.get("browser", "")
+            url = metadata.get("url", "")
+            actions = metadata.get("actions", [])
+            handler = BrowserAutomationHandler()
+            result = handler.execute_actions(browser, url, actions)
+            return result
+
         if success and command:
             # Show the command that will be executed
             if self.output:
@@ -500,6 +522,7 @@ class CommandProcessor:
     def _handle_folder_search(self, query):
         """
         Check if the query is asking about files or folders and handle accordingly.
+        Uses AI-driven extraction instead of regex-based detection.
         
         Args:
             query (str): The user query
@@ -507,88 +530,21 @@ class CommandProcessor:
         Returns:
             tuple: (is_folder_search, result)
         """
-        query_lower = query.lower()
+        # Use AI to determine if this is a folder search query
+        prompt = self.command_extractor.format_ai_prompt(
+            query,
+            {"system": "Check if the query is asking to list or find a folder. If so, extract the folder name."}
+        )
+        ai_response = self.ai_handler.process_command(prompt)
+        success, command, metadata = self.command_extractor.extract_command(ai_response)
         
-        # Common folder names that users might ask about
-        common_folders = {
-            "note": ["notes", "note", "notebook", "notebooks", "notes app", "apple notes"],
-            "document": ["documents", "document", "docs", "doc"],
-            "download": ["downloads", "download"],
-            "desktop": ["desktop"],
-            "picture": ["pictures", "picture", "photos", "photo", "images", "image"],
-            "music": ["music", "songs", "audio"],
-            "video": ["videos", "video", "movies", "movie"],
-            "application": ["applications", "apps", "app", "programs", "program"],
-            "project": ["projects", "project", "repos", "repositories", "repository", "code"],
-            "work": ["work", "workspace", "office"],
-            "school": ["school", "university", "college", "academic"],
-            "game": ["games", "game", "steam", "gaming"]
-        }
-        
-        # ===== Enhanced detection for direct "show me" commands =====
-        # Direct commands like "show me X" or "show X"
-        direct_show_patterns = [
-            r"^show\s+(?:me\s+)?(?:my\s+)?(.+?)(?:\s+folders?)?$",
-            r"^display\s+(?:my\s+)?(.+?)(?:\s+folders?)?$",
-            r"^list\s+(?:my\s+)?(.+?)(?:\s+folders?)?$",
-            r"^open\s+(?:my\s+)?(.+?)(?:\s+folders?)?$"
-        ]
-        
-        # Check for direct commands first (highest priority)
-        import re
-        for pattern in direct_show_patterns:
-            match = re.match(pattern, query_lower)
-            if match:
-                requested_item = match.group(1).strip()
-                # Check if it's a known folder type
-                for folder_type, variants in common_folders.items():
-                    if requested_item in variants or any(v in requested_item for v in variants):
-                        if folder_type == "note":
-                            # Special handling for Notes app on macOS
-                            return True, self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
-                        else:
-                            # Handle other folder types
-                            search_term = folder_type.title() + "s"  # e.g., Documents, Downloads
-                            return True, self.shell_handler.find_folders(search_term, location="~", include_cloud=True)
-        
-        # Check if query is asking to list folders with more general phrases
-        contains_list_action = any(action in query_lower for action in 
-                             ["list", "show", "find", "where", "locate", "search for", "look for", "get"])
-                             
-        # Phrases that indicate the user is asking about a folder's location
-        folder_query_phrases = [
-            "where is", "where are", "find my", "show my", "look for my", "search for my",
-            "where can i find", "do i have", "got any", "have any", "locate my"
-        ]
-        
-        # If query contains folder query phrases, mark it as a list action
-        if not contains_list_action:
-            contains_list_action = any(phrase in query_lower for phrase in folder_query_phrases)
-        
-        if contains_list_action:
-            # Check for each type of common folder
-            for folder_type, variants in common_folders.items():
-                if any(variant in query_lower for variant in variants):
-                    # Determine the search parameters based on folder type
-                    if folder_type == "note":
-                        # For Notes, use specialized search with cloud folders
-                        return True, self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
-                    elif folder_type in ["document", "download", "desktop", "picture", "music", "video"]:
-                        # Search in home directory for these common folders
-                        search_term = folder_type.title() + "s"  # e.g., Documents, Downloads
-                        return True, self.shell_handler.find_folders(search_term, location="~", include_cloud=True)
-                    else:
-                        # General search
-                        search_term = folder_type + "s"
-                        return True, self.shell_handler.find_folders(search_term, location="~", include_cloud=True)
-        
-        # Check for possession-based queries about folders
-        has_possession = any(term in query_lower for term in ["my", "i have", "i've got", "i got", "do i have"])
-        if has_possession:
-            for folder_type, variants in common_folders.items():
-                if any(variant in query_lower for variant in variants):
-                    search_term = folder_type.title() if folder_type == "note" else folder_type.title() + "s"
-                    return True, self.shell_handler.find_folders(search_term, location="~")
+        if success and metadata.get("intent") == "folder_search":
+            folder_name = metadata.get("folder_name", "")
+            if folder_name:
+                if folder_name.lower() == "notes":
+                    return True, self.shell_handler.find_folders("Notes", location="~", include_cloud=True)
+                else:
+                    return True, self.shell_handler.find_folders(folder_name, location="~", include_cloud=True)
         
         return False, ""
     

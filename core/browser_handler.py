@@ -15,6 +15,7 @@ import json
 import tempfile
 import time
 import re
+import pyautogui
 
 from core.utils import run_command
 
@@ -140,3 +141,104 @@ class BrowserHandler:
         """Get browser content on Windows."""
         # Implementation for Windows browsers would go here
         return "Browser content retrieval is not yet implemented for Windows."
+
+    def perform_search(self, url: str, query: str, wait_time: float = 2.0) -> str:
+        """
+        Open the default browser, navigate to a URL, and perform a search using PyAutoGUI.
+        Args:
+            url (str): The URL to open (e.g., 'https://www.google.com')
+            query (str): The search query to type
+            wait_time (float): Seconds to wait for the browser to load
+        Returns:
+            str: Status message
+        """
+        import subprocess
+        import time
+        import webbrowser
+
+        try:
+            # Open the browser to the URL
+            webbrowser.open(url)
+            time.sleep(wait_time)
+
+            # Try to find the search bar visually (optional: can be improved)
+            # For now, just focus the window and type
+            pyautogui.hotkey('ctrl', 'l')  # Focus address bar
+            time.sleep(0.2)
+            pyautogui.typewrite(url)
+            pyautogui.press('enter')
+            time.sleep(wait_time)
+
+            # For Google, the search bar is focused by default, so type the query
+            pyautogui.typewrite(query)
+            pyautogui.press('enter')
+            return f"Opened {url} and searched for '{query}'."
+        except Exception as e:
+            return f"Error performing browser search: {str(e)}"
+
+class BrowserAutomationHandler:
+    """Executes browser automation actions based on AI-provided JSON."""
+    def __init__(self):
+        import pyautogui
+        self.pyautogui = pyautogui
+        self.default_wait = 2
+
+    def open_browser(self, browser: str, url: str):
+        import webbrowser
+        # Try to use the specified browser, fallback to default
+        try:
+            if browser:
+                browser = browser.lower()
+                if browser in ["chrome", "google chrome"]:
+                    webbrowser.get("google-chrome").open(url)
+                elif browser in ["firefox", "mozilla firefox"]:
+                    webbrowser.get("firefox").open(url)
+                elif browser in ["brave", "brave-browser"]:
+                    webbrowser.get("brave-browser").open(url)
+                else:
+                    webbrowser.open(url)
+            else:
+                webbrowser.open(url)
+        except Exception:
+            webbrowser.open(url)
+
+    def execute_actions(self, browser: str, url: str, actions: list):
+        import time
+        self.open_browser(browser, url)
+        time.sleep(self.default_wait)
+        for action in actions:
+            atype = action.get("type")
+            if atype == "wait":
+                time.sleep(action.get("seconds", 1))
+            elif atype == "click":
+                # For now, support only center of screen or named targets
+                # TODO: Add vision-based click for named targets
+                if "x" in action and "y" in action:
+                    self.pyautogui.moveTo(action["x"], action["y"], duration=0.2)
+                    self.pyautogui.click()
+                elif "target" in action:
+                    # Try to locate on screen by image if provided
+                    img = action["target"]
+                    if img.endswith(".png") and os.path.exists(img):
+                        loc = self.pyautogui.locateOnScreen(img, confidence=0.8)
+                        if loc:
+                            center = self.pyautogui.center(loc)
+                            self.pyautogui.moveTo(center.x, center.y, duration=0.2)
+                            self.pyautogui.click()
+                else:
+                    # Default: click center
+                    w, h = self.pyautogui.size()
+                    self.pyautogui.moveTo(w//2, h//2, duration=0.2)
+                    self.pyautogui.click()
+            elif atype == "type":
+                self.pyautogui.write(action.get("text", ""), interval=0.08)
+            elif atype == "press":
+                self.pyautogui.press(action.get("key", "enter"))
+            elif atype == "hotkey":
+                keys = action.get("keys", [])
+                if keys:
+                    self.pyautogui.hotkey(*keys)
+            elif atype == "screenshot":
+                fname = action.get("filename", "screenshot.png")
+                self.pyautogui.screenshot(fname)
+        return "Browser automation actions completed."

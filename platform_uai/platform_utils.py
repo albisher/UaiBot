@@ -121,28 +121,23 @@ def get_input_handler():
     Returns:
         An instance of the platform-specific InputHandler
     """
-    input_module = load_platform_handler('input_control')
-    if not input_module:
-        # Try the common implementation as a fallback
+    platform_name, platform_dir = detect_platform()
+    
+    if platform_name == 'ubuntu':
+        # For Ubuntu, use the specific input handler
         try:
-            from platform_uai.common.input_control import MouseKeyboardHandler
-            print("Using common MouseKeyboardHandler as fallback")
-            return MouseKeyboardHandler()
+            from platform_uai.ubuntu.input_control.ubuntu_input_handler import UbuntuInputHandler
+            print("Using Ubuntu-specific input handler")
+            return UbuntuInputHandler()
         except ImportError as e:
-            print(f"Failed to load common MouseKeyboardHandler: {e}")
+            print(f"Failed to load Ubuntu input handler: {e}")
             return None
-        
+    
+    # For other platforms, try the common implementation
     try:
-        # Different platforms might have different handler class names
-        handler_classes = ['InputHandler', 'MouseKeyboardHandler']
-        
-        # Try each possible handler class
-        for handler_class in handler_classes:
-            if hasattr(input_module, handler_class):
-                return getattr(input_module, handler_class)()
-        
-        print(f"ERROR: No suitable input handler class found in module")
-        return None
-    except Exception as e:
-        print(f"Failed to instantiate input handler: {e}")
+        from platform_uai.common.input_control import MouseKeyboardHandler
+        print("Using common MouseKeyboardHandler as fallback")
+        return MouseKeyboardHandler()
+    except ImportError as e:
+        print(f"Failed to load common MouseKeyboardHandler: {e}")
         return None
