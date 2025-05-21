@@ -20,6 +20,12 @@ from device_manager.usb_detector import USBDetector
 from command_processor.ai_command_extractor import AICommandExtractor
 from command_processor.logger import CommandLogger
 
+# Import our new handler modules
+from command_processor.screen_session_manager import ScreenSessionManager
+from command_processor.usb_query_handler import USBQueryHandler
+from command_processor.folder_search_handler import FolderSearchHandler
+from command_processor.direct_execution_handler import DirectExecutionHandler
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -51,6 +57,12 @@ class CommandProcessor:
                 self.output = output
             except ImportError:
                 self.output = None
+        
+        # Initialize our specialized handlers
+        self.screen_manager = ScreenSessionManager(quiet_mode=quiet_mode)
+        self.usb_handler = USBQueryHandler(shell_handler, quiet_mode=quiet_mode)
+        self.folder_handler = FolderSearchHandler(shell_handler, quiet_mode=quiet_mode)
+        self.direct_handler = DirectExecutionHandler(shell_handler, quiet_mode=quiet_mode)
         
         # Initialize the AI command extractor and logger
         self.command_extractor = AICommandExtractor()
@@ -189,20 +201,21 @@ class CommandProcessor:
             return "Please enter a command."
             
         # First, check if this is a file or folder search query
-        is_folder_search, folder_result = self._handle_folder_search(user_input)
+        is_folder_search, folder_result = self.folder_handler.handle_folder_search(user_input)
         if is_folder_search:
             return folder_result
         
         # Check if query matches a USB/screen session use case
-        is_usb_query, usb_result = self._check_usb_query(user_input)
+        screen_exists = self.screen_manager.check_screen_exists()
+        explicitly_screen = self.screen_manager.is_explicitly_screen(user_input.lower())
+        is_usb_query, usb_result = self.usb_handler.handle_usb_device_query(user_input.lower(), screen_exists, explicitly_screen)
         if is_usb_query:
             return usb_result
         
-        # Check for direct shell command execution (starts with ! or common command)
-        if user_input.startswith("!") or user_input.split()[0] in self.common_commands:
-            # If it starts with !, remove it before execution
-            command = user_input[1:].strip() if user_input.startswith("!") else user_input
-            return self._try_direct_execution(command)
+        # Check for direct shell command execution
+        direct_result = self.direct_handler.handle_direct_execution(user_input)
+        if direct_result:
+            return direct_result
         
         query_lower = user_input.lower()
         

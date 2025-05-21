@@ -4,6 +4,11 @@ import json
 import platform
 import subprocess
 import re
+from typing import Optional, Tuple
+from .model_manager import ModelManager
+from .query_processor import QueryProcessor
+from .system_info_gatherer import SystemInfoGatherer
+from .logging_manager import LoggingManager
 
 try:
     import google.generativeai as genai
@@ -309,250 +314,119 @@ def get_system_info():
     return system_str
 
 class AIHandler:
-    def __init__(self, model_type="local", api_key=None, ollama_base_url="http://localhost:11434", google_model_name="gemini-pro", quiet_mode=False, fast_mode=False):
-        """Initialize the AI Handler with the specified model type."""
-        self.model_type = model_type.lower()
-        self.model = None
-        self.quiet_mode = quiet_mode
-        self.fast_mode = fast_mode  # Add fast_mode flag for timeout adjustments
+    def __init__(self, model_type: str = "local", api_key: Optional[str] = None,
+                 ollama_base_url: str = "http://localhost:11434",
+                 google_model_name: str = "gemini-pro",
+                 quiet_mode: bool = False):
+        """
+        Initialize the AIHandler.
         
-        if self.model_type == "google":
-            # Initialize the Google AI model
-            try:
-                import google.generativeai as genai
-                
-                if not api_key:
-                    raise ValueError("Google API key is required for the Google AI model")
-                
-                genai.configure(api_key=api_key)
-                self._log_debug(f"Setting up Google AI with model: {google_model_name}")
-                
-                # Configure the model
-                self.google_model_name = google_model_name
-                generation_config = {
-                    "temperature": 0.1,  # Low temperature for more deterministic responses
-                    "top_p": 0.95,
-                    "top_k": 40,
-                    "max_output_tokens": 1024,
-                }
-                
-                safety_settings = [
-                    {
-                        "category": "HARM_CATEGORY_HARASSMENT",
-                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                    },
-                    {
-                        "category": "HARM_CATEGORY_HATE_SPEECH",
-                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                    },
-                    {
-                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                    },
-                    {
-                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                    }
-                ]
-                
-                self.model = genai.GenerativeModel(
-                    model_name=google_model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings
-                )
-                
-                self._log("Google AI initialized successfully")
-            except ImportError:
-                raise ImportError("Google GenerativeAI package not installed. Run 'pip install google-generativeai'")
-            except Exception as e:
-                self._log(f"Error initializing Google AI: {str(e)}")
-                raise
+        Args:
+            model_type (str): Type of model to use ("google" or "ollama")
+            api_key (Optional[str]): API key for Google AI
+            ollama_base_url (str): Base URL for Ollama API
+            google_model_name (str): Name of the Google AI model to use
+            quiet_mode (bool): If True, reduces terminal output
+        """
+        # Initialize logging
+        self.logging_manager = LoggingManager(quiet_mode=quiet_mode)
+        self.logger = self.logging_manager.get_logger(__name__)
         
-        elif self.model_type == "ollama":
-            # Initialize the Ollama AI model
-            try:
-                import requests
-                
-                self.base_url = ollama_base_url
-                self.ollama_model_name = "gemma:4b" # Default model
-                
-                # Check connection to Ollama
-                try:
-                    resp = requests.get(f"{ollama_base_url}/api/tags", timeout=5 if fast_mode else 10)
-                    if resp.status_code != 200:
-                        raise ConnectionError(f"Could not connect to Ollama API at {ollama_base_url}")
-                    
-                    # Set default model based on what's available
-                    models = resp.json().get("models", [])
-                    if models:
-                        # Use a sensible default from available models
-                        model_names = [m["name"] for m in models]
-                        # Preference order: gemma:latest, llama3:latest, mistral:latest, or first available
-                        for preferred in ["gemma:latest", "gemma", "llama3:latest", "llama3", "mistral:latest"]:
-                            if any(m.startswith(preferred) for m in model_names):
-                                self.ollama_model_name = next(m for m in model_names if m.startswith(preferred))
-                                break
-                        else:
-                            # If none of the preferred models are available, use the first one
-                            self.ollama_model_name = models[0]["name"]
-                    
-                    self._log(f"Using Ollama model: {self.ollama_model_name}")
-                    
-                except Exception as e:
-                    raise ConnectionError(f"Failed to connect to Ollama API: {str(e)}")
-                
-                self._log("Ollama initialized successfully")
-            except ImportError:
-                raise ImportError("Requests package not installed. Run 'pip install requests'")
-            except Exception as e:
-                self._log(f"Error initializing Ollama: {str(e)}")
-                raise
-        else:
-            raise ValueError(f"Unsupported model type: {model_type}")
-
-    # Helper method to handle logging with quiet_mode awareness
-    def _log(self, message):
-        """Print a message if not in quiet mode"""
-        # Only log if not in quiet mode
-        if not self.quiet_mode:
-            # Check if we're running in main.py context where a log function might be available
-            import sys
-            main_module = sys.modules.get('__main__')
-            if main_module and hasattr(main_module, 'log'):
-                # Use the main module's log function
-                main_module.log(message, debug_only=False)
-            else:
-                # Fall back to print but only in non-quiet mode
-                print(message)
-                
-    # Helper method for debug-level messages
-    def _log_debug(self, message):
-        """Log debug messages if not in quiet mode"""
-        # Debug messages should be even more restricted
-        if not self.quiet_mode:
-            # Check if we're running in main.py context
-            import sys
-            main_module = sys.modules.get('__main__')
-            if main_module and hasattr(main_module, 'log'):
-                # Use the main module's log function with debug flag
-                main_module.log(message, debug_only=True)
-            # For debug messages, we don't print directly even if log function is not available
-                
-    def query_ai(self, prompt):
-        """Query the AI with a prompt and return the response.
-        This is a unified method that works across different model types."""
-        try:
-            if self.model_type == "ollama":
-                return self._query_ollama(prompt)
-            elif self.model_type == "google":
-                return self._query_google(prompt)
-            else:
-                return "Error: Unsupported model type"
-        except Exception as e:
-            return f"Error querying AI: {str(e)}"
-            
-    # Alias for backward compatibility
-    get_ai_response = query_ai
-
-    def _query_google(self, prompt):
+        # Initialize components
+        self.model_manager = ModelManager(
+            model_type=model_type,
+            api_key=api_key,
+            ollama_base_url=ollama_base_url,
+            google_model_name=google_model_name,
+            quiet_mode=quiet_mode
+        )
+        
+        self.query_processor = QueryProcessor(
+            model_manager=self.model_manager,
+            quiet_mode=quiet_mode
+        )
+        
+        self.system_info_gatherer = SystemInfoGatherer()
+        
+        self.logger.info("AIHandler initialized successfully")
+    
+    def process_query(self, query: str) -> Tuple[bool, str]:
         """
-        Queries the Google AI model with the provided prompt.
-        Returns the AI's response as a string.
+        Process a user query using the AI model.
+        
+        Args:
+            query (str): The user's query
+            
+        Returns:
+            Tuple[bool, str]: (success, response)
         """
         try:
-            # Add system information to the prompt if not already included
-            if "You are running on" not in prompt:
-                system_info = get_system_info()
-                enhanced_prompt = f"System Information: You are running on {system_info}.\n\nWhen possible, prefer using Terminal/Shell commands to accomplish tasks. If a user is asking about files, folders, or system operations, try to provide actual commands they can run.\n\n{prompt}"
-            else:
-                enhanced_prompt = prompt
+            # Gather system information
+            system_info = self.system_info_gatherer.get_system_info()
             
-            if not self.model:
-                raise ValueError("Google AI model not initialized")
+            # Process the query
+            success, response = self.query_processor.process_query(query, system_info)
             
-            response = self.model.generate_content(enhanced_prompt)
-            if response.text:
-                return response.text.strip()
+            if success:
+                self.logger.info("Query processed successfully")
             else:
-                return "Error: Google AI returned empty response"
+                self.logger.error(f"Query processing failed: {response}")
+            
+            return success, response
+            
         except Exception as e:
-            return f"Error: Failed to get AI response: {str(e)}"
-
-    def _query_ollama(self, prompt):
+            error_msg = f"Error processing query: {str(e)}"
+            self.logger.error(error_msg)
+            return False, error_msg
+    
+    def set_model(self, model_name: str) -> bool:
         """
-        Queries the Ollama AI model with the provided prompt.
-        Returns the AI's response as a string.
+        Set the AI model to use.
+        
+        Args:
+            model_name (str): Name of the model to use
+            
+        Returns:
+            bool: True if successful, False otherwise
         """
         try:
-            # Add system information to the prompt if not already included
-            if "You are running on" not in prompt:
-                system_info = get_system_info()
-                enhanced_prompt = f"System Information: You are running on {system_info}.\n\nWhen possible, prefer using Terminal/Shell commands to accomplish tasks. If a user is asking about files, folders, or system operations, try to provide actual commands they can run.\n\n{prompt}"
+            if self.model_manager.model_type == "google":
+                self.model_manager.set_google_model(model_name)
+            elif self.model_manager.model_type == "ollama":
+                self.model_manager.set_ollama_model(model_name)
             else:
-                enhanced_prompt = prompt
+                raise ValueError(f"Unsupported model type: {self.model_manager.model_type}")
             
-            import requests
+            self.logger.info(f"Model set to: {model_name}")
+            return True
             
-            # Use shorter timeout in fast mode
-            timeout_value = 5 if hasattr(self, 'fast_mode') and self.fast_mode else 15
-            
-            # Use requests with timeout parameter
-            api_url = f"{self.base_url}/api/generate"
-            headers = {"Content-Type": "application/json"}
-            data = {
-                "model": self.ollama_model_name,
-                "prompt": enhanced_prompt,
-                "stream": False  # No streaming for simplicity
-            }
-            
-            # In fast mode, use a smaller context and response size
-            if hasattr(self, 'fast_mode') and self.fast_mode:
-                data["options"] = {
-                    "num_ctx": 1024,           # Smaller context window
-                    "num_predict": 256,        # Shorter response
-                    "temperature": 0.1,        # Lower temperature for faster/deterministic responses
-                    "stop_on_eos": True        # Stop generating on EOS token
-                }
-            
-            # Make the request with a timeout
-            try:
-                # Use connect timeout to fail faster if Ollama server is not reachable
-                response = requests.post(api_url, headers=headers, json=data, 
-                                       timeout=(2 if self.fast_mode else 5, timeout_value))
-                
-                if response.status_code == 200:
-                    resp_json = response.json()
-                    if resp_json and "response" in resp_json:
-                        return resp_json["response"].strip()
-                    else:
-                        return "Error: Ollama returned invalid response format"
-                else:
-                    return f"Error: Ollama API returned status code {response.status_code}"
-            except requests.exceptions.Timeout:
-                # Specific error for timeout
-                return "Error: Ollama API request timed out. Please try again later."
-            except requests.exceptions.ConnectionError:
-                # Connection refused, server down, etc.
-                return "Error: Could not connect to Ollama API. Is the server running?"
         except Exception as e:
-            return f"Error: Failed to get AI response: {str(e)}"
-
-    def set_ollama_model(self, model_name):
-        if self.model_type == "ollama" or self.model_type == "local":
-            self.ollama_model_name = model_name
-            # Use debug logging instead of direct print
-            self._log_debug(f"Ollama model set to: {self.ollama_model_name}")
-            # Optionally, verify model exists with self.client.list()
-        else:
-            self._log_debug("Warning: Cannot set Ollama model. Current model_type is not 'ollama' or 'local'.")
-
-    def set_google_model(self, model_name):
-        if self.model_type == "google":
-            self.google_model_name = model_name
-            try:
-                self.model = genai.GenerativeModel(self.google_model_name)
-                self._log_debug(f"Google AI model set to: {self.google_model_name}")
-            except Exception as e:
-                self._log(f"Error setting Google AI model: {e}")
-        else:
-            self._log_debug("Warning: Cannot set Google model. Current model_type is not 'google'.")
+            error_msg = f"Error setting model: {str(e)}"
+            self.logger.error(error_msg)
+            return False
+    
+    def clear_history(self) -> None:
+        """Clear the conversation history"""
+        self.query_processor.clear_history()
+        self.logger.info("Conversation history cleared")
+    
+    def set_quiet_mode(self, quiet: bool) -> None:
+        """
+        Set quiet mode for all components.
+        
+        Args:
+            quiet (bool): If True, reduces terminal output
+        """
+        self.logging_manager.set_quiet_mode(quiet)
+        self.model_manager.quiet_mode = quiet
+        self.query_processor.quiet_mode = quiet
+        self.logger.info(f"Quiet mode set to: {quiet}")
+    
+    def get_current_log_file(self) -> Optional[str]:
+        """
+        Get the path of the current log file.
+        
+        Returns:
+            Optional[str]: Path to the current log file, or None if not found
+        """
+        return self.logging_manager.get_current_log_file()
