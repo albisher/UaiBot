@@ -11,7 +11,7 @@ import readline
 # Add parent directory to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 class UaiBotTestShell(cmd.Cmd):
     intro = "UaiBot Test Shell. Type help or ? to list commands.\n"

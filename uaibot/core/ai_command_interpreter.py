@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import json
 
-from core.logging_config import get_logger
-from core.file_operations import handle_file_operation
+from uaibot.core.logging_config import get_logger
+from uaibot.core.file_operations import handle_file_operation
 
 logger = get_logger(__name__)
 

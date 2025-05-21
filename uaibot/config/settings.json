@@ -1,30 +1,10 @@
 {
-  "google_api_key": "fffff-dhpk",
-  "ollama_base_url": "http://localhost:11434",
-  "default_ollama_model": "gemma3:4b",
-  "default_google_model": "gemini-pro",
   "default_ai_provider": "ollama",
+  "ollama_base_url": "http://localhost:11434",
+  "default_ollama_model": "gemma:7b",
+  "google_api_key": "YOUR_GOOGLE_API_KEY",
+  "default_google_model": "gemini-1.0-pro",
   "shell_safe_mode": true,
-  "shell_dangerous_check": true,
   "interactive_mode": true,
-  "use_gui": false,
-  "use_structured_ai_responses": true,
-  "prefer_json_format": true,
-  "output_verbosity": "normal",
-  "language_support": {
-    "english": true,
-    "arabic": true
-  },
-  "file_operation_settings": {
-    "max_results": 20,
-    "max_content_length": 1000,
-    "default_directory": "~/Documents",
-    "test_directory": "test_files"
-  },
-  "logging": {
-    "log_level": "INFO",
-    "log_file": "logs/uaibot.log",
-    "log_errors": true,
-    "log_commands": true
-  }
+  "shell_dangerous_check": true
 }

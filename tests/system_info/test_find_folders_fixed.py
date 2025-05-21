@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     print("Importing required modules...")
-    from core.shell_handler import ShellHandler
+    from uaibot.core.shell_handler import ShellHandler
     print("Modules imported successfully!")
     
     print("\nCreating ShellHandler instance...")

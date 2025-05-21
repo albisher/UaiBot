@@ -13,7 +13,7 @@ from pathlib import Path
 # Add project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.file_operations import parse_file_request, handle_file_operation
+from uaibot.core.file_operations import parse_file_request, handle_file_operation
 from command_processor.file_operations_handler import FileOperationsHandler
 
 class TestFileRequestParsing(unittest.TestCase):

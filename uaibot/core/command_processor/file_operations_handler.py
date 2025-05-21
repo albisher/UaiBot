@@ -12,7 +12,7 @@ import shlex
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional, List, Union
 from datetime import datetime
-from core.file_search import FileSearch
+from uaibot.core.file_search import FileSearch
 
 logger = logging.getLogger(__name__)
 

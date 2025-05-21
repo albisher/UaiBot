@@ -48,7 +48,7 @@ def main():
 
     # Import modules after adding the parent directory to sys.path
     try:
-        from core.ai_handler import AIHandler, get_system_info
+        from uaibot.core.ai_handler import AIHandler, get_system_info
     except ImportError as e:
         print(f"Error importing UaiBot modules: {e}")
         sys.exit(1)

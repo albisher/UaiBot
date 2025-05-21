@@ -13,7 +13,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the function to test
-from core.ai_handler import get_system_info
+from uaibot.core.ai_handler import get_system_info
 
 def get_current_system():
     """Get the current system info."""

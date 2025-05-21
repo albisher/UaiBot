@@ -1,105 +1,250 @@
-import argparse
-import logging
-import json
+#!/usr/bin/env python3
+"""
+UaiBot: AI-powered shell assistant.
+Main entry point for the UaiBot application.
+Supports both GUI and command-line interfaces.
+
+Copyright (c) 2025 UaiBot Team
+License: Custom license - free for personal and educational use.
+Commercial use requires a paid license. See LICENSE file for details.
+"""
 import os
-from uaibot.core.command_processor.command_processor import CommandProcessor
-from uaibot.core.logging_config import setup_logging, get_logger
+import sys
+import logging
+import warnings
+import urllib3
+import argparse
+from pathlib import Path
+from typing import Optional, Dict, Any
+from datetime import datetime
+
+# Add project root to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = current_dir
+sys.path.append(project_root)
+
+# Import core components
+from uaibot.logging_config import setup_logging, get_logger
 from uaibot.core.exceptions import UaiBotError, AIError, ConfigurationError, CommandError
 from uaibot.core.cache_manager import CacheManager
+from platform_uai.platform_manager import PlatformManager
+from uaibot.core.command_processor.command_processor_main import CommandProcessor
+from uaibot.core.shell_handler import ShellHandler
 from uaibot.core.ai_handler import AIHandler
 from uaibot.utils.output_facade import output
 from uaibot.core.file_operations import process_file_flag_request
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+# Disable httpx INFO level logging to prevent duplicate request logs
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+# Suppress all urllib3 warnings
+warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.NotOpenSSLWarning)
+urllib3.disable_warnings()
 
 class UaiBot:
-    """Main class for UaiBot."""
+    """Main UaiBot class that handles user interaction."""
     
-    def __init__(self):
-        self.processor = CommandProcessor()
+    def __init__(self, config: Optional[Dict[str, Any]] = None, debug: bool = False):
+        """
+        Initialize UaiBot with configuration.
+        
+        Args:
+            config: Optional configuration dictionary
+            debug: Boolean to enable debug output
+        """
+        try:
+            # Initialize platform manager
+            self.platform_manager = PlatformManager()
+            if not self.platform_manager.platform_supported:
+                raise ConfigurationError(f"Unsupported platform: {self.platform_manager.platform_name}")
+            
+            # Initialize platform components
+            logger.info("Initializing platform components...")
+            self.platform_manager.initialize()
+            
+            # Load configuration
+            self.config = config or {}
+            
+            # Configure output facade with verbosity settings
+            output_verbosity = self.config.get('output_verbosity', 'normal')
+            output.set_verbosity(output_verbosity)
+            
+            # Initialize shell handler and command processor
+            self.shell_handler = ShellHandler()
+            
+            # Initialize AI handler with caching
+            model_type = self.config.get('default_ai_provider', 'ollama')
+            ollama_base_url = self.config.get('ollama_base_url', 'http://localhost:11434')
+            google_api_key = self.config.get('google_api_key')
+            google_model_name = self.config.get('default_google_model', 'gemini-pro')
+            
+            self.ai_handler = AIHandler(
+                model_type=model_type,
+                api_key=google_api_key,
+                google_model_name=google_model_name,
+                ollama_base_url=ollama_base_url,
+                cache_ttl=self.config.get('cache_ttl', 3600),
+                cache_size_mb=self.config.get('cache_size_mb', 100)
+            )
+            
+            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler)
+            
+            # Welcome message with platform info
+            platform_info = self.platform_manager.get_platform_info()
+            self.welcome_message = f"""
+🤖 Welcome to UaiBot!
+I'm your AI assistant, ready to help you with your tasks.
+Running on: {platform_info['name']}
+Type 'help' for available commands or just ask me anything!
+"""
+            logger.info("UaiBot initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize UaiBot: {str(e)}")
+            raise
     
-    def initialize(self):
-        """Initialize UaiBot."""
-        logger.info("UaiBot initialized")
+    def start(self) -> None:
+        """Start the UaiBot interactive session."""
+        try:
+            output.box(self.welcome_message, "Welcome")
+            self._interactive_loop()
+        except KeyboardInterrupt:
+            output.info("👋 Session interrupted. Goodbye!")
+        except Exception as e:
+            logger.error(f"Error in interactive session: {str(e)}")
+            output.error(f"An error occurred: {str(e)}")
+        finally:
+            self.cleanup()
     
-    def process_command(self, command: str) -> dict:
-        """Process a command."""
-        return self.processor.execute_command(command)
+    def _interactive_loop(self) -> None:
+        """Main interactive loop for UaiBot."""
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
+                
+                if not user_input:
+                    continue
+                
+                if user_input.lower() in ['exit', 'quit', 'bye']:
+                    output.success("👋 Goodbye! Have a great day!")
+                    break
+                
+                if user_input.lower() == 'help':
+                    self._show_help()
+                    continue
+                
+                if user_input.lower() == 'clear':
+                    self.ai_handler.clear_cache()
+                    output.success("Cache cleared successfully")
+                    continue
+                
+                response = self.command_processor.process_command(user_input)
+                output.info(response)
+                
+            except KeyboardInterrupt:
+                raise
+            except CommandError as e:
+                output.error(f"Command error: {str(e)}")
+            except AIError as e:
+                output.error(f"AI processing error: {str(e)}")
+            except Exception as e:
+                logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+                output.error(f"An unexpected error occurred: {str(e)}")
+    
+    def _show_help(self) -> None:
+        """Show help information."""
+        help_text = """
+Available commands:
+- help: Show this help message
+- clear: Clear the AI response cache
+- exit/quit/bye: Exit UaiBot
 
-def load_settings():
-    """Load settings from JSON file."""
-    settings_path = os.path.join(os.path.dirname(__file__), 'config', 'settings.json')
-    try:
-        with open(settings_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {
-            "use_regex": False,
-            "default_language": "en",
-            "supported_languages": ["en", "ar"],
-            "debug_mode": False,
-            "log_level": "INFO"
-        }
-
-def setup_logging(settings):
-    """Set up logging configuration."""
-    log_level = settings.get("log_level", "INFO")
-    logging.basicConfig(
-        level=getattr(logging, log_level),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('uaibot.log')
-        ]
-    )
+You can also:
+- Ask me to execute shell commands
+- Ask questions about your system
+- Request file operations
+- Get system information
+"""
+        output.box(help_text, "Help")
+    
+    def process_single_command(self, command: str) -> str:
+        """
+        Process a single command and return the result.
+        
+        Args:
+            command: The command to process
+            
+        Returns:
+            The command response
+        """
+        try:
+            result = self.command_processor.process_command(command)
+            return result
+        finally:
+            self.cleanup()
+    
+    def cleanup(self) -> None:
+        """Clean up resources."""
+        try:
+            self.platform_manager.cleanup()
+            logger.info("Resources cleaned up successfully")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {str(e)}")
 
 def main():
     """Main entry point for UaiBot."""
-    import sys
-    import argparse
-    parser = argparse.ArgumentParser(description='UaiBot - AI-powered command processor')
-    parser.add_argument('--debug', '-d', action='store_true', help='Enable debug mode')
-    parser.add_argument('--fast', action='store_true', help='Enable fast mode')
-    parser.add_argument('command', nargs='*', help='Command to execute')
-    args = parser.parse_args()
-
     try:
-        # Initialize UaiBot
-        uaibot = UaiBot()
-        uaibot.initialize()
-
-        # If a command is provided as an argument, process it and exit
-        if args.command:
-            command_str = ' '.join(args.command)
-            result = uaibot.process_command(command_str)
-            logger.debug(f"Result dictionary: {result}")
-            if 'message' not in result:
-                logger.warning("Result dictionary missing 'message' key, using default message.")
-                result['message'] = "An error occurred"
-            print(result['message'])
-            return
-
-        # Otherwise, enter interactive mode
-        while True:
-            try:
-                user_input = input("Enter command: ")
-                result = uaibot.process_command(user_input)
-                logger.debug(f"Result dictionary: {result}")
-                if 'message' not in result:
-                    logger.warning("Result dictionary missing 'message' key, using default message.")
-                    result['message'] = "An error occurred"
-                print(result['message'])
-            except KeyboardInterrupt:
-                logger.info("UaiBot shutting down")
-                break
-            except Exception as e:
-                logger.error(f"An error occurred: {str(e)}")
-                print("An error occurred")
+        # Set up logging
+        setup_logging(
+            component="main",
+            log_level=logging.INFO,
+            max_bytes=10 * 1024 * 1024,  # 10MB
+            backup_count=5
+        )
+        
+        # Parse command-line arguments
+        parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant")
+        parser.add_argument("-f", "--file", type=str, help="Command to execute in file/automation mode")
+        parser.add_argument("-c", "--command", type=str, help="Command to execute")
+        parser.add_argument("--no-safe-mode", action="store_true", help="Disable safe mode for file operations")
+        parser.add_argument("--gui", "-g", action="store_true", help="Start in GUI mode")
+        parser.add_argument('--debug', action='store_true', help='Enable debug output for AI prompt/response/decision')
+        args = parser.parse_args()
+        
+        # Check if GUI mode is requested
+        if args.gui:
+            output.info("GUI mode requested. Please use 'python start_uaibot.py --gui' instead.")
+            sys.exit(1)
+        
+        # Initialize and start UaiBot
+        bot = UaiBot(debug=args.debug)
+        
+        if args.file:
+            # If the argument is a file, read its contents as the prompt. Otherwise, treat it as a direct prompt.
+            if os.path.isfile(args.file):
+                with open(args.file, 'r') as f:
+                    prompt = f.read().strip()
+            else:
+                prompt = args.file.strip()
+            result = bot.process_single_command(prompt)
+            output.info(result)
+        elif args.command:
+            result = bot.process_single_command(args.command)
+            output.info(result)
+        else:
+            bot.start()
+            
+    except KeyboardInterrupt:
+        output.info("\n👋 Goodbye!")
+        sys.exit(0)
     except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
-        print("An error occurred")
+        logger.error(f"Fatal error: {str(e)}", exc_info=True)
+        output.error(f"Fatal error: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

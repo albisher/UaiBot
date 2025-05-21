@@ -14,8 +14,8 @@ from uaibot.utils import get_project_root, run_command
 from uaibot.core.platform_commands import PlatformCommands
 from uaibot.core.command_processor.command_registry import CommandRegistry
 from uaibot.core.command_processor.command_executor import CommandExecutor
-from uaibot.core.parallel_utils import ParallelTaskManager
-from ai_command_extractor import AICommandExtractor
+from uaibot.core.parallel_utils import ParallelTaskManager, run_in_parallel
+from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
 
 # Simplified version of the command processor focused on handling natural language commands properly
 class CommandProcessor:
@@ -42,7 +42,7 @@ class CommandProcessor:
         
         # Initialize command registry and executor
         self.command_registry = CommandRegistry()
-        self.command_executor = CommandExecutor(shell_handler, self.command_registry)
+        self.command_executor = CommandExecutor()
         
         # Initialize AI command extractor
         self.command_extractor = AICommandExtractor()
@@ -79,6 +79,9 @@ class CommandProcessor:
         
         # Ensure user home path is correctly set
         self._detect_user_home_path()
+        
+        # Fix the undefined 'thinking' variable
+        self.thinking = False  # Add this at the top of the file with other global variables
         
     def _load_command_patterns(self):
         """Load command patterns from JSON file."""
@@ -312,7 +315,7 @@ class CommandProcessor:
         # Get response from AI with timeout handling in fast mode
         try:
             # In fast mode, we'll use a shorter internal timeout
-            ai_response = self.ai_handler.get_ai_response(prompt_for_ai)
+            ai_response = self.ai_handler.process_command(prompt_for_ai)
         except Exception as e:
             if self.fast_mode:
                 # In fast mode, provide a simple error and let the program continue to exit
@@ -323,6 +326,16 @@ class CommandProcessor:
         
         # Extract command from AI response using the command extractor
         success, command, metadata = self.command_extractor.extract_command(ai_response)
+
+        # If command is a JSON block, extract the 'command' field
+        import json as _json
+        if isinstance(command, str) and command.strip().startswith('{'):
+            try:
+                command_json = _json.loads(command)
+                if isinstance(command_json, dict) and 'command' in command_json:
+                    command = command_json['command']
+            except Exception:
+                pass
         
         # Format the result with colors
         result = f"{thinking}\n\n"
@@ -404,8 +417,13 @@ class CommandProcessor:
                     # Use metadata if available to inform the fallback
                     if metadata and metadata.get("explanation"):
                         result += f"{metadata['explanation']}\n\n"
-                    fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
-                    result += fallback_response
+                    fallback_response = self.ai_handler.process_command(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
+                    # Extract a string from the dict if needed
+                    if isinstance(fallback_response, dict):
+                        fallback_response_str = fallback_response.get("command") or str(fallback_response)
+                    else:
+                        fallback_response_str = str(fallback_response)
+                    result += fallback_response_str
                 else:
                     # In fast mode, just add a simple message
                     result += f"\n{self.color_settings['important']}💡 Fast mode: Skipping fallback explanation.{self.color_settings['reset']}\n"
@@ -895,7 +913,7 @@ class CommandProcessor:
         ai_prompt = self._ai_command_extractor.format_ai_prompt(request, platform_info)
         
         # Get the AI response
-        ai_response = self._ai_handler.get_response(ai_prompt)
+        ai_response = self._ai_handler.process_command(ai_prompt)
         
         # Use parallel extraction for better performance
         success, command, metadata = self._ai_command_extractor.extract_command_parallel(ai_response)
@@ -980,8 +998,13 @@ class CommandProcessor:
                     # Use metadata if available to inform the fallback
                     if metadata and metadata.get("explanation"):
                         result += f"{metadata['explanation']}\n\n"
-                    fallback_response = self.ai_handler.query_ai(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
-                    result += fallback_response
+                    fallback_response = self.ai_handler.process_command(f"The command '{command}' failed with: {execution_result}. Please provide information or explanation directly.")
+                    # Extract a string from the dict if needed
+                    if isinstance(fallback_response, dict):
+                        fallback_response_str = fallback_response.get("command") or str(fallback_response)
+                    else:
+                        fallback_response_str = str(fallback_response)
+                    result += fallback_response_str
                 else:
                     # In fast mode, just add a simple message
                     result += f"\n{self.color_settings['important']}💡 Fast mode: Skipping fallback explanation.{self.color_settings['reset']}\n"

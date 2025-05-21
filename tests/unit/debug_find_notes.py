@@ -10,7 +10,7 @@ import traceback
 # Add the parent directory to the path so we can import core modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 def test_find_folders_with_debug():
     """Test find_folders with extensive debug output"""

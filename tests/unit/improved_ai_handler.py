@@ -209,7 +209,7 @@ def compare_with_original():
     sys.path.append('.')
     
     # Now import the original function
-    from core.ai_handler import get_system_info as original_get_system_info
+    from uaibot.core.ai_handler import get_system_info as original_get_system_info
     
     original = original_get_system_info()
     improved = get_improved_system_info()

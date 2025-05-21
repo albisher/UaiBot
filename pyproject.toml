@@ -1,6 +1,28 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "uaibot"
+version = "0.1.0"
+authors = [
+    { name = "UaiBot Team" },
+]
+description = "AI-powered shell assistant"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["uaibot*"]
+
+[tool.setuptools.package-data]
+uaibot = ["config/*.json", "config/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -69,8 +69,8 @@ def test_module_imports():
         ("device_manager", ["USBDetector"]),
         
         # Screen handler
-        ("screen_handler.screen_manager", ["ScreenManager"]),
-        ("screen_handler.session_manager", ["ScreenSessionHandler", "SessionManager"]),
+        ("uaibot.core.screen_handler.screen_manager", ["ScreenManager"]),
+        ("uaibot.core.screen_handler.session_manager", ["ScreenSessionHandler", "SessionManager"]),
         
         # Utils
         ("utils", []),
@@ -111,11 +111,11 @@ def test_module_composition(quiet=True):
     
     # First check if main modules can be imported
     try:
-        from core.ai_handler import AIHandler
-        from core.shell_handler import ShellHandler
-        from command_processor import CommandProcessor
-        from device_manager import USBDetector
-        from screen_handler.screen_manager import ScreenManager
+        from uaibot.core.ai_handler import AIHandler
+        from uaibot.core.shell_handler import ShellHandler
+        from uaibot.core.command_processor import CommandProcessor
+        from uaibot.core.device_manager import USBDetector
+        from uaibot.core.screen_handler.screen_manager import ScreenManager
         print_success("All primary modules imported successfully")
     except ImportError as e:
         print_failure(f"Failed to import primary modules: {e}")
@@ -134,7 +134,7 @@ def test_module_composition(quiet=True):
         return all_passed
     
     # Test screen manager instantiation
-    print_subheader("Testing screen_handler.ScreenManager instantiation")
+    print_subheader("Testing uaibot.core.screen_handler.ScreenManager instantiation")
     try:
         screen_manager = ScreenManager(quiet_mode=quiet)
         print_success("ScreenManager instantiated successfully")
@@ -261,7 +261,7 @@ def test_integration():
             "name": "USB Device Detection",
             "setup": """
 from device_manager import USBDetector
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 usb_detector = USBDetector(quiet_mode=True)
 shell_handler = ShellHandler(quiet_mode=True)
@@ -278,8 +278,8 @@ result = (devices_from_shell == devices_from_detector)
         {
             "name": "Screen Manager Integration",
             "setup": """
-from screen_handler.screen_manager import ScreenManager
-from core.shell_handler import ShellHandler
+from uaibot.core.screen_handler.screen_manager import ScreenManager
+from uaibot.core.shell_handler import ShellHandler
 
 screen_manager = ScreenManager(quiet_mode=True)
 shell_handler = ShellHandler(quiet_mode=True)
@@ -304,7 +304,7 @@ class MockAIHandler:
     def query_ai(self, *args, **kwargs):
         return "echo test response"
 
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 from command_processor import CommandProcessor
 
 shell_handler = ShellHandler(quiet_mode=True)

@@ -16,7 +16,7 @@ Example:
 """
 import logging
 from typing import Optional, Tuple
-from core.file_search import FileSearch
+from uaibot.core.file_search import FileSearch
 
 # Set up logging
 logger = logging.getLogger(__name__)

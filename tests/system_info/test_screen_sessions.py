@@ -24,8 +24,8 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 # Import the screen handler modules directly
 sys.path.append(PROJECT_ROOT)
 try:
-    from screen_handler.screen_manager import ScreenManager
-    from screen_handler.session_manager import ScreenSessionHandler
+    from uaibot.core.screen_handler.screen_manager import ScreenManager
+    from uaibot.core.screen_handler.session_manager import ScreenSessionHandler
 except ImportError as e:
     print(f"{RED}Error importing screen modules: {e}{RESET}")
     print(f"Make sure you're running this script from the UaiBot project root.")

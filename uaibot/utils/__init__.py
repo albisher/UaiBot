@@ -178,3 +178,9 @@ def is_interactive_session():
         pass
         
     return False
+
+try:
+    from IPython import get_ipython
+except ImportError:
+    def get_ipython():
+        return None

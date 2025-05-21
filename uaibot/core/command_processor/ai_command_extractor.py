@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Add imports for parallel processing at the top of the file
 import concurrent.futures
-from core.parallel_utils import ParallelTaskManager, run_parallel, run_with_timeout
+from uaibot.core.parallel_utils import ParallelTaskManager, run_in_parallel
 
 class AICommandExtractor:
     """

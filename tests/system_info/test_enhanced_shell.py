@@ -11,7 +11,7 @@ import time
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 def test_screen_commands():
     """Test screen session command handling"""

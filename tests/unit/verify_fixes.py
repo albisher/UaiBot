@@ -20,7 +20,7 @@ def verify_fixes():
     # Check 1: find_folders method with include_cloud parameter
     print("\n1. Verifying find_folders fix with include_cloud parameter...")
     try:
-        from core.shell_handler import ShellHandler
+        from uaibot.core.shell_handler import ShellHandler
         shell = ShellHandler(safe_mode=False)
         
         # Try to call the method with the parameter that was causing issues
@@ -40,7 +40,7 @@ def verify_fixes():
     # Check 2: System information in AI prompts
     print("\n2. Verifying system information addition to AI prompts...")
     try:
-        from core.ai_handler import get_system_info, OllamaAIHandler
+        from uaibot.core.ai_handler import get_system_info, OllamaAIHandler
         
         # First check if the function exists
         if not callable(get_system_info):

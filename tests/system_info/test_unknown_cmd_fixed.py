@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath('.'))  # Add current directory to path
 
 from command_processor import CommandProcessor
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 # Create a mock AI handler that always fails to generate a command
 class FailingAIHandler:

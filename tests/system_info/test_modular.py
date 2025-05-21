@@ -12,8 +12,8 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 # Import modules directly from their files to avoid package issues
-from device_manager.usb_detector import USBDetector
-from screen_handler.screen_manager import ScreenManager
+from uaibot.core.device_manager.usb_detector import USBDetector
+from uaibot.core.screen_handler.screen_manager import ScreenManager
 from uaibot.utils import get_platform_name
 
 def test_usb_detection():

@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Import from core
 from command_processor.command_processor import CommandProcessor
-from core.shell_handler import ShellHandler
-from core.ai_handler import AIHandler, get_system_info
+from uaibot.core.shell_handler import ShellHandler
+from uaibot.core.ai_handler import AIHandler, get_system_info
 
 def main():
     print("UaiBot Notes Folder Detection Test\n")

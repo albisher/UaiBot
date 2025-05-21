@@ -13,7 +13,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, ".."))
 sys.path.append(project_root)
 
-from core.logging_config import get_logger
+from uaibot.core.logging_config import get_logger
 from demo.browser_search_demo import demo_browser_search
 
 logger = get_logger(__name__)

@@ -1,10 +1,64 @@
 # UaiBot
 
-UaiBot is an AI-powered assistant that processes various forms of input (text, voice, image) and executes tasks based on natural language instructions.
+UaiBot is an AI-powered assistant that can process various types of input (text, voice, image) and execute tasks based on AI analysis.
 
 ## Project Structure
 
-The project follows a strict directory structure to maintain organization and clarity. See [Project Structure Documentation](uaibot/documentation/project_structure.md) for details.
+```
+UaiBot/
+├── config/           # Configuration files
+├── data/            # Persistent application data
+├── demo/            # Demonstration code
+├── documentation/   # Project documentation
+│   └── human_instructions/  # Human instruction files
+├── tests/           # Test files and test-related assets
+├── fix/             # Code related to specific bug fixes
+├── update/          # Code related to updates or upgrades
+├── log/             # Application and process logs
+├── backup/          # Code and data backups
+├── archive/         # Archived code or data
+├── temp/            # Temporary, disposable files
+├── cache/           # Cached data
+├── todo/            # TODO lists and actionable items
+└── uaibot/          # Main application code
+```
+
+## Setup
+
+1. Create and activate a virtual environment:
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Unix/macOS
+# or
+.venv\Scripts\activate  # On Windows
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Configure settings:
+- Copy `config/license_key.json.template` to `config/license_key.json`
+- Update settings in `config/settings.json`
+
+## Development
+
+- All code should be developed within the virtual environment (.venv)
+- Follow the project structure guidelines
+- Write tests for new features
+- Update documentation as needed
+
+## Testing
+
+Run tests using:
+```bash
+pytest
+```
+
+## License
+
+See LICENSE and COMMERCIAL_LICENSE files for details.
 
 ## Key Features
 
@@ -13,47 +67,6 @@ The project follows a strict directory structure to maintain organization and cl
 - Cross-platform compatibility
 - Comprehensive testing suite
 - Multilingual support (Arabic and English)
-
-## Development Setup
-
-1. Ensure Python 3.10+ is installed
-2. Create and activate virtual environment:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Unix/macOS
-   # or
-   .venv\Scripts\activate  # On Windows
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   pip install -r requirements-dev.txt  # For development
-   ```
-
-## Testing
-
-Run tests using:
-```bash
-python run_tests.py
-```
-
-Test files are organized in the `uaibot/test/` directory with appropriate subdirectories for different test types.
-
-## Human Instructions
-
-Natural language instructions are stored in the `human_instructions/` directory, organized by category and available in both Arabic and English.
-
-## Contributing
-
-1. Follow the project structure guidelines
-2. Write tests for new features
-3. Update documentation as needed
-4. Ensure cross-platform compatibility
-5. Use natural language for human instructions
-
-## License
-
-See [LICENSE](LICENSE) and [COMMERCIAL_LICENSE](COMMERCIAL_LICENSE) for details.
 
 ## Features
 

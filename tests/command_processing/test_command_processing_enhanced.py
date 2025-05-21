@@ -23,7 +23,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.abspath('.'))
 
 from command_processor import CommandProcessor
-from core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 
 class MockAIHandler:

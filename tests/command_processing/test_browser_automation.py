@@ -13,7 +13,7 @@ import webbrowser
 import pyautogui
 from pathlib import Path
 from command_processor import CommandProcessor
-from core.browser_handler import BrowserAutomationHandler
+from uaibot.core.browser_handler import BrowserAutomationHandler
 
 # Set up PyAutoGUI safety features
 pyautogui.FAILSAFE = True  # Move mouse to corner to abort
