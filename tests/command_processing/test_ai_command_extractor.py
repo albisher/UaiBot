@@ -166,3 +166,95 @@ ls -la
         
         # The test passes as long as both methods find the same command
         # We don't assert on timing as it can vary by environment
+
+    def test_extract_plan_based_json(self):
+        """Test extracting a plan-based JSON structure."""
+        ai_response = '''
+        ```json
+        {
+          "plan": [
+            {
+              "step": 1,
+              "description": "Create a file named test.txt",
+              "operation": "file.create",
+              "parameters": {"filename": "test.txt", "content": "hello"},
+              "confidence": 0.98,
+              "condition": null,
+              "on_success": [2],
+              "on_failure": [],
+              "explanation": "Creates a new file with the specified content."
+            },
+            {
+              "step": 2,
+              "description": "Read the file test.txt",
+              "operation": "file.read",
+              "parameters": {"filename": "test.txt"},
+              "confidence": 0.95,
+              "condition": null,
+              "on_success": [],
+              "on_failure": [],
+              "explanation": "Reads the content of the file created in step 1."
+            }
+          ],
+          "overall_confidence": 0.96,
+          "alternatives": [],
+          "language": "en"
+        }
+        ```
+        '''
+        success, plan, metadata = self.extractor.extract_command(ai_response)
+        self.assertTrue(success)
+        self.assertIsInstance(plan, dict)
+        self.assertIn('plan', plan)
+        self.assertIsInstance(plan['plan'], list)
+        self.assertEqual(plan['plan'][0]['operation'], 'file.create')
+        self.assertEqual(plan['plan'][1]['operation'], 'file.read')
+        self.assertEqual(metadata['language'], 'en')
+        self.assertIn('overall_confidence', metadata)
+        self.assertIn('alternatives', metadata)
+
+    def test_extract_plan_based_json_arabic(self):
+        """Test extracting a plan-based JSON structure in Arabic."""
+        ai_response = '''
+        ```json
+        {
+          "plan": [
+            {
+              "step": 1,
+              "description": "انشاء ملف باسم test.txt",
+              "operation": "file.create",
+              "parameters": {"filename": "test.txt", "content": "مرحبا"},
+              "confidence": 0.97,
+              "condition": null,
+              "on_success": [2],
+              "on_failure": [],
+              "explanation": "ينشئ ملفًا جديدًا بالمحتوى المحدد."
+            },
+            {
+              "step": 2,
+              "description": "اقرأ الملف test.txt",
+              "operation": "file.read",
+              "parameters": {"filename": "test.txt"},
+              "confidence": 0.95,
+              "condition": null,
+              "on_success": [],
+              "on_failure": [],
+              "explanation": "يقرأ محتوى الملف الذي تم إنشاؤه في الخطوة 1."
+            }
+          ],
+          "overall_confidence": 0.95,
+          "alternatives": [],
+          "language": "ar"
+        }
+        ```
+        '''
+        success, plan, metadata = self.extractor.extract_command(ai_response)
+        self.assertTrue(success)
+        self.assertIsInstance(plan, dict)
+        self.assertIn('plan', plan)
+        self.assertIsInstance(plan['plan'], list)
+        self.assertEqual(plan['plan'][0]['operation'], 'file.create')
+        self.assertEqual(plan['plan'][1]['operation'], 'file.read')
+        self.assertEqual(metadata['language'], 'ar')
+        self.assertIn('overall_confidence', metadata)
+        self.assertIn('alternatives', metadata)

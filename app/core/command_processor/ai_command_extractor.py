@@ -45,18 +45,16 @@ class AICommandExtractor:
             "ازل", "أزل", "انشاء", "انشئ", "اقرأ", "اعرض"
         ]
         
-    def extract_command(self, ai_response: str) -> Tuple[bool, Optional[str], Dict[str, Any]]:
+    def extract_command(self, ai_response: str) -> Tuple[bool, Optional[dict], Dict[str, Any]]:
         """
-        Extract a command from AI response text with rich metadata.
-        Prioritizes structured JSON formats as specified in the prompt.
-        
+        Extract a plan-based command from AI response text with rich metadata.
+        Prioritizes structured JSON formats as specified in the new prompt.
         Args:
             ai_response: The text response from the AI
-            
         Returns:
             Tuple containing:
                 - Success flag (boolean)
-                - Extracted command (string or None)
+                - Extracted plan (dict or None)
                 - Metadata about the extraction (dictionary)
         """
         metadata = {
@@ -64,189 +62,49 @@ class AICommandExtractor:
             "confidence": 0.0,
             "is_error": False,
             "error_message": None,
-            "suggested_alternatives": [],
-            "requires_implementation": False,
+            "alternatives": [],
             "parsed_json": None,
-            "file_operation": None,
-            "operation_params": {},
-            "info_response": None,
-            "related_commands": [],
+            "plan": None,
+            "overall_confidence": None,
+            "language": None,
         }
 
         # If the response is already a dict, treat as parsed JSON
         if isinstance(ai_response, dict):
-            metadata["parsed_json"] = ai_response
-            metadata["source"] = "json"
-            metadata["confidence"] = 0.95
-            if "command" in ai_response:
-                command = ai_response["command"]
-                if "explanation" in ai_response:
-                    metadata["explanation"] = ai_response["explanation"]
-                if "alternatives" in ai_response:
-                    metadata["suggested_alternatives"] = ai_response["alternatives"]
-                if "requires_implementation" in ai_response:
-                    metadata["requires_implementation"] = ai_response["requires_implementation"]
-                if "file_operation" in ai_response:
-                    metadata["file_operation"] = ai_response["file_operation"]
-                    if "operation_params" in ai_response:
-                        metadata["operation_params"] = ai_response["operation_params"]
-                logger.debug(f"Extracted command from JSON: {command}")
-                return True, command, metadata
-            # If no command, treat as info
-            metadata["info_response"] = ai_response
-            return False, None, metadata
-
-        # First priority: Extract JSON from the AI response
-        try:
-            # Look for code blocks containing JSON
+            data = ai_response
+        else:
+            # Try to extract JSON from code blocks or raw text
             json_blocks = self._extract_json_blocks(ai_response)
-            
             if not json_blocks:
-                # If no code block JSON, look for raw JSON objects
                 json_blocks = self._extract_raw_json(ai_response)
-            
-            # Try each potential JSON match until we find a valid one
+            data = None
             for json_str in json_blocks:
                 try:
                     data = json.loads(json_str)
-                    metadata["parsed_json"] = data
-                    metadata["source"] = "json"
-                    metadata["confidence"] = 0.95
-                    
-                    # FORMAT 1: Command with explanation
-                    if "command" in data:
-                        command = data["command"]
-                        
-                        # Extract additional metadata if available
-                        if "explanation" in data:
-                            metadata["explanation"] = data["explanation"]
-                        if "alternatives" in data:
-                            metadata["suggested_alternatives"] = data["alternatives"]
-                        if "requires_implementation" in data:
-                            metadata["requires_implementation"] = data["requires_implementation"]
-                            
-                        # Handle command with file operation
-                        if "file_operation" in data:
-                            metadata["file_operation"] = data["file_operation"]
-                            if "operation_params" in data:
-                                metadata["operation_params"] = data["operation_params"]
-                            
-                        logger.debug(f"Extracted command from JSON: {command}")
-                        return True, command, metadata
-                    
-                    # FORMAT 2: File operation
-                    elif "file_operation" in data:
-                        metadata["file_operation"] = data["file_operation"]
-                        if "operation_params" in data:
-                            metadata["operation_params"] = data["operation_params"]
-                        if "explanation" in data:
-                            metadata["explanation"] = data["explanation"]
-                            
-                        metadata["source"] = "json_file_operation"
-                        
-                        # Generate command from file operation
-                        command = self._generate_command_from_file_operation(
-                            data["file_operation"], 
-                            data.get("operation_params", {})
-                        )
-                        
-                        if command:
-                            logger.debug(f"Generated command from file operation: {command}")
-                            return True, command, metadata
-                    
-                    # FORMAT 3: Error response
-                    elif "error" in data and data["error"]:
-                        metadata["is_error"] = True
-                        metadata["error_message"] = data.get("error_message", "Unable to fulfill request")
-                        if "suggested_approach" in data:
-                            metadata["suggested_approach"] = data["suggested_approach"]
-                        metadata["requires_implementation"] = data.get("requires_implementation", True)
-                        
-                        logger.debug(f"AI reported error: {metadata['error_message']}")
-                        return False, None, metadata
-                    
-                    # FORMAT 4: Informational response
-                    elif "info_type" in data or "information" in data:
-                        # Handle info_type format
-                        if "info_type" in data:
-                            metadata["info_type"] = data["info_type"]
-                            metadata["info_response"] = data.get("response", "")
-                            if "related_command" in data:
-                                metadata["related_commands"].append(data["related_command"])
-                        # Handle information format
-                        elif "information" in data:
-                            metadata["info_response"] = data["information"]
-                            if "related_commands" in data:
-                                metadata["related_commands"] = data["related_commands"]
-                        
-                        metadata["source"] = "json_info"
-                        metadata["confidence"] = 0.9
-                        
-                        logger.debug(f"Extracted informational response: {metadata['info_type'] if 'info_type' in metadata else 'general info'}")
-                        return False, None, metadata
-                        
-                    # After: data = json.loads(json_str)
-                    if "intent" in data and data["intent"] == "browser_automation":
-                        metadata["intent"] = "browser_automation"
-                        metadata["browser"] = data.get("browser", "")
-                        metadata["url"] = data.get("url", "")
-                        metadata["actions"] = data.get("actions", [])
-                        return True, None, metadata
-                    
-                except json.JSONDecodeError:
-                    # This particular JSON string was invalid, try the next one
+                    break
+                except Exception:
                     continue
-        except Exception as e:
-            logger.error(f"Error processing JSON response: {e}")
-        
-        # Second priority: Look for code blocks
-        code_blocks = self._extract_code_blocks(ai_response)
-        if code_blocks:
-            command = code_blocks[0].strip()
-            metadata["source"] = "code_block"
-            metadata["confidence"] = 0.85
-            logger.debug(f"Extracted command from code block: {command}")
-            return True, command, metadata
-        
-        # Third priority: Look for inline code
-        inline_codes = self._extract_inline_code(ai_response)
-        if inline_codes:
-            # Find the first non-empty inline code
-            for code in inline_codes:
-                code = code.strip()
-                if code:
-                    metadata["source"] = "inline_code"
-                    metadata["confidence"] = 0.75
-                    logger.debug(f"Extracted command from inline code: {code}")
-                    return True, code, metadata
-        
-        # Fourth priority: Extract command from phrases like "use the command..."
-        command = self._extract_command_from_phrases(ai_response)
-        if command:
-            metadata["source"] = "phrase"
-            metadata["confidence"] = 0.65
-            logger.debug(f"Extracted command from phrase: {command}")
-            return True, command, metadata
-        
-        # Fifth priority: Check for Arabic commands
-        arabic_command = self._extract_arabic_command(ai_response)
-        if arabic_command:
-            metadata["source"] = "arabic"
-            metadata["confidence"] = 0.7
-            logger.debug(f"Extracted Arabic command: {arabic_command}")
-            return True, arabic_command, metadata
-        
-        # Check for error indicators
-        is_error, error_message = self._check_for_error(ai_response)
-        if is_error:
+        if not data:
             metadata["is_error"] = True
-            metadata["error_message"] = error_message
-            metadata["requires_implementation"] = True
-            logger.debug(f"Detected error in response: {error_message}")
+            metadata["error_message"] = "No valid JSON plan found in AI response."
             return False, None, metadata
-        
-        # No command found
-        logger.debug("No command found in response")
+        metadata["parsed_json"] = data
+        # Check for new plan-based structure
+        if "plan" in data and isinstance(data["plan"], list):
+            metadata["plan"] = data["plan"]
+            metadata["overall_confidence"] = data.get("overall_confidence")
+            metadata["alternatives"] = data.get("alternatives", [])
+            metadata["language"] = data.get("language")
+            metadata["source"] = "plan_json"
+            metadata["confidence"] = data.get("overall_confidence", 0.95)
+            return True, data, metadata
+        # Fallback: legacy extraction logic (single command, file_operation, etc.)
+        # (Keep for backward compatibility, but mark as fallback)
+        metadata["source"] = "legacy_fallback"
+        if "command" in data:
+            return True, {"plan": [{"step": 1, "description": data["command"], "operation": data.get("intent"), "parameters": data.get("parameters", {}), "confidence": data.get("confidence", 0.9), "condition": None, "on_success": [], "on_failure": [], "explanation": data.get("explanation", "")}]}, metadata
+        metadata["is_error"] = True
+        metadata["error_message"] = "No plan or command found in AI response."
         return False, None, metadata
     
     def _extract_json_blocks(self, text: str) -> List[str]:

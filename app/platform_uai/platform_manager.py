@@ -9,6 +9,7 @@ import sys
 import importlib
 import platform
 from app.utils import get_platform_name, get_project_root, load_config
+import logging
 
 class PlatformManager:
     def __init__(self):
@@ -45,34 +46,32 @@ class PlatformManager:
             print(f"Note: Apple Silicon optimizations not available: {e}")
             self.is_apple_silicon = False
             
-    def initialize(self):
-        """Initialize all platform-specific components"""
+    def initialize(self, mode='interactive', fast_mode=False):
+        """Initialize all platform-specific components with mode awareness."""
         if not self.platform_supported:
             print("Cannot initialize - platform not supported")
             return False
-            
-        # Import platform utils
+        logger = logging.getLogger("UaiBot.PlatformManager")
         try:
             from platform_uai.platform_utils import get_audio_handler, get_usb_handler, get_input_handler
-            
             # Initialize audio handler
             self.audio_handler = get_audio_handler()
             if not self.audio_handler:
-                print(f"Failed to initialize audio handler for {self.platform_name}")
-            
+                logger.warning(f"Audio handler not initialized for {self.platform_name}")
             # Initialize USB handler
             self.usb_handler = get_usb_handler()
             if not self.usb_handler:
-                print(f"Failed to initialize USB handler for {self.platform_name}")
-                
+                logger.warning(f"USB handler not initialized for {self.platform_name}")
             # Initialize Input handler
             self.input_handler = get_input_handler()
             if not self.input_handler:
-                print(f"Failed to initialize input handler for {self.platform_name}")
-                
+                logger.warning(f"Input handler not initialized for {self.platform_name}")
+            # In non-interactive or fast mode, do not block or prompt
+            if mode != 'interactive' or fast_mode:
+                return True
             return all([self.audio_handler, self.usb_handler, self.input_handler])
         except ImportError as e:
-            print(f"Failed to import platform utilities: {e}")
+            logger.warning(f"Failed to import platform utilities: {e}")
             return False
     
     def get_audio_handler(self):

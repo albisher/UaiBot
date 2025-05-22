@@ -16,6 +16,7 @@ from app.core.command_processor.command_registry import CommandRegistry
 from app.core.command_processor.command_executor import CommandExecutor
 from app.core.parallel_utils import ParallelTaskManager, run_in_parallel
 from app.core.command_processor.ai_command_extractor import AICommandExtractor
+from app.utils.ai_json_tools import build_ai_prompt
 
 # Simplified version of the command processor focused on handling natural language commands properly
 class CommandProcessor:
@@ -243,8 +244,11 @@ class CommandProcessor:
         # If we haven't stored this information or it's changed, update and ask to save
         if not self.user_settings.get("username") or self.user_settings.get("username") != username:
             self.user_settings["username"] = username
-            
-            if not self.quiet_mode:
+            # Only prompt in interactive mode and not in fast mode
+            if not getattr(self, 'mode', 'interactive') == 'interactive' or getattr(self, 'fast_mode', False):
+                # In non-interactive or fast mode, just set and skip prompt
+                pass
+            else:
                 print(f"\n📋 I detected your username is '{username}'. Would you like me to remember this? (y/n)")
                 response = input("> ").strip().lower()
                 if response.startswith('y'):
@@ -306,11 +310,8 @@ class CommandProcessor:
                 f"Using AI to interpret your request and generate an appropriate response..."
             )
         
-        # Create a prompt that's aware of the current platform
-        system_info = self.platform_commands.get_platform_info()
-        
-        # Use the AI command extractor to create a better prompt
-        prompt_for_ai = self.command_extractor.format_ai_prompt(user_input, system_info)
+        # Use the unified AI prompt template
+        prompt_for_ai = build_ai_prompt(user_input)
         
         # Get response from AI with timeout handling in fast mode
         try:

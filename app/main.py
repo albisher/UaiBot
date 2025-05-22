@@ -33,6 +33,7 @@ from app.core.shell_handler import ShellHandler
 from app.core.ai_handler import AIHandler
 from app.utils.output_facade import output
 from app.core.file_operations import process_file_flag_request
+from app.health_check.ollama_health_check import check_ollama_server, check_model_available
 
 # Set up logging
 logger = get_logger(__name__)
@@ -48,23 +49,27 @@ urllib3.disable_warnings()
 class UaiBot:
     """Main UaiBot class that handles user interaction."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None, debug: bool = False):
+    def __init__(self, config: Optional[Dict[str, Any]] = None, debug: bool = False, mode: str = 'interactive', fast_mode: bool = False):
         """
         Initialize UaiBot with configuration.
         
         Args:
             config: Optional configuration dictionary
             debug: Boolean to enable debug output
+            mode: The mode of operation (interactive, command, or file)
+            fast_mode: Boolean to enable fast mode (minimal prompts, quick exit)
         """
         try:
-            # Initialize platform manager
-            self.platform_manager = PlatformManager()
+            self.mode = mode
+            self.fast_mode = fast_mode
+            # Initialize platform manager with mode awareness if needed
+            self.platform_manager = PlatformManager(mode=mode, fast_mode=fast_mode) if 'mode' in PlatformManager.__init__.__code__.co_varnames else PlatformManager()
             if not self.platform_manager.platform_supported:
                 raise ConfigurationError(f"Unsupported platform: {self.platform_manager.platform_name}")
             
             # Initialize platform components
             logger.info("Initializing platform components...")
-            self.platform_manager.initialize()
+            self.platform_manager.initialize(mode=mode, fast_mode=fast_mode) if 'mode' in self.platform_manager.initialize.__code__.co_varnames else self.platform_manager.initialize()
             
             # Load configuration
             self.config = config or {}
@@ -74,7 +79,7 @@ class UaiBot:
             output.set_verbosity(output_verbosity)
             
             # Initialize shell handler and command processor
-            self.shell_handler = ShellHandler()
+            self.shell_handler = ShellHandler(fast_mode=fast_mode)
             
             # Initialize AI handler with caching
             model_type = self.config.get('default_ai_provider', 'ollama')
@@ -82,16 +87,35 @@ class UaiBot:
             google_api_key = self.config.get('google_api_key')
             google_model_name = self.config.get('default_google_model', 'gemini-pro')
             
+            # --- Automated Ollama model selection ---
+            default_model = self.config.get('default_ollama_model', 'gemma:2b')
+            selected_model = default_model
+            if model_type == 'ollama':
+                ok, tags_json = check_ollama_server()
+                if ok:
+                    ok, selected_model = check_model_available(tags_json, default_model)
+                    if ok:
+                        print(f"[UaiBot] Using Ollama model: {selected_model}")
+                    else:
+                        print("[UaiBot] No available Ollama model found. Exiting.")
+                        raise RuntimeError("No available Ollama model found.")
+            else:
+                selected_model = google_model_name
             self.ai_handler = AIHandler(
                 model_type=model_type,
                 api_key=google_api_key,
                 google_model_name=google_model_name,
                 ollama_base_url=ollama_base_url,
                 cache_ttl=self.config.get('cache_ttl', 3600),
-                cache_size_mb=self.config.get('cache_size_mb', 100)
+                cache_size_mb=self.config.get('cache_size_mb', 100),
+                fast_mode=fast_mode
             )
             
-            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler)
+            # Patch the model name for Ollama if needed
+            if model_type == 'ollama':
+                setattr(self.ai_handler, 'ollama_model_name', selected_model)
+            
+            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler, fast_mode=fast_mode)
             
             # Welcome message with platform info
             platform_info = self.platform_manager.get_platform_info()
@@ -212,18 +236,27 @@ def main():
         parser.add_argument("-c", "--command", type=str, help="Command to execute")
         parser.add_argument("--no-safe-mode", action="store_true", help="Disable safe mode for file operations")
         parser.add_argument("--gui", "-g", action="store_true", help="Start in GUI mode")
-        parser.add_argument('--debug', action='store_true', help='Enable debug output for AI prompt/response/decision')
+        parser.add_argument("--fast", action="store_true", help="Enable fast mode (minimal prompts, quick exit)")
+        parser.add_argument("--debug", "-d", action="store_true", help="Enable debug output for AI prompt/response/decision")
         args = parser.parse_args()
-        
+
+        # Determine mode
+        if args.command:
+            mode = 'command'
+        elif args.file:
+            mode = 'file'
+        else:
+            mode = 'interactive'
+
         # Check if GUI mode is requested
         if args.gui:
             output.info("GUI mode requested. Please use 'python start_app.py --gui' instead.")
             sys.exit(1)
         
-        # Initialize and start UaiBot
-        bot = UaiBot(debug=args.debug)
+        # Initialize and start UaiBot with mode awareness
+        bot = UaiBot(debug=args.debug, mode=mode, fast_mode=args.fast)
         
-        if args.file:
+        if mode == 'file':
             # If the argument is a file, read its contents as the prompt. Otherwise, treat it as a direct prompt.
             if os.path.isfile(args.file):
                 with open(args.file, 'r') as f:
@@ -232,7 +265,7 @@ def main():
                 prompt = args.file.strip()
             result = bot.process_single_command(prompt)
             output.info(result)
-        elif args.command:
+        elif mode == 'command':
             result = bot.process_single_command(args.command)
             output.info(result)
         else:

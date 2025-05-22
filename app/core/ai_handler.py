@@ -328,7 +328,8 @@ class AIHandler:
         google_model_name: str = "gemini-pro",
         ollama_base_url: str = "http://localhost:11434",
         cache_ttl: int = 3600,  # 1 hour default TTL
-        cache_size_mb: int = 100  # 100MB default max size
+        cache_size_mb: int = 100,  # 100MB default max size
+        fast_mode: bool = False  # Accept fast_mode for compatibility
     ):
         """
         Initialize the AI handler.
@@ -340,10 +341,12 @@ class AIHandler:
             ollama_base_url: Base URL for Ollama API
             cache_ttl: Cache TTL in seconds
             cache_size_mb: Maximum cache size in megabytes
+            fast_mode: Enable fast mode (minimal prompts, quick exit)
         """
         self.model_type = model_type.lower()
         self.google_model_name = google_model_name
         self.ollama_base_url = ollama_base_url
+        self.fast_mode = fast_mode
         
         # Initialize cache
         self.cache = CacheManager(ttl_seconds=cache_ttl, max_size_mb=cache_size_mb)
@@ -435,12 +438,15 @@ class AIHandler:
         try:
             model_name = getattr(self, 'ollama_model_name', None) or 'gemma3:4b'
             response = self.client.generate(model=model_name, prompt=command)
+            # Debug: print the full raw response from Ollama
+            print("[DEBUG] Ollama raw response:", response)
             return {
                 "command": response["response"],
                 "confidence": response.get("confidence", 0.95),
                 "model": model_name
             }
         except Exception as e:
+            print(f"[DEBUG] Ollama exception: {e}")
             raise AIError(f"Ollama processing error: {str(e)}")
     
     def clear_cache(self) -> None:
