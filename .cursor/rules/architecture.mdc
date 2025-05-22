@@ -3,9 +3,26 @@ description:
 globs: 
 alwaysApply: false
 ---
-- Follow the architecture defined in architecture.md and class_architecture.md
-- Maintain clear separation between core components and platform-specific implementations
-- Keep platform-specific code in app/platform_uai directory
-- Follow the command processing flow defined in command_processor_main.py
-- Maintain consistent file structure across all components
-- Document all architectural decisions in architecture.md
+- Core Architecture:
+  * Design for model-agnostic system
+  * Support multiple AI providers
+  * Allow easy model switching
+  * Maintain clear separation between components
+  * Keep platform-specific code isolated
+  * Design for future extensibility
+
+- Component Organization:
+  * Follow the architecture defined in architecture.md
+  * Maintain clear separation between core and platform-specific code
+  * Keep platform-specific code in app/platform_uai directory
+  * Follow the command processing flow
+  * Maintain consistent file structure
+  * Document all architectural decisions
+
+- Model Integration:
+  * Design for flexible model integration
+  * Support multiple AI providers
+  * Allow easy model switching
+  * Keep model-specific code isolated
+  * Maintain consistent interfaces
+  * Document model integration patterns

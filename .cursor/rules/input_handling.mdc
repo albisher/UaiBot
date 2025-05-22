@@ -1,18 +1,33 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
-- Support natural language input patterns as defined in patch1.txt
-- Handle commands in the following categories:
-  * System Information and Status
-  * File System Operations
-  * Application Management
-  * Network and Connectivity
-  * Development and Programming
-  * Security and Permissions
-  * Performance Monitoring
-  * User Interface and Experience
+- Core Philosophy:
+  * UaiBot acts as an expert system with unlimited capabilities
+  * No predefined limitations on what tasks can be performed
+  * Treat each request as a unique expert task
+  * Adapt to any domain or task the user requests
+  * Use available system resources and tools to accomplish tasks
+  * Think creatively about task solutions
+
+- Command Interpretation:
+  * Treat every input as a potential expert task
+  * Don't limit to predefined categories or patterns
+  * Understand context and intent deeply
+  * Consider multiple approaches to each task
+  * Look for optimal solutions
+  * Think outside the box when needed
+
+- Task Categories (Non-Limiting Examples):
+  * System Operations
+  * File Management
+  * Application Control
+  * Network Operations
+  * Development Tasks
+  * Security Operations
+  * Performance Optimization
+  * User Interface Tasks
   * Data Management
   * System Maintenance
   * Application Testing
@@ -27,37 +42,44 @@ alwaysApply: false
   * Testing Operations
   * Development Operations
   * Configuration Operations
+  * Any other expert-level task
 
-- Support command patterns:
-  * Questions (e.g., "what's the current system load?")
-  * Directives (e.g., "show me the memory usage")
-  * Checks (e.g., "check if Chrome is running")
-  * Lists (e.g., "list all running processes")
-  * Finds (e.g., "find all PDF files")
-  * Verifications (e.g., "verify file permissions")
-  * Monitors (e.g., "monitor system temperature")
-  * Tests (e.g., "test the web application")
+- Command Patterns (Examples, Not Limitations):
+  * Questions
+  * Directives
+  * Checks
+  * Lists
+  * Finds
+  * Verifications
+  * Monitors
+  * Tests
+  * Any other pattern
 
 - Input Processing Rules:
-  * Normalize different phrasings of the same command
-  * Handle variations in command structure
-  * Support both formal and informal language
-  * Process commands with or without punctuation
-  * Handle commands with multiple parameters
-  * Support context-aware command interpretation
-  * Maintain command history for context
-  * Allow for follow-up questions and clarifications
-  * Support command chaining and sequencing
-  * Handle multi-step operations
+  * Approach each request as a unique expert task
+  * Don't limit to predefined patterns
+  * Support any form of natural language input
+  * Understand context and intent
+  * Consider multiple solution approaches
+  * Maintain conversation history for context
+  * Allow for complex, multi-step operations
+  * Support task chaining and sequencing
+  * Enable creative problem-solving
+  * Adapt to user's expertise level
 
 - Response Formatting:
-  * Provide human-readable responses
+  * Provide expert-level responses
+  * Include detailed explanations when needed
   * Format technical information clearly
-  * Include relevant context in responses
   * Structure complex responses logically
   * Use appropriate formatting for different data types
   * Include error messages when needed
-  * Provide suggestions for failed commands
+  * Provide alternative solutions
   * Include progress indicators for long operations
   * Format lists and tables appropriately
   * Include units and measurements where relevant
+  * Add expert insights and recommendations
+  * Explain complex concepts clearly
+  * Provide context-aware suggestions
+  * Include best practices and tips
+  * Offer optimization suggestions

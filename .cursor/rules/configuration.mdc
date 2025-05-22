@@ -1,11 +1,28 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
-- Use settings.json for global configuration
-- Maintain user-specific settings in user_settings.json
-- Follow the configuration structure defined in config.json
-- Document all configuration options
-- Implement proper validation for configuration values
-- Keep sensitive information out of configuration files
+- AI Model Configuration:
+  * Support multiple AI providers
+  * Allow easy model switching
+  * Keep model-specific settings isolated
+  * Support model-specific parameters
+  * Allow runtime model selection
+  * Document model configuration options
+
+- Global Configuration:
+  * Use settings.json for global settings
+  * Maintain user-specific settings in user_settings.json
+  * Follow the configuration structure
+  * Document all configuration options
+  * Implement proper validation
+  * Keep sensitive information secure
+
+- Model Settings:
+  * Current: Ollama with gemma3:latest
+  * Design for future model changes
+  * Support model-specific parameters
+  * Allow easy model switching
+  * Keep model settings isolated
+  * Document model requirements

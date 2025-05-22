@@ -3,9 +3,26 @@ description:
 globs: 
 alwaysApply: false
 ---
-- Use Ollama as the default AI provider (gemma:7b model)
-- Follow the command processing pipeline defined in command_processor_main.py
-- Implement proper error handling for AI model responses
-- Maintain clear separation between command interpretation and execution
-- Document all command patterns in config/command_patterns.json
-- Ensure proper validation of AI model responses
+- AI Model Architecture:
+  * Design for model-agnostic architecture
+  * Support multiple AI providers and models
+  * Allow easy switching between different models
+  * Maintain consistent interface regardless of model
+  * Design for future model upgrades/changes
+  * Support model-specific optimizations
+
+- Current Implementation:
+  * Using Ollama with gemma3:latest as initial model
+  * This is a temporary implementation choice
+  * Architecture must support other models
+  * No hard dependencies on specific model features
+  * Keep model-specific code isolated
+  * Allow for easy model replacement
+
+- Command Processing:
+  * Follow the command processing pipeline
+  * Implement proper error handling
+  * Maintain clear separation between interpretation and execution
+  * Document all command patterns
+  * Ensure proper validation of model responses
+  * Support model-agnostic command patterns
