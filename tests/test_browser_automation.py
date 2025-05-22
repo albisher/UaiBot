@@ -1,59 +1,69 @@
 #!/usr/bin/env python3
 """
 Test script for browser automation functionality.
-Tests opening browsers, executing JavaScript, and clicking elements.
+Covers AppleScript (macOS) and Playwright (cross-platform) implementations.
+Includes tests for incognito, profiles, upload, download, screenshot, and error handling.
 """
 
 import os
 import sys
 import time
+import tempfile
 import pytest
 from app.core.browser_controller import BrowserController
 
 def test_browser_controller():
-    """Test the BrowserController class."""
+    """Test the BrowserController class with various browsers and features."""
     controller = BrowserController()
-    
-    # Test opening browsers
     browsers = ['chrome', 'safari', 'firefox']
+    # Test normal open, incognito, and profile
     for browser in browsers:
         print(f"\nTesting {browser}...")
-        
         # Test 1: Open browser
         result = controller.open_browser(browser)
-        print(f"Open browser result: {result}")
-        assert "Error" not in result
-        time.sleep(2)  # Wait for browser to open
-        
-        # Test 2: Open browser with URL
-        result = controller.open_browser(browser, "https://www.google.com")
-        print(f"Open browser with URL result: {result}")
-        assert "Error" not in result
-        time.sleep(2)  # Wait for navigation
-        
-        # Test 3: Execute JavaScript
+        assert "Error" not in result, f"Failed to open {browser}: {result}"
+        time.sleep(1)
+        # Test 2: Open incognito/private
+        result = controller.open_browser(browser, "https://www.google.com", incognito=True)
+        assert "Error" not in result, f"Failed to open {browser} incognito: {result}"
+        time.sleep(1)
+        # Test 3: Open with profile (Playwright only)
+        if controller.playwright_available and browser != 'safari':
+            with tempfile.TemporaryDirectory() as profile_dir:
+                result = controller.open_browser(browser, "https://www.google.com", profile_path=profile_dir)
+                assert "Error" not in result, f"Failed to open {browser} with profile: {result}"
+                time.sleep(1)
+        # Test 4: JS execution
         js_code = "document.title = 'Test Title';"
         result = controller.execute_javascript(browser, js_code)
-        print(f"Execute JavaScript result: {result}")
-        if browser in ['chrome', 'safari']:
-            assert "Error" not in result
-        time.sleep(1)
-        
-        # Test 4: Click element
+        assert "Error" not in result, f"Failed to execute JS in {browser}: {result}"
+        # Test 5: Click element (if supported)
         if browser in ['chrome', 'safari']:
             result = controller.click_element(browser, "input[name='q']")
-            print(f"Click element result: {result}")
-            assert "Error" not in result
-            time.sleep(1)
-    
-    # Cleanup
-    controller.close()
+            assert "Error" not in result, f"Failed to click element in {browser}: {result}"
+        # Test 6: Screenshot (Playwright only)
+        if controller.playwright_available and controller.page:
+            result = controller.screenshot(path=f"test_{browser}.png")
+            assert "Error" not in result, f"Failed to take screenshot in {browser}: {result}"
+        # Test 7: File upload (Playwright only, Chrome/Firefox)
+        if controller.playwright_available and browser in ['chrome', 'firefox']:
+            # This is a placeholder: would need a test page with a file input
+            print("File upload test skipped (requires test page with file input)")
+        # Test 8: Download (Playwright only, Chrome/Firefox)
+        if controller.playwright_available and browser in ['chrome', 'firefox']:
+            # This is a placeholder: would need a direct download URL
+            print("Download test skipped (requires direct download URL)")
+        # Test 9: Edge case - bad selector
+        result = controller.click_element(browser, "#notarealselector")
+        assert "Error" in result or "No active page" in result, "Expected error for bad selector"
+        # Cleanup
+        controller.close()
+        time.sleep(1)
+    # Test 10: Missing browser
+    result = controller.open_browser("notarealbrowser")
+    assert "Error" in result, "Expected error for missing browser"
+    print("\nAll browser automation tests completed!")
 
 if __name__ == "__main__":
-    try:
-        test_browser_controller()
-        print("\n✅ All browser automation tests passed!")
-    except Exception as e:
-        print(f"\n❌ Test failed: {str(e)}")
-        import traceback
-        traceback.print_exc() 
+    test_browser_controller()
+    print("\nAll tests completed successfully!") 

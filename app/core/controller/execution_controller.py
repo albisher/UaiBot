@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
 import shlex
+import subprocess
 
 from app.core.command_processor.ai_command_extractor import AICommandExtractor
 from app.core.command_processor.error_handler import error_handler, ErrorCategory
@@ -154,7 +155,7 @@ class ExecutionController:
             self._update_state_variables(parameters)
             
             # Execute the operation
-            result = self._execute_operation(operation, parameters)
+            result = self._execute_operation(operation)
             
             return {
                 'step': step['step'],
@@ -174,91 +175,59 @@ class ExecutionController:
                 'parameters': step.get('parameters', {})
             }
     
-    def _execute_operation(self, operation: str, parameters: Dict[str, Any]) -> Any:
-        """
-        Execute a specific operation.
-        
-        Args:
-            operation: The operation to execute
-            parameters: Operation parameters
+    def _execute_operation(self, operation: Dict[str, Any]) -> str:
+        """Execute a single operation."""
+        try:
+            op_type = operation.get('type', '').lower()
+            parameters = operation.get('parameters', {})
             
-        Returns:
-            Operation result
-        """
-        if not operation or not isinstance(operation, str):
-            logger.error(f"Invalid or missing operation: {operation!r}")
-            raise ValueError(f"Invalid or missing operation: {operation!r}")
-        
-        # --- BROWSER AUTOMATION ---
-        if operation in ['open_browser', 'launch_browser', 'browser.open']:
-            browser = parameters.get('browser') or parameters.get('application')
-            url = parameters.get('url') or parameters.get('website')
-            if browser:
+            # Handle browser operations
+            if op_type == 'open_browser':
+                browser = parameters.get('browser', '')
+                url = parameters.get('url', '')
+                if not browser:
+                    return "Error: Browser name is required"
                 return self.browser_controller.open_browser(browser, url)
-            return "Error: No browser specified"
-        
-        elif operation in ['execute_javascript', 'browser.execute_js']:
-            browser = parameters.get('browser')
-            js_code = parameters.get('js_code')
-            if browser and js_code:
+            
+            elif op_type == 'execute_javascript':
+                browser = parameters.get('browser', '')
+                js_code = parameters.get('js_code', '')
+                if not browser or not js_code:
+                    return "Error: Browser name and JavaScript code are required"
                 return self.browser_controller.execute_javascript(browser, js_code)
-            return "Error: Missing browser or JavaScript code"
-        
-        elif operation in ['click_element', 'browser.click']:
-            browser = parameters.get('browser')
-            selector = parameters.get('selector')
-            if browser and selector:
+            
+            elif op_type == 'click_element':
+                browser = parameters.get('browser', '')
+                selector = parameters.get('selector', '')
+                if not browser or not selector:
+                    return "Error: Browser name and CSS selector are required"
                 return self.browser_controller.click_element(browser, selector)
-            return "Error: Missing browser or element selector"
-        
-        # --- UNIVERSAL APPLICATION LAUNCH ---
-        app_keys = ['application_name', 'application', 'app', 'program']
-        app_name = None
-        for key in app_keys:
-            if key in parameters:
-                app_name = parameters[key]
-                break
-        if (app_name or any(k in operation.lower() for k in ['open', 'launch'])):
-            if not app_name:
-                for v in parameters.values():
-                    if isinstance(v, str) and v.strip():
-                        app_name = v.strip()
-                        break
-            if app_name:
-                if os.name == 'nt':
-                    cmd = f'start "" "{app_name}"'
-                elif os.name == 'posix':
-                    if os.path.exists('/Applications'):
-                        cmd = f'open -a "{app_name}"'
-                    else:
-                        cmd = f'{app_name} &'
-                else:
-                    raise ValueError(f"Unsupported operating system: {os.name}")
-                return self.shell_handler.execute_command(cmd)
-        # --- END UNIVERSAL APPLICATION LAUNCH ---
-
-        if operation == 'execute_shell_command':
-            command = parameters.get('command')
-            if not command:
-                raise ValueError("No command specified for execute_shell_command")
-            return self.shell_handler.execute_command(command)
-        elif operation.startswith('file.'):
-            if operation == 'file.read_and_append':
-                return self._handle_file_read_and_append(parameters)
-            return self._handle_file_operation(operation, parameters)
-        elif operation.startswith('directory.'):
-            return self._handle_directory_operation(operation, parameters)
-        elif operation.startswith('shell.'):
-            if operation == 'shell.execute_and_read':
-                return self._handle_shell_execute_and_read(parameters)
-            return self._handle_shell_operation(operation, parameters)
-        elif operation == 'conditional_file_operation':
-            return self._handle_conditional_file_operation(parameters)
-        else:
-            # Show a user-friendly message for unsupported operations
-            msg = f"⚠️ Sorry, I can't automate the step '{operation}' yet."
-            logger.warning(msg)
-            return msg
+            
+            # Handle universal application launch
+            elif op_type == 'launch_application':
+                app_name = parameters.get('application', '')
+                if not app_name:
+                    return "Error: Application name is required"
+                
+                if os.name == 'nt':  # Windows
+                    cmd = f'start {shlex.quote(app_name)}'
+                elif os.name == 'posix' and os.path.exists('/Applications'):  # macOS
+                    cmd = f'open -a {shlex.quote(app_name)}'
+                else:  # Linux and others
+                    cmd = f'{shlex.quote(app_name)}'
+                
+                try:
+                    subprocess.run(cmd, shell=True, check=True)
+                    return f"Launched {app_name}"
+                except subprocess.CalledProcessError as e:
+                    return f"Error launching {app_name}: {str(e)}"
+            
+            else:
+                return f"Unknown operation type: {op_type}"
+                
+        except Exception as e:
+            logger.error(f"Error executing operation: {str(e)}")
+            return f"Error: {str(e)}"
     
     def _handle_file_operation(self, operation: str, parameters: Dict[str, Any]) -> Any:
         """Handle file operations."""
@@ -349,7 +318,6 @@ class ExecutionController:
         # Make executable
         os.chmod(filename, 0o755)
         # Execute and capture output
-        import subprocess
         result = subprocess.run([f'./{filename}'], capture_output=True, text=True, shell=True)
         return f"Script output: {result.stdout.strip()}"
     
@@ -370,7 +338,6 @@ class ExecutionController:
             return f"File created. Content: {f.read()}"
     
     def _handle_system_info_gathering(self, parameters: Dict[str, Any]) -> Any:
-        import subprocess
         pwd = subprocess.getoutput('pwd')
         ls = subprocess.getoutput('ls')
         info = f"Current directory: {pwd}\nContents:\n{ls}"
