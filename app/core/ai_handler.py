@@ -4,6 +4,7 @@ import json
 import platform
 import subprocess
 import re
+import time
 from typing import Optional, Tuple, Dict, Any
 from .model_manager import ModelManager
 from .query_processor import QueryProcessor
@@ -14,6 +15,8 @@ from app.core.logging_config import get_logger
 logger = get_logger(__name__)
 from app.core.cache_manager import CacheManager
 from app.core.exceptions import AIError, ConfigurationError
+from app.core.ai_performance_tracker import AIPerformanceTracker
+from app.core.model_config_manager import ModelConfigManager
 
 try:
     import google.generativeai as genai
@@ -354,6 +357,12 @@ class AIHandler:
         # Initialize cache
         self.cache = CacheManager(ttl_seconds=cache_ttl, max_size_mb=cache_size_mb)
         
+        # Initialize performance tracker
+        self.performance_tracker = AIPerformanceTracker()
+        
+        # Initialize model configuration manager
+        self.model_config = ModelConfigManager()
+        
         # Load configuration
         self._load_config()
         
@@ -397,7 +406,25 @@ class AIHandler:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel(self.google_model_name)
+            
+            # Get model configuration
+            config = self.model_config.get_config(self.google_model_name)
+            if config:
+                # Apply model-specific parameters
+                generation_config = {
+                    "temperature": config.parameters.get("temperature", 0.7),
+                    "max_output_tokens": config.parameters.get("max_tokens", 2048),
+                    "top_p": config.parameters.get("top_p", 0.95),
+                    "top_k": config.parameters.get("top_k", 40)
+                }
+                self.model = genai.GenerativeModel(
+                    self.google_model_name,
+                    generation_config=generation_config
+                )
+            else:
+                # Use default configuration
+                self.model = genai.GenerativeModel(self.google_model_name)
+            
             logger.info(f"Initialized Google AI client with model: {self.google_model_name}")
         except ImportError:
             raise ConfigurationError("Google AI package not installed")
@@ -409,6 +436,21 @@ class AIHandler:
         try:
             from ollama import Client
             self.client = Client(host=self.ollama_base_url)
+            
+            # Get model configuration
+            model_name = getattr(self, 'ollama_model_name', 'gemma3:4b')
+            config = self.model_config.get_config(model_name)
+            if config:
+                # Store model-specific parameters for use in requests
+                self.model_params = config.parameters
+            else:
+                # Use default parameters
+                self.model_params = {
+                    "temperature": 0.7,
+                    "top_p": 0.95,
+                    "top_k": 40
+                }
+            
             logger.info(f"Initialized Ollama client with base URL: {self.ollama_base_url}")
         except ImportError:
             raise ConfigurationError("Ollama package not installed")
@@ -434,17 +476,37 @@ class AIHandler:
             logger.info("Using cached response for command")
             return cached_response
         
+        start_time = time.time()
         try:
             if self.model_type == 'google':
                 response = self._process_google_command(command)
+                model_name = self.google_model_name
             else:
                 response = self._process_ollama_command(command)
+                model_name = getattr(self, 'ollama_model_name', 'gemma3:4b')
+            
+            # Track successful request
+            self.performance_tracker.track_request(
+                model_name=model_name,
+                start_time=start_time,
+                success=True,
+                token_count=response.get('token_count')
+            )
             
             # Cache the response
             self.cache.set(command, response)
             return response
             
         except Exception as e:
+            # Track failed request
+            model_name = self.google_model_name if self.model_type == 'google' else getattr(self, 'ollama_model_name', 'gemma3:4b')
+            self.performance_tracker.track_request(
+                model_name=model_name,
+                start_time=start_time,
+                success=False,
+                error_type=type(e).__name__
+            )
+            
             logger.error(f"Error processing command: {str(e)}")
             raise AIError(f"Failed to process command: {str(e)}")
     
@@ -463,19 +525,22 @@ class AIHandler:
     def _process_ollama_command(self, command: str) -> Dict[str, Any]:
         """Process command using Ollama."""
         try:
-            model_name = getattr(self, 'ollama_model_name', None) or 'gemma3:4b'
+            model_name = getattr(self, 'ollama_model_name', 'gemma3:4b')
             
             # Prepare debug output if enabled
             if self.debug:
                 debug_prompt = f"[DEBUG] Prompt sent to Ollama:\n{command}"
                 print(debug_prompt)
             
-            # Make the request
-            response = self.client.generate(model=model_name, prompt=command)
+            # Make the request with model parameters
+            response = self.client.generate(
+                model=model_name,
+                prompt=command,
+                **self.model_params
+            )
             
             # Process debug output
             if self.debug:
-                # Only show relevant parts of the response
                 debug_response = {
                     "model": response.get("model", model_name),
                     "response": response.get("response", "").strip(),
@@ -495,7 +560,8 @@ class AIHandler:
                             "command": json_response.get("command", response_text),
                             "explanation": json_response.get("explanation", ""),
                             "confidence": json_response.get("confidence", 0.95),
-                            "model": model_name
+                            "model": model_name,
+                            "token_count": response.get("eval_count", 0)
                         }
             except json.JSONDecodeError:
                 pass
@@ -505,7 +571,8 @@ class AIHandler:
                 "command": response_text,
                 "explanation": "Direct response from AI",
                 "confidence": 0.95,
-                "model": model_name
+                "model": model_name,
+                "token_count": response.get("eval_count", 0)
             }
             
         except Exception as e:
@@ -517,3 +584,63 @@ class AIHandler:
         """Clear the response cache."""
         self.cache.clear()
         logger.info("AI response cache cleared")
+
+    def get_performance_metrics(self, model_name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get performance metrics for the AI handler.
+        
+        Args:
+            model_name: Optional name of the model to get metrics for
+            
+        Returns:
+            Dictionary containing performance metrics
+        """
+        if model_name:
+            return self.performance_tracker.get_model_metrics(model_name)
+        return self.performance_tracker.get_all_metrics()
+
+    def export_performance_metrics(self, filepath: str) -> None:
+        """
+        Export performance metrics to a file.
+        
+        Args:
+            filepath: Path to save the metrics
+        """
+        self.performance_tracker.export_metrics(filepath)
+
+    def get_model_config(self, model_name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get configuration for a specific model or all models.
+        
+        Args:
+            model_name: Optional name of the model to get configuration for
+            
+        Returns:
+            Dictionary containing model configuration(s)
+        """
+        if model_name:
+            config = self.model_config.get_config(model_name)
+            return config.__dict__ if config else {}
+        return {
+            name: config.__dict__
+            for name, config in self.model_config.get_active_models().items()
+        }
+
+    def update_model_config(
+        self,
+        model_name: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        optimization_settings: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Update configuration for a model.
+        
+        Args:
+            model_name: Name of the model
+            parameters: Optional new parameters to set
+            optimization_settings: Optional new optimization settings
+        """
+        if parameters:
+            self.model_config.update_parameters(model_name, parameters)
+        if optimization_settings:
+            self.model_config.update_optimization_settings(model_name, optimization_settings)

@@ -1,0 +1,61 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# File Organization Rules
+
+## Directory Structure
+- All source code must be in the `app` directory
+- All tests must be in the `tests` directory
+- All scripts must be in the `scripts` directory
+- All configuration files must be in the `config` directory
+- All documentation must be in the `docs` directory
+- All reports must be in the `reports` directory
+
+## File Creation Rules
+1. Files must be created in their correct directory immediately
+2. No files should be created in the root directory
+3. Each file must follow the project's naming conventions
+4. File organization must be verified before committing changes
+
+## File Modification Rules
+1. Files must remain in their designated directories
+2. Moving files requires updating all related imports and references
+3. File structure must be maintained during modifications
+4. All file paths must be relative to the project root
+
+## Directory-Specific Rules
+- `app/`: Contains all application source code
+  - `core/`: Core functionality and base classes
+  - `utils/`: Utility functions and helper modules
+  - `models/`: Data models and schemas
+  - `services/`: Service layer implementations
+  - `api/`: API endpoints and routes
+
+- `tests/`: Contains all test files
+  - `unit/`: Unit tests
+  - `integration/`: Integration tests
+  - `fixtures/`: Test fixtures and data
+
+- `scripts/`: Contains all executable scripts
+  - `setup/`: Setup and installation scripts
+  - `maintenance/`: Maintenance and utility scripts
+  - `deployment/`: Deployment-related scripts
+
+- `config/`: Contains all configuration files
+  - `environments/`: Environment-specific configs
+  - `templates/`: Configuration templates
+
+## Verification Process
+1. Check file location before creation/modification
+2. Verify directory structure compliance
+3. Update related files if moving/renaming
+4. Run tests to ensure no broken references
+5. Document any structural changes
+
+## Enforcement
+- Automated checks must be run before commits
+- Directory structure must be maintained in CI/CD
+- File organization must be part of code review
+- Violations must be fixed immediately
