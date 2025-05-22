@@ -1,0 +1,63 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Support natural language input patterns as defined in patch1.txt
+- Handle commands in the following categories:
+  * System Information and Status
+  * File System Operations
+  * Application Management
+  * Network and Connectivity
+  * Development and Programming
+  * Security and Permissions
+  * Performance Monitoring
+  * User Interface and Experience
+  * Data Management
+  * System Maintenance
+  * Application Testing
+  * Development Environment
+  * System Configuration
+  * File Operations
+  * Process Management
+  * Network Operations
+  * Security Operations
+  * Performance Operations
+  * Maintenance Operations
+  * Testing Operations
+  * Development Operations
+  * Configuration Operations
+
+- Support command patterns:
+  * Questions (e.g., "what's the current system load?")
+  * Directives (e.g., "show me the memory usage")
+  * Checks (e.g., "check if Chrome is running")
+  * Lists (e.g., "list all running processes")
+  * Finds (e.g., "find all PDF files")
+  * Verifications (e.g., "verify file permissions")
+  * Monitors (e.g., "monitor system temperature")
+  * Tests (e.g., "test the web application")
+
+- Input Processing Rules:
+  * Normalize different phrasings of the same command
+  * Handle variations in command structure
+  * Support both formal and informal language
+  * Process commands with or without punctuation
+  * Handle commands with multiple parameters
+  * Support context-aware command interpretation
+  * Maintain command history for context
+  * Allow for follow-up questions and clarifications
+  * Support command chaining and sequencing
+  * Handle multi-step operations
+
+- Response Formatting:
+  * Provide human-readable responses
+  * Format technical information clearly
+  * Include relevant context in responses
+  * Structure complex responses logically
+  * Use appropriate formatting for different data types
+  * Include error messages when needed
+  * Provide suggestions for failed commands
+  * Include progress indicators for long operations
+  * Format lists and tables appropriately
+  * Include units and measurements where relevant

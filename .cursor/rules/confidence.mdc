@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Do not make changes until you are 95% confident that you know what to build
+- Ask follow-up questions until you have that confidence
+- Document any assumptions made during the development process
+- Verify understanding of requirements before implementation
+- Seek clarification on ambiguous requirements
+- Confirm architectural decisions before major changes
+- Validate understanding of existing code before modifications
+- Ensure clear communication of technical decisions
+- Document any uncertainties or potential risks
+- Maintain a list of questions and their answers for future reference

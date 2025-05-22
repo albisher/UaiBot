@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Use Ollama as the default AI provider (gemma:7b model)
+- Follow the command processing pipeline defined in command_processor_main.py
+- Implement proper error handling for AI model responses
+- Maintain clear separation between command interpretation and execution
+- Document all command patterns in config/command_patterns.json
+- Ensure proper validation of AI model responses

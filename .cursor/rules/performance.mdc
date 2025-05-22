@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Optimize AI model interactions for performance
+- Implement proper caching mechanisms
+- Monitor and optimize resource usage
+- Follow performance guidelines in architecture.md
+- Document performance considerations
+- Implement proper cleanup procedures

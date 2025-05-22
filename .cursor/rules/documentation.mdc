@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Keep README.md up to date with project status and setup instructions
+- Document all major components in architecture.md
+- Use clear, descriptive comments for complex logic
+- Follow the documentation structure in the master folder
+- Maintain consistent documentation across all components
+- Include examples in documentation where appropriate

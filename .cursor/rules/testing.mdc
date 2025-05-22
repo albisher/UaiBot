@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Follow Ubuntu test conventions as defined in ubuntu_test_conventions.md
+- Write comprehensive tests for all command processors
+- Include integration tests for AI model interactions
+- Maintain test coverage for core functionality
+- Document test scenarios in test files
+- Follow the testing structure defined in the test files

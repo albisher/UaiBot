@@ -1,0 +1,129 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Platform-Specific Deployment:
+  * macOS:
+    - Install required dependencies via Homebrew
+    - Set up Python virtual environment
+    - Configure Ollama for AI processing
+    - Set up platform-specific handlers
+    - Configure system permissions
+
+  * Ubuntu:
+    - Install system dependencies via apt
+    - Set up Python virtual environment
+    - Configure Ollama service
+    - Set up platform-specific handlers
+    - Configure system permissions
+
+  * Windows:
+    - Install required dependencies
+    - Set up Python virtual environment
+    - Configure Ollama service
+    - Set up platform-specific handlers
+    - Configure system permissions
+
+- Core Components Deployment:
+  * Command Processor:
+    - Deploy command_processor_main.py
+    - Configure command patterns
+    - Set up error handling
+    - Initialize logging
+
+  * AI Handler:
+    - Configure Ollama connection
+    - Set up model parameters
+    - Initialize caching
+    - Configure response formatting
+
+  * Platform Handlers:
+    - Deploy platform-specific code
+    - Configure hardware access
+    - Set up security permissions
+    - Initialize monitoring
+
+- Configuration Setup:
+  * Global Settings:
+    - Configure settings.json
+    - Set up API keys
+    - Configure logging
+    - Set performance parameters
+
+  * User Settings:
+    - Initialize user_settings.json
+    - Configure user preferences
+    - Set up user-specific paths
+    - Configure user permissions
+
+- Security Setup:
+  * Access Control:
+    - Configure user permissions
+    - Set up API authentication
+    - Configure secure storage
+    - Set up audit logging
+
+  * System Security:
+    - Configure firewall rules
+    - Set up secure communication
+    - Configure data encryption
+    - Set up security monitoring
+
+- Monitoring Setup:
+  * System Monitoring:
+    - Configure performance monitoring
+    - Set up error tracking
+    - Configure usage statistics
+    - Set up alerting
+
+  * Application Monitoring:
+    - Configure application metrics
+    - Set up error logging
+    - Configure performance tracking
+    - Set up user activity monitoring
+
+- Deployment Checklist:
+  * Pre-deployment:
+    - Verify all dependencies
+    - Check system requirements
+    - Verify configuration files
+    - Test in staging environment
+
+  * Deployment:
+    - Backup existing installation
+    - Deploy new version
+    - Verify installation
+    - Test core functionality
+
+  * Post-deployment:
+    - Monitor system performance
+    - Check error logs
+    - Verify user access
+    - Test all features
+
+- Rollback Procedures:
+  * Emergency Rollback:
+    - Identify rollback trigger
+    - Stop new version
+    - Restore backup
+    - Verify system state
+
+  * Planned Rollback:
+    - Schedule rollback
+    - Notify users
+    - Execute rollback
+    - Verify functionality
+
+- Maintenance Procedures:
+  * Regular Maintenance:
+    - Update dependencies
+    - Clean up logs
+    - Optimize performance
+    - Verify security
+
+  * Emergency Maintenance:
+    - Identify issue
+    - Apply fix
+    - Verify solution
+    - Update documentation

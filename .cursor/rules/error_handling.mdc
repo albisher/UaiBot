@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Implement comprehensive error handling for all operations
+- Use proper logging levels for different types of messages
+- Follow the logging structure defined in the core components
+- Document all error scenarios and handling procedures
+- Maintain consistent error messages across the application
+- Include proper error recovery mechanisms

@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Follow the refactoring guidelines in refactor_code_master.md
+- Use reorganize_codebase.py for major structural changes
+- Maintain backward compatibility when refactoring
+- Document all refactoring decisions
+- Keep the codebase modular and maintainable
+- Follow the class architecture defined in class_architecture.md

@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Use settings.json for global configuration
+- Maintain user-specific settings in user_settings.json
+- Follow the configuration structure defined in config.json
+- Document all configuration options
+- Implement proper validation for configuration values
+- Keep sensitive information out of configuration files

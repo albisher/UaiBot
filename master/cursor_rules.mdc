@@ -1,0 +1,276 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+### 1. Architecture and Code Organization
+
+```mdc
+---
+description: Enforce architectural consistency and code organization
+globs: ["*.py", "*.md"]
+alwaysApply: true
+---
+
+- Follow the architecture defined in architecture.md and class_architecture.md
+- Maintain clear separation between core components and platform-specific implementations
+- Keep platform-specific code in app/platform_uai directory
+- Follow the command processing flow defined in command_processor_main.py
+- Maintain consistent file structure across all components
+- Document all architectural decisions in architecture.md
+```
+
+### 2. Command Processing and AI Integration
+
+```mdc
+---
+description: Rules for command processing and AI model integration
+globs: ["app/core/command_processor/*.py", "app/core/ai_handler.py"]
+alwaysApply: true
+---
+
+- Use Ollama as the default AI provider (gemma3:latest model)
+- Follow the command processing pipeline defined in command_processor_main.py
+- Implement proper error handling for AI model responses
+- Maintain clear separation between command interpretation and execution
+- Document all command patterns in config/command_patterns.json
+- Ensure proper validation of AI model responses
+```
+
+### 3. Testing and Quality Assurance
+
+```mdc
+---
+description: Testing standards and quality assurance practices
+globs: ["tests/**/*.py", "*.md"]
+alwaysApply: true
+---
+
+- Follow Ubuntu test conventions as defined in ubuntu_test_conventions.md
+- Write comprehensive tests for all command processors
+- Include integration tests for AI model interactions
+- Maintain test coverage for core functionality
+- Document test scenarios in test files
+- Follow the testing structure defined in the test files
+```
+
+### 4. Documentation and Code Comments
+
+```mdc
+---
+description: Documentation and code commenting standards
+globs: ["*.md", "*.py"]
+alwaysApply: true
+---
+
+- Keep README.md up to date with project status and setup instructions
+- Document all major components in architecture.md
+- Use clear, descriptive comments for complex logic
+- Follow the documentation structure in the master folder
+- Maintain consistent documentation across all components
+- Include examples in documentation where appropriate
+```
+
+### 5. Code Refactoring and Maintenance
+
+```mdc
+---
+description: Rules for code refactoring and maintenance
+globs: ["*.py", "reorganize_codebase.py"]
+alwaysApply: true
+---
+
+- Follow the refactoring guidelines in refactor_code_master.md
+- Use reorganize_codebase.py for major structural changes
+- Maintain backward compatibility when refactoring
+- Document all refactoring decisions
+- Keep the codebase modular and maintainable
+- Follow the class architecture defined in class_architecture.md
+```
+
+### 6. Platform-Specific Implementation
+
+```mdc
+---
+description: Rules for platform-specific code implementation
+globs: ["app/platform_uai/**/*.py"]
+alwaysApply: true
+---
+
+- Keep platform-specific code isolated in platform_uai directory
+- Follow the platform handler structure defined in class_architecture.md
+- Implement proper error handling for platform-specific operations
+- Maintain consistent interface across different platforms
+- Document platform-specific requirements and limitations
+- Test platform-specific code on target platforms
+```
+
+### 7. Configuration Management
+
+```mdc
+---
+description: Rules for configuration management
+globs: ["app/config/*.json", "app/config/*.py"]
+alwaysApply: true
+---
+
+- Use settings.json for global configuration
+- Maintain user-specific settings in user_settings.json
+- Follow the configuration structure defined in config.json
+- Document all configuration options
+- Implement proper validation for configuration values
+- Keep sensitive information out of configuration files
+```
+
+### 8. Error Handling and Logging
+
+```mdc
+---
+description: Standards for error handling and logging
+globs: ["app/core/**/*.py"]
+alwaysApply: true
+---
+
+- Implement comprehensive error handling for all operations
+- Use proper logging levels for different types of messages
+- Follow the logging structure defined in the core components
+- Document all error scenarios and handling procedures
+- Maintain consistent error messages across the application
+- Include proper error recovery mechanisms
+```
+
+### 9. Performance and Optimization
+
+```mdc
+---
+description: Rules for performance and optimization
+globs: ["app/core/**/*.py"]
+alwaysApply: true
+---
+
+- Optimize AI model interactions for performance
+- Implement proper caching mechanisms
+- Monitor and optimize resource usage
+- Follow performance guidelines in architecture.md
+- Document performance considerations
+- Implement proper cleanup procedures
+```
+
+### 10. Security and Access Control
+
+```mdc
+---
+description: Security and access control standards
+globs: ["app/core/**/*.py", "app/config/*.json"]
+alwaysApply: true
+---
+
+- Implement proper access control for all operations
+- Follow security guidelines in architecture.md
+- Protect sensitive information and API keys
+- Implement proper authentication mechanisms
+- Document security considerations
+- Regular security audits and updates
+```
+
+### 11. Development Confidence and Communication
+
+```mdc
+---
+description: Rules for ensuring high confidence in changes and proper communication
+globs: ["*"]
+alwaysApply: true
+---
+
+- Do not make changes until you are 95% confident that you know what to build
+- Ask follow-up questions until you have that confidence
+- Document any assumptions made during the development process
+- Verify understanding of requirements before implementation
+- Seek clarification on ambiguous requirements
+- Confirm architectural decisions before major changes
+- Validate understanding of existing code before modifications
+- Ensure clear communication of technical decisions
+- Document any uncertainties or potential risks
+- Maintain a list of questions and their answers for future reference
+```
+
+### 12. Input Handling and Command Processing
+
+```mdc
+---
+description: Rules for handling diverse input sources and command patterns
+globs: ["app/core/command_processor/*.py", "app/core/input_handler.py"]
+alwaysApply: true
+---
+
+- Support natural language input patterns as defined in patch1.txt
+- Handle commands in the following categories:
+  * System Information and Status
+  * File System Operations
+  * Application Management
+  * Network and Connectivity
+  * Development and Programming
+  * Security and Permissions
+  * Performance Monitoring
+  * User Interface and Experience
+  * Data Management
+  * System Maintenance
+  * Application Testing
+  * Development Environment
+  * System Configuration
+  * File Operations
+  * Process Management
+  * Network Operations
+  * Security Operations
+  * Performance Operations
+  * Maintenance Operations
+  * Testing Operations
+  * Development Operations
+  * Configuration Operations
+
+- Support command patterns:
+  * Questions (e.g., "what's the current system load?")
+  * Directives (e.g., "show me the memory usage")
+  * Checks (e.g., "check if Chrome is running")
+  * Lists (e.g., "list all running processes")
+  * Finds (e.g., "find all PDF files")
+  * Verifications (e.g., "verify file permissions")
+  * Monitors (e.g., "monitor system temperature")
+  * Tests (e.g., "test the web application")
+
+- Input Processing Rules:
+  * Normalize different phrasings of the same command
+  * Handle variations in command structure
+  * Support both formal and informal language
+  * Process commands with or without punctuation
+  * Handle commands with multiple parameters
+  * Support context-aware command interpretation
+  * Maintain command history for context
+  * Allow for follow-up questions and clarifications
+  * Support command chaining and sequencing
+  * Handle multi-step operations
+
+- Response Formatting:
+  * Provide human-readable responses
+  * Format technical information clearly
+  * Include relevant context in responses
+  * Structure complex responses logically
+  * Use appropriate formatting for different data types
+  * Include error messages when needed
+  * Provide suggestions for failed commands
+  * Include progress indicators for long operations
+  * Format lists and tables appropriately
+  * Include units and measurements where relevant
+```
+
+### How to Use These Rules
+
+1. Place this file in the `.cursor/rules/` directory of your project
+2. Ensure all team members have access to the rules
+3. Review and update rules as the project evolves
+4. Use these rules in conjunction with the project's documentation
+5. Follow the architecture and class structure defined in the master folder
+6. Always maintain high confidence before making changes
+7. Never hesitate to ask follow-up questions
+8. Test input handling with various command patterns
+9. Verify response formatting for different command types

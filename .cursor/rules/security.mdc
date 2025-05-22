@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Implement proper access control for all operations
+- Follow security guidelines in architecture.md
+- Protect sensitive information and API keys
+- Implement proper authentication mechanisms
+- Document security considerations
+- Regular security audits and updates
