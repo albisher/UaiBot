@@ -105,4 +105,4 @@ class UaiBotApp:
 
 if __name__ == "__main__":
     uaibot = UaiBotApp()
-    sys.exit(uaibot.run())
+    sys.exit(app.run())

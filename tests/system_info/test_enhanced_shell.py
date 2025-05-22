@@ -11,7 +11,7 @@ import time
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from uaibot.core.shell_handler import ShellHandler
+from app.core.shell_handler import ShellHandler
 
 def test_screen_commands():
     """Test screen session command handling"""
@@ -69,8 +69,8 @@ def test_complex_commands():
     print("\nTesting commands with redirects and pipes:")
     commands = [
         "ls | grep py",
-        "echo 'test' > /tmp/test_uaibot.txt",
-        "cat /tmp/test_uaibot.txt"
+        "echo 'test' > /tmp/test_app.txt",
+        "cat /tmp/test_app.txt"
     ]
     
     for cmd in commands:
@@ -79,7 +79,7 @@ def test_complex_commands():
         print(f"Result: {result}")
         
     # Clean up
-    shell.execute_command("rm /tmp/test_uaibot.txt")
+    shell.execute_command("rm /tmp/test_app.txt")
 
 def test_command_detection():
     """Test if commands are properly detected for screen vs local"""

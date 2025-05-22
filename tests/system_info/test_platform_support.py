@@ -41,7 +41,7 @@ def test_platform_detection():
     print_subheader("Testing Platform Detection")
     
     try:
-        from platform_uai.platform_utils import detect_platform
+        from app.platform_uai.platform_utils import detect_platform
         platform_name, platform_dir = detect_platform()
         
         if platform_name:
@@ -58,7 +58,7 @@ def test_platform_manager():
     print_subheader("Testing Platform Manager")
     
     try:
-        from platform_uai.platform_manager import PlatformManager
+        from app.platform_uai.platform_manager import PlatformManager
         platform_manager = PlatformManager()
         
         if platform_manager.platform_supported:
@@ -112,7 +112,7 @@ def test_handlers_directly():
     
     # Test audio handler
     try:
-        from platform_uai.platform_utils import get_audio_handler
+        from app.platform_uai.platform_utils import get_audio_handler
         audio_handler = get_audio_handler()
         if audio_handler:
             print_success(f"Audio handler loaded: {type(audio_handler).__name__}")
@@ -123,7 +123,7 @@ def test_handlers_directly():
         
     # Test USB handler
     try:
-        from platform_uai.platform_utils import get_usb_handler
+        from app.platform_uai.platform_utils import get_usb_handler
         usb_handler = get_usb_handler()
         if usb_handler:
             print_success(f"USB handler loaded: {type(usb_handler).__name__}")
@@ -134,7 +134,7 @@ def test_handlers_directly():
         
     # Test input handler
     try:
-        from platform_uai.platform_utils import get_input_handler
+        from app.platform_uai.platform_utils import get_input_handler
         input_handler = get_input_handler()
         if input_handler:
             print_success(f"Input handler loaded: {type(input_handler).__name__}")

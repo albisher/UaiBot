@@ -18,7 +18,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Import utility functions
-from utils import get_platform_name, load_config, get_project_root
+from app.utils import get_platform_name, load_config, get_project_root
 
 # Define test cases for both English and Arabic
 ENGLISH_TEST_CASES = [

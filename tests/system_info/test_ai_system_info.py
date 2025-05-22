@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     print("Importing AI handler module...")
-    from uaibot.core.ai_handler import get_system_info, OllamaAIHandler
+    from app.core.ai_handler import get_system_info, OllamaAIHandler
     print("AI handler module imported successfully!")
     
     # Test system info function

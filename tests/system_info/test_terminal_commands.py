@@ -23,8 +23,8 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 try:
-    from uaibot.core.shell_handler import ShellHandler
-    from uaibot.core.screen_handler.session_manager import ScreenSessionHandler
+    from app.core.shell_handler import ShellHandler
+    from app.core.screen_handler.session_manager import ScreenSessionHandler
 except ImportError as e:
     print(f"{RED}Error importing modules: {e}{RESET}")
     print(f"Make sure you're running this script from the UaiBot project root.")

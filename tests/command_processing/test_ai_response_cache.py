@@ -13,8 +13,8 @@ import time
 # Add parent directory to path to import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from command_processor.ai_response_cache import AIResponseCache
-from command_processor.ai_driven_processor import AIDrivenProcessor
+from app.command_processor.ai_response_cache import AIResponseCache
+from app.command_processor.ai_driven_processor import AIDrivenProcessor
 
 
 class TestAIResponseCache(unittest.TestCase):

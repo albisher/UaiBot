@@ -17,3 +17,7 @@ important notes:
 - human instrucions folder to contain files that are named to areas of needed instructions inside the file the natural human instruction list relted to the file name will be written.
 - always run code in .venv 
 - always do installations in .venv
+- regex is forbedden before ai model get the input and replies with JSON, 
+- after ai model provide json feedback you can do regex
+   you can enhance the json needed fromat
+   you can adjust the prompt

@@ -5,7 +5,7 @@
 import os
 import sys
 import platform
-from command_processor import CommandProcessor
+from app.command_processor.CommandProcessor import CommandProcessor
 
 class MockAIHandler:
     """Simple mock AI handler for testing."""

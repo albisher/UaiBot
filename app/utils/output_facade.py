@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""
+Output Facade for UaiBot
+
+A singleton implementation of the Facade pattern for all output operations
+that unifies and standardizes the app's output handling system.
+
+Output Philosophy & Flow:
+- Show 'thinking' only if no direct command is found or user asks for explanation.
+- Always show the command to be executed (in a clear line/box).
+- Always show the result of the command (in a result box/section).
+- Only show AI explanation if user asks for it or no direct command is possible.
+- Never show duplicate outputs of any type.
+"""
+
+import sys
+import os
+from typing import Optional, Any, Dict, Union, List
+from app.core.logging_config import get_logger
+
+# Import the OutputHandler as our implementation class
+from app.utils.output_handler import OutputHandler
+
+logger = get_logger(__name__)
+
+class OutputFacade:
+    """
+    Singleton facade for all UaiBot output operations.
+    
+    This class:
+    1. Provides a single, global access point for output
+    2. Enforces the output flow (thinking → command → result → explanation)
+    3. Prevents duplicate outputs
+    4. Centralizes output styling and format decisions
+    """
+    
+    # Singleton instance
+    _instance = None
+    
+    @classmethod
+    def get_instance(cls, theme: str = "default", verbosity: str = "normal"):
+        """Get or create the singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls(theme, verbosity)
+        return cls._instance
+    
+    def __init__(self, theme: str = "default", verbosity: str = "normal"):
+        """
+        Initialize the output facade.
+        
+        Args:
+            theme: The theme to use for styling
+            verbosity: Output verbosity level (minimal, normal, verbose, debug)
+        """
+        if OutputFacade._instance is not None:
+            raise RuntimeError("Use OutputFacade.get_instance() to get the singleton instance")
+            
+        # Create the actual handler that will implement our output operations
+        self._handler = OutputHandler(theme=theme)
+        
+        # Set verbosity level
+        self._set_verbosity(verbosity)
+        
+        # Track sequence ID for grouping related outputs
+        self._sequence_id = 0
+    
+    def _set_verbosity(self, verbosity: str) -> None:
+        """
+        Set the verbosity level.
+        
+        Args:
+            verbosity: Output verbosity level (minimal, normal, verbose, debug)
+        """
+        # Convert verbosity string to appropriate flags
+        verbosity = verbosity.lower()
+        
+        if verbosity == "minimal":
+            self._handler.verbose_mode = False
+            self._handler.debug_mode = False
+        elif verbosity == "normal":  # Default
+            self._handler.verbose_mode = False
+            self._handler.debug_mode = False
+        elif verbosity == "verbose":
+            self._handler.verbose_mode = True
+            self._handler.debug_mode = False
+        elif verbosity == "debug":
+            self._handler.verbose_mode = True
+            self._handler.debug_mode = True
+        else:
+            # Default to normal if invalid
+            self._handler.verbose_mode = False
+            self._handler.debug_mode = False
+    
+    def set_theme(self, theme: str) -> None:
+        """
+        Change the output theme.
+        
+        Args:
+            theme: Name of the theme to use
+        """
+        self._handler.style_mgr.set_theme(theme)
+    
+    def new_sequence(self) -> None:
+        """
+        Start a new output sequence, resetting state for thinking/command/result tracking.
+        Use this when starting a completely new user interaction.
+        """
+        self._sequence_id += 1
+        self._handler.thinking_shown = False
+        self._handler.command_shown = False
+        self._handler.result_shown = False
+    
+    # -- Main output flow methods --
+    
+    def thinking(self, message: str) -> Optional[str]:
+        """
+        Display thinking message.
+        
+        Args:
+            message: The thinking content to display
+            
+        Returns:
+            str or None: The formatted output if shown, None if skipped
+        """
+        return self._handler.thinking(message)
+    
+    def command(self, cmd: str) -> Optional[str]:
+        """
+        Display command to be executed.
+        
+        Args:
+            cmd: The command string to display
+            
+        Returns:
+            str or None: The formatted output if shown, None if skipped
+        """
+        return self._handler.command(cmd)
+        
+    def result(self, success: bool, message: str) -> Optional[str]:
+        """
+        Display result message.
+        
+        Args:
+            success: Whether the operation was successful
+            message: The result message to display
+            
+        Returns:
+            str or None: The formatted output if shown, None if skipped
+        """
+        return self._handler.result(success, message)
+    
+    def explanation(self, message: str) -> str:
+        """
+        Display explanation text.
+        
+        Args:
+            message: The explanation to display
+            
+        Returns:
+            str: The formatted output
+        """
+        return self._handler.explanation(message)
+    
+    # -- Helper output methods --
+    
+    def status(self, message: str, status_key: str = "info") -> str:
+        """
+        Display a status message with appropriate indicator.
+        
+        Args:
+            message: The status message
+            status_key: Key for the status type (success, warning, error, info)
+            
+        Returns:
+            str: The formatted output
+        """
+        return self._handler.status(message, status_key)
+    
+    def warning(self, message: str) -> str:
+        """Display a warning message."""
+        return self._handler.status(message, "warning")
+    
+    def error(self, message: str) -> str:
+        """Display an error message."""
+        return self._handler.status(message, "error")
+    
+    def success(self, message: str) -> str:
+        """Display a success message."""
+        return self._handler.status(message, "success")
+    
+    def info(self, message: str) -> str:
+        """Display an info message."""
+        return self._handler.status(message, "info")
+    
+    # -- Formatting methods --
+    
+    def header(self, text: str, emoji_key: Optional[str] = None) -> str:
+        """Display a section header."""
+        return self._handler.header(text, emoji_key)
+    
+    def divider(self, style: str = "partial") -> str:
+        """Display a divider line."""
+        return self._handler.divider(style)
+    
+    def box(self, content: str, title: Optional[str] = None, 
+            width: Optional[int] = None) -> str:
+        """Display content in a formatted box."""
+        return self._handler.box(content, title, width)
+    
+    def table(self, headers: List[str], rows: List[List[Any]], 
+              title: Optional[str] = None) -> str:
+        """Display data in a formatted table."""
+        return self._handler.table(headers, rows, title)
+    
+    def list_items(self, items: List[str], 
+                   bullet_type: str = "symbol",
+                   title: Optional[str] = None) -> str:
+        """Display a formatted list of items."""
+        return self._handler.list_items(items, bullet_type, title)
+    
+    # -- Testing support --
+    
+    def start_capture(self) -> None:
+        """Start capturing output for testing."""
+        self._handler.start_capture()
+    
+    def stop_capture(self) -> str:
+        """Stop capturing and return captured output."""
+        return self._handler.stop_capture()
+
+    def set_verbosity(self, verbosity: str) -> None:
+        """
+        Public method to set verbosity, calls the internal _set_verbosity.
+        """
+        self._set_verbosity(verbosity)
+
+
+# Create the global instance
+output = OutputFacade.get_instance()
+
+__all__ = ["OutputFacade", "output"]

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from uaibot.core.ai_handler import AIHandler
+from app.core.ai_handler import AIHandler
 
 @pytest.fixture
 def mock_ollama_client():
@@ -36,7 +36,7 @@ def test_ai_handler_initialization_google():
 
 def test_process_command_ollama(mock_ollama_client):
     """Test command processing with Ollama."""
-    with patch('uaibot.core.ai_handler.Ollama', return_value=mock_ollama_client):
+    with patch('app.core.ai_handler.Ollama', return_value=mock_ollama_client):
         handler = AIHandler(model_type='ollama', ollama_base_url='http://localhost:11434')
         result = handler.process_command("test command")
         assert result["command"] == "test_command"
@@ -67,7 +67,7 @@ def test_process_command_variations(mock_ollama_client, command, expected_respon
         "confidence": expected_response["confidence"]
     }
     
-    with patch('uaibot.core.ai_handler.Ollama', return_value=mock_ollama_client):
+    with patch('app.core.ai_handler.Ollama', return_value=mock_ollama_client):
         handler = AIHandler(model_type='ollama', ollama_base_url='http://localhost:11434')
         result = handler.process_command(command)
         assert result["command"] == expected_response["command"]

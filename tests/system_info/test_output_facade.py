@@ -16,8 +16,8 @@ import io
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the modules to test
-from utils.output_facade import OutputFacade, output
-from utils.output_handler import OutputHandler
+from app.utils.output_facade import OutputFacade, output
+from app.utils.output_handler import OutputHandler
 
 
 class TestOutputFacade(unittest.TestCase):

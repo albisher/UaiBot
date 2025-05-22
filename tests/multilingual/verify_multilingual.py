@@ -15,7 +15,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Import utility functions
-from utils import get_platform_name
+from app.utils import get_platform_name
 from tests.test_multilingual import run_uaibot_command
 
 # Define verification test cases

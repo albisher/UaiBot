@@ -15,17 +15,17 @@ def update_imports_in_file(file_path):
         print(f"Skipping non-UTF-8 file: {file_path}")
         return
     
-    # Update from uaibot.core.X to from uaibot.core.X
+    # Update from app.core.X to from app.core.X
     updated_content = re.sub(
         r'from\s+core\.',
-        'from uaibot.core.',
+        'from app.core.',
         content
     )
     
-    # Update import uaibot.core.X to import uaibot.core.X
+    # Update import app.core.X to import app.core.X
     updated_content = re.sub(
         r'import\s+core\.',
-        'import uaibot.core.',
+        'import app.core.',
         updated_content
     )
     

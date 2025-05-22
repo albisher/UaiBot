@@ -16,7 +16,7 @@ def test_platform_manager():
     """Test the platform manager approach to get the input handler."""
     print("\n=== Testing Platform Manager ===")
     try:
-        from platform_uai.platform_manager import PlatformManager
+        from app.platform_uai.platform_manager import PlatformManager
         
         print("Creating platform manager...")
         manager = PlatformManager()
@@ -74,11 +74,11 @@ def test_direct_import():
         system = platform.system().lower()
         
         if system == 'darwin':
-            from platform_uai.mac.input_control import MacInputHandler
+            from app.platform_uai.mac.input_control import MacInputHandler
             handler = MacInputHandler()
             print("✅ Successfully imported MacInputHandler")
         elif system == 'windows':
-            from platform_uai.windows.input_control import WindowsInputHandler
+            from app.platform_uai.windows.input_control import WindowsInputHandler
             handler = WindowsInputHandler()
             print("✅ Successfully imported WindowsInputHandler")
         elif system == 'linux':
@@ -92,11 +92,11 @@ def test_direct_import():
                 pass
                 
             if is_jetson:
-                from platform_uai.jetson.input_control import JetsonInputHandler
+                from app.platform_uai.jetson.input_control import JetsonInputHandler
                 handler = JetsonInputHandler()
                 print("✅ Successfully imported JetsonInputHandler")
             else:
-                from platform_uai.ubuntu.input_control import UbuntuInputHandler
+                from app.platform_uai.ubuntu.input_control import UbuntuInputHandler
                 handler = UbuntuInputHandler()
                 print("✅ Successfully imported UbuntuInputHandler")
         else:

@@ -3,7 +3,7 @@ import os
 import tempfile
 import shutil
 import json
-from uaibot.core.command_processor import CommandProcessor
+from app.core.command_processor import CommandProcessor
 
 class TestCommandProcessor(unittest.TestCase):
     def setUp(self):

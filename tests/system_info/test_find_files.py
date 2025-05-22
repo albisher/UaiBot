@@ -6,10 +6,10 @@ Test script to directly check the find_files method
 import os
 import sys
 
-# Add the parent directory to the path so we can import core modules
+# Add the parent directory to the path so we can import app.core modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from uaibot.core.shell_handler import ShellHandler
+from app.core.shell_handler import ShellHandler
 
 def test_find_files():
     """Test the find_files method with different parameters"""

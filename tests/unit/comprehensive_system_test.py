@@ -16,7 +16,7 @@ from unittest import mock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the function to test
-from uaibot.core.ai_handler import get_system_info
+from app.core.ai_handler import get_system_info
 
 class TestSystemInfo(unittest.TestCase):
     """Test cases for the get_system_info function."""

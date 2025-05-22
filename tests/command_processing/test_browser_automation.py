@@ -12,8 +12,8 @@ import time
 import webbrowser
 import pyautogui
 from pathlib import Path
-from command_processor import CommandProcessor
-from uaibot.core.browser_handler import BrowserAutomationHandler
+from app.command_processor.CommandProcessor import CommandProcessor
+from app.core.browser_handler import BrowserAutomationHandler
 
 # Set up PyAutoGUI safety features
 pyautogui.FAILSAFE = True  # Move mouse to corner to abort

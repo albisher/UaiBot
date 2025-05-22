@@ -25,7 +25,7 @@ RESET = "\033[0m"
 
 # Import the platform manager to get the appropriate audio handler
 try:
-    from platform_uai.platform_manager import PlatformManager
+    from app.platform_uai.platform_manager import PlatformManager
 except ImportError as e:
     print(f"{RED}Error importing platform modules: {e}{RESET}")
     print(f"Make sure you're running this script from the UaiBot project root.")

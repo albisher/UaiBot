@@ -528,13 +528,13 @@ class OutputHandler:
         """Update import paths in file content."""
         # Define import path mappings
         import_mappings = {
-            r'from uaibot\.core\.command_processor import': 'from uaibot.core.command_processor import',
-            r'from uaibot\.core\.ai import': 'from uaibot.core.ai import',
-            r'from uaibot\.core\.device_manager import': 'from uaibot.core.device_manager import',
-            r'from uaibot\.core\.screen_handler import': 'from uaibot.core.screen_handler import',
-            r'from uaibot\.utils import': 'from uaibot.utils import',
-            r'from uaibot\.core\.utils import': 'from uaibot.core.utils import',
-            r'from uaibot\.platform_uai import': 'from uaibot.platform_uai import'
+            r'from uaibot\.core\.command_processor import': 'from app.core.command_processor import',
+            r'from uaibot\.core\.ai import': 'from app.core.ai import',
+            r'from uaibot\.core\.device_manager import': 'from app.core.device_manager import',
+            r'from uaibot\.core\.screen_handler import': 'from app.core.screen_handler import',
+            r'from uaibot\.utils import': 'from app.utils import',
+            r'from uaibot\.core\.utils import': 'from app.core.utils import',
+            r'from uaibot\.platform_uai import': 'from app.platform_uai import'
         }
         
         for old_pattern, new_pattern in import_mappings.items():

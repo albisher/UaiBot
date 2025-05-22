@@ -1,0 +1,152 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.0, pluggy-1.6.0 -- /home/a/Documents/Projects/UaiBot/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/a/Documents/Projects/UaiBot
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-4.1.0, anyio-4.9.0, langsmith-0.3.42
+collecting ... collected 42 items / 10 errors
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/test_command_processor.py _______________
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/test_command_processor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_command_processor.py:3: in <module>
+    from app.command_processor.CommandProcessor import CommandProcessor
+E   ModuleNotFoundError: No module named 'app.command_processor.CommandProcessor'
+____ ERROR collecting tests/command_processing/test_ai_command_extractor.py ____
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/command_processing/test_ai_command_extractor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/command_processing/test_ai_command_extractor.py:11: in <module>
+    from app.command_processor.ai_command_extractor import AICommandExtractor
+E   ModuleNotFoundError: No module named 'app.command_processor.ai_command_extractor'
+____ ERROR collecting tests/command_processing/test_ai_driven_extractor.py _____
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/command_processing/test_ai_driven_extractor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/command_processing/test_ai_driven_extractor.py:15: in <module>
+    from app.command_processor.ai_command_extractor import AICommandExtractor
+E   ModuleNotFoundError: No module named 'app.command_processor.ai_command_extractor'
+_____ ERROR collecting tests/command_processing/test_ai_response_cache.py ______
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/command_processing/test_ai_response_cache.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/command_processing/test_ai_response_cache.py:16: in <module>
+    from app.command_processor.ai_response_cache import AIResponseCache
+E   ModuleNotFoundError: No module named 'app.command_processor.ai_response_cache'
+_____ ERROR collecting tests/command_processing/test_browser_automation.py _____
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/command_processing/test_browser_automation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/command_processing/test_browser_automation.py:15: in <module>
+    from app.command_processor.CommandProcessor import CommandProcessor
+E   ModuleNotFoundError: No module named 'app.command_processor.CommandProcessor'
+_ ERROR collecting tests/command_processing/test_command_processing_enhanced.py _
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/command_processing/test_command_processing_enhanced.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/command_processing/test_command_processing_enhanced.py:25: in <module>
+    from app.command_processor.CommandProcessor import CommandProcessor
+E   ModuleNotFoundError: No module named 'app.command_processor.CommandProcessor'
+_____ ERROR collecting tests/command_processing/test_command_processor.py ______
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/command_processing/test_command_processor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/command_processing/test_command_processor.py:8: in <module>
+    from app.command_processor.CommandProcessor import CommandProcessor
+E   ModuleNotFoundError: No module named 'app.command_processor.CommandProcessor'
+________ ERROR collecting tests/file_operations/test_file_operations.py ________
+import file mismatch:
+imported module 'test_file_operations' has this __file__ attribute:
+  /home/a/Documents/Projects/UaiBot/tests/test_file_operations.py
+which is not the same as the test file we want to collect:
+  /home/a/Documents/Projects/UaiBot/tests/file_operations/test_file_operations.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+___________ ERROR collecting tests/system_info/test_cmd_processor.py ___________
+ImportError while importing test module '/home/a/Documents/Projects/UaiBot/tests/system_info/test_cmd_processor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/system_info/test_cmd_processor.py:6: in <module>
+    from app.command_processor.CommandProcessor import CommandProcessor
+E   ModuleNotFoundError: No module named 'app.command_processor.CommandProcessor'
+_____ ERROR collecting tests/system_info/test_direct_command_execution.py ______
+.venv/lib/python3.12/site-packages/_pytest/runner.py:341: in from_call
+    result: Optional[TResult] = func()
+.venv/lib/python3.12/site-packages/_pytest/runner.py:372: in <lambda>
+    call = CallInfo.from_call(lambda: list(collector.collect()), "collect")
+.venv/lib/python3.12/site-packages/_pytest/python.py:531: in collect
+    self._inject_setup_module_fixture()
+.venv/lib/python3.12/site-packages/_pytest/python.py:545: in _inject_setup_module_fixture
+    self.obj, ("setUpModule", "setup_module")
+.venv/lib/python3.12/site-packages/_pytest/python.py:310: in obj
+    self._obj = obj = self._getobj()
+.venv/lib/python3.12/site-packages/_pytest/python.py:528: in _getobj
+    return self._importtestmodule()
+.venv/lib/python3.12/site-packages/_pytest/python.py:617: in _importtestmodule
+    mod = import_path(self.path, mode=importmode, root=self.config.rootpath)
+.venv/lib/python3.12/site-packages/_pytest/pathlib.py:565: in import_path
+    importlib.import_module(module_name)
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:178: in exec_module
+    exec(co, module.__dict__)
+tests/system_info/test_direct_command_execution.py:23: in <module>
+    "command_processor.py")).load_module()
+<frozen importlib._bootstrap_external>:649: in _check_name_wrapper
+    ???
+<frozen importlib._bootstrap_external>:1176: in load_module
+    ???
+<frozen importlib._bootstrap_external>:1000: in load_module
+    ???
+<frozen importlib._bootstrap>:537: in _load_module_shim
+    ???
+<frozen importlib._bootstrap>:966: in _load
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:991: in exec_module
+    ???
+<frozen importlib._bootstrap_external>:1128: in get_code
+    ???
+<frozen importlib._bootstrap_external>:1186: in get_data
+    ???
+E   FileNotFoundError: [Errno 2] No such file or directory: '/home/a/Documents/Projects/UaiBot/tests/command_processor.py'
+=========================== short test summary info ============================
+ERROR tests/test_command_processor.py
+ERROR tests/command_processing/test_ai_command_extractor.py
+ERROR tests/command_processing/test_ai_driven_extractor.py
+ERROR tests/command_processing/test_ai_response_cache.py
+ERROR tests/command_processing/test_browser_automation.py
+ERROR tests/command_processing/test_command_processing_enhanced.py
+ERROR tests/command_processing/test_command_processor.py
+ERROR tests/file_operations/test_file_operations.py
+ERROR tests/system_info/test_cmd_processor.py
+ERROR tests/system_info/test_direct_command_execution.py - FileNotFoundError:...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 10 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+============================= 10 errors in 12.18s ==============================

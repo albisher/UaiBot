@@ -6,8 +6,8 @@ import json
 import platform
 sys.path.insert(0, os.path.abspath('.'))  # Add current directory to path
 
-from command_processor import CommandProcessor
-from uaibot.core.shell_handler import ShellHandler
+from app.command_processor.CommandProcessor import CommandProcessor
+from app.core.shell_handler import ShellHandler
 
 # Create a mock AI handler that properly simulates an error response
 class ImprovedFailingAIHandler:

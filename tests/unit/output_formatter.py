@@ -18,7 +18,7 @@ sys.path.append(project_root)
 
 # Try to import the proper output formatter
 try:
-    from utils.output_style_manager import OutputStyleManager
+    from app.utils.output_style_manager import OutputStyleManager
     STYLE_MGR_AVAILABLE = True
 except ImportError:
     STYLE_MGR_AVAILABLE = False

@@ -8,7 +8,7 @@ import concurrent.futures
 # Add parent directory to path to import modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from command_processor.ai_command_extractor import AICommandExtractor
+from app.command_processor.ai_command_extractor import AICommandExtractor
 
 class TestAICommandExtractor(unittest.TestCase):
     """Test the AI Command Extractor functionality."""

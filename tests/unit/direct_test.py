@@ -8,7 +8,7 @@ import platform
 # Add the parent directory to the path so we can import the module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from uaibot.core.ai_handler import get_system_info
+from app.core.ai_handler import get_system_info
 
 def test_fallback_case():
     """Test what happens with unknown OS directly."""

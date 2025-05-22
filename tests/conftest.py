@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
-from uaibot.config.output_paths import (
+from app.config.output_paths import (
     TEST_OUTPUTS_DIR,
     TEST_COVERAGE_DIR,
     TEST_LOGS_DIR,

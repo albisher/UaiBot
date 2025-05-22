@@ -17,7 +17,7 @@ sys.path.append(project_root)
 
 # Import utility functions
 try:
-    from utils.output_formatter import format_header, format_box, format_status_line
+    from app.utils.output_formatter import format_header, format_box, format_status_line
     formatter_available = True
 except ImportError:
     formatter_available = False

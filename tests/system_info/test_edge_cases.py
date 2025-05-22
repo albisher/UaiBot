@@ -10,7 +10,7 @@ from unittest import mock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import directly from the module file
-from uaibot.core.ai_handler import get_system_info
+from app.core.ai_handler import get_system_info
 
 class MockPlatform:
     @staticmethod
