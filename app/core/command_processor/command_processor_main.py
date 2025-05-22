@@ -339,6 +339,10 @@ class CommandProcessor:
             ai_response = self.ai_handler.process_command(prompt_for_ai)
             logger = logging.getLogger(__name__)
             logger.info(f"Raw AI response: {ai_response}")
+            
+            # Extract the command string from the AI response dictionary
+            if isinstance(ai_response, dict):
+                ai_response = ai_response.get('command', '')
         except Exception as e:
             if self.fast_mode:
                 # In fast mode, provide a simple error and let the program continue to exit
@@ -346,6 +350,13 @@ class CommandProcessor:
             else:
                 # In normal mode, re-raise the exception
                 raise
+        
+        # --- NEW: Handle AI handler error dicts ---
+        if isinstance(ai_response, dict) and ai_response.get("error"):
+            error_msg = ai_response.get("error_message", "Unknown error from AI handler.")
+            logger.error(f"AI handler error: {error_msg}")
+            return f"{thinking}\n\n❌ AI Error: {error_msg}"
+        # --- END NEW ---
         
         # Extract command from AI response using the command extractor
         success, command, metadata = self.command_extractor.extract_command(ai_response)
@@ -364,6 +375,8 @@ class CommandProcessor:
 
         # --- AGENTIC PLAN HANDLING ---
         if success and isinstance(command, dict) and 'plan' in command:
+            # No longer restrict operation names; pass all steps to the execution controller
+
             # Route to execution controller
             exec_result = self.execution_controller.execute_plan(command)
             # Format the results for output
@@ -1516,3 +1529,30 @@ class CommandProcessor:
             result["execution_result"] = execution_result
         
         return result
+
+    def _interactive_loop(self) -> None:
+        """Main interactive loop for UaiBot."""
+        while True:
+            try:
+                # Use minimal prompt in fast mode
+                prompt = ">" if self.fast_mode else "\nYou: "
+                user_input = input(prompt).strip()
+                
+                if not user_input:
+                    continue
+                
+                if user_input.lower() in ['exit', 'quit', 'bye', 'x']:
+                    if not self.fast_mode:
+                        output.success("👋 Goodbye! Have a great day!")
+                    break
+                # ... rest of your code ...
+            except KeyboardInterrupt:
+                if not self.fast_mode:
+                    output.info("👋 Session interrupted. Goodbye!")
+                break
+            except Exception as e:
+                logger.error(f"Error in interactive session: {str(e)}")
+                if not self.fast_mode:
+                    output.error(f"An error occurred: {str(e)}")
+                else:
+                    print(f"Error: {str(e)}")

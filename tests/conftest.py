@@ -1,6 +1,8 @@
 import pytest
 import os
 import sys
+import tempfile
+import shutil
 from pathlib import Path
 from datetime import datetime
 from app.config.output_paths import (
@@ -12,18 +14,92 @@ from app.config.output_paths import (
 )
 
 # Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+@pytest.fixture(scope="session")
+def test_data_dir():
+    """Return the path to the test data directory."""
+    return os.path.join(os.path.dirname(__file__), 'data')
 
 @pytest.fixture(scope="session")
 def test_config():
-    """Provide test configuration."""
+    """Return test configuration settings."""
     return {
-        "test_mode": True,
-        "output_verbosity": "normal",
-        "default_ai_provider": "ollama",
-        "ollama_base_url": "http://localhost:11434"
+        'timeout': 30,
+        'retries': 3,
+        'coverage_threshold': 80,
+        'test_data_path': os.path.join(os.path.dirname(__file__), 'data')
     }
+
+@pytest.fixture(scope="function")
+def temp_dir():
+    """Create a temporary directory for test files."""
+    temp_dir = tempfile.mkdtemp()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
+
+@pytest.fixture(scope="function")
+def sample_file(temp_dir):
+    """Create a sample file for testing."""
+    file_path = os.path.join(temp_dir, 'sample.txt')
+    with open(file_path, 'w') as f:
+        f.write('Test content')
+    return file_path
+
+@pytest.fixture(scope="function")
+def mock_ai_response():
+    """Return a mock AI response for testing."""
+    return {
+        'success': True,
+        'command': 'echo "Hello World"',
+        'metadata': {
+            'confidence': 0.95,
+            'language': 'en'
+        }
+    }
+
+@pytest.fixture(scope="function")
+def mock_file_operations():
+    """Mock file operations for testing."""
+    class MockFileOps:
+        def __init__(self):
+            self.files = {}
+            self.operations = []
+
+        def create_file(self, path, content):
+            self.files[path] = content
+            self.operations.append(('create', path))
+            return True
+
+        def read_file(self, path):
+            return self.files.get(path)
+
+        def delete_file(self, path):
+            if path in self.files:
+                del self.files[path]
+                self.operations.append(('delete', path))
+                return True
+            return False
+
+    return MockFileOps()
+
+@pytest.fixture(scope="function")
+def mock_command_processor():
+    """Mock command processor for testing."""
+    class MockCommandProcessor:
+        def __init__(self):
+            self.commands = []
+            self.results = {}
+
+        def process_command(self, command):
+            self.commands.append(command)
+            return self.results.get(command, {'success': True})
+
+        def set_result(self, command, result):
+            self.results[command] = result
+
+    return MockCommandProcessor()
 
 @pytest.fixture(scope="session")
 def temp_log_dir(tmp_path_factory):

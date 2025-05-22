@@ -168,18 +168,14 @@ Type 'help' for available commands or just ask me anything!
         """Main interactive loop for UaiBot."""
         while True:
             try:
-                # Use minimal prompt in fast mode
                 prompt = ">" if self.fast_mode else "\nYou: "
                 user_input = input(prompt).strip()
-                
                 if not user_input:
                     continue
-                
-                if user_input.lower() in ['exit', 'quit', 'bye']:
+                if user_input.lower() in ['exit', 'quit', 'bye', 'x']:
                     if not self.fast_mode:
                         output.success("👋 Goodbye! Have a great day!")
                     break
-                
                 if user_input.lower() == 'help':
                     if not self.fast_mode:
                         self._show_help()
@@ -198,7 +194,9 @@ Type 'help' for available commands or just ask me anything!
                     print(response)
                 
             except KeyboardInterrupt:
-                raise
+                if not self.fast_mode:
+                    output.info("👋 Session interrupted. Goodbye!")
+                break
             except CommandError as e:
                 if not self.fast_mode:
                     output.error(f"Command error: {str(e)}")

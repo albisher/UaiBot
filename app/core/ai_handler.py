@@ -536,7 +536,11 @@ class AIHandler:
             response = self.client.generate(
                 model=model_name,
                 prompt=command,
-                **self.model_params
+                options={
+                    "temperature": self.model_params.get("temperature", 0.7),
+                    "top_p": self.model_params.get("top_p", 0.95),
+                    "top_k": self.model_params.get("top_k", 40)
+                }
             )
             
             # Process debug output
@@ -644,3 +648,26 @@ class AIHandler:
             self.model_config.update_parameters(model_name, parameters)
         if optimization_settings:
             self.model_config.update_optimization_settings(model_name, optimization_settings)
+
+    def _clean_and_validate_ai_response(self, response_text: str) -> dict:
+        """
+        Clean and validate the AI's response:
+        - Strip markdown/triple backticks
+        - Parse JSON
+        - Ensure 'plan' is a list of steps, each with a valid 'operation' value
+        - If invalid, return a clear error dict
+        """
+        import re
+        allowed_ops = {"system_command", "execute_command", "file_system_search", "file_operation", "info_query", "print_formatted_output", "sort", "regex_extraction", "prompt_user", "send_confirmation", "error"}
+        # Remove markdown/triple backticks
+        cleaned = re.sub(r"^```[a-zA-Z]*\\n|```$", "", response_text.strip())
+        try:
+            data = json.loads(cleaned)
+            if not isinstance(data, dict) or "plan" not in data or not isinstance(data["plan"], list):
+                return {"error": True, "error_message": "AI response missing 'plan' list."}
+            for step in data["plan"]:
+                if step.get("operation") not in allowed_ops:
+                    return {"error": True, "error_message": f"Invalid or missing operation: {step.get('operation')}"}
+            return data
+        except Exception as e:
+            return {"error": True, "error_message": f"Failed to parse AI response as JSON: {str(e)}"}

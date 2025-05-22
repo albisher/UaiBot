@@ -75,3 +75,6 @@ webdriver-manager>=4.0.1
 
 # Note: Removed googletrans and ollama due to httpx version conflicts
 # Consider using alternative translation libraries or updating the code to use a different translation service
+
+playwright>=1.52.0
+selenium>=4.32.0

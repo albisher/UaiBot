@@ -11,10 +11,12 @@ import os
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
+import shlex
 
 from app.core.command_processor.ai_command_extractor import AICommandExtractor
 from app.core.command_processor.error_handler import error_handler, ErrorCategory
 from app.core.parallel_utils import ParallelTaskManager
+from app.core.browser_controller import BrowserController
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ class ExecutionController:
         # Initialize components
         self.command_extractor = AICommandExtractor()
         self.parallel_manager = ParallelTaskManager()
+        self.browser_controller = BrowserController()
         
         # State management
         self.current_plan = None
@@ -186,8 +189,60 @@ class ExecutionController:
             logger.error(f"Invalid or missing operation: {operation!r}")
             raise ValueError(f"Invalid or missing operation: {operation!r}")
         
-        # Map operation to handler
-        if operation.startswith('file.'):
+        # --- BROWSER AUTOMATION ---
+        if operation in ['open_browser', 'launch_browser', 'browser.open']:
+            browser = parameters.get('browser') or parameters.get('application')
+            url = parameters.get('url') or parameters.get('website')
+            if browser:
+                return self.browser_controller.open_browser(browser, url)
+            return "Error: No browser specified"
+        
+        elif operation in ['execute_javascript', 'browser.execute_js']:
+            browser = parameters.get('browser')
+            js_code = parameters.get('js_code')
+            if browser and js_code:
+                return self.browser_controller.execute_javascript(browser, js_code)
+            return "Error: Missing browser or JavaScript code"
+        
+        elif operation in ['click_element', 'browser.click']:
+            browser = parameters.get('browser')
+            selector = parameters.get('selector')
+            if browser and selector:
+                return self.browser_controller.click_element(browser, selector)
+            return "Error: Missing browser or element selector"
+        
+        # --- UNIVERSAL APPLICATION LAUNCH ---
+        app_keys = ['application_name', 'application', 'app', 'program']
+        app_name = None
+        for key in app_keys:
+            if key in parameters:
+                app_name = parameters[key]
+                break
+        if (app_name or any(k in operation.lower() for k in ['open', 'launch'])):
+            if not app_name:
+                for v in parameters.values():
+                    if isinstance(v, str) and v.strip():
+                        app_name = v.strip()
+                        break
+            if app_name:
+                if os.name == 'nt':
+                    cmd = f'start "" "{app_name}"'
+                elif os.name == 'posix':
+                    if os.path.exists('/Applications'):
+                        cmd = f'open -a "{app_name}"'
+                    else:
+                        cmd = f'{app_name} &'
+                else:
+                    raise ValueError(f"Unsupported operating system: {os.name}")
+                return self.shell_handler.execute_command(cmd)
+        # --- END UNIVERSAL APPLICATION LAUNCH ---
+
+        if operation == 'execute_shell_command':
+            command = parameters.get('command')
+            if not command:
+                raise ValueError("No command specified for execute_shell_command")
+            return self.shell_handler.execute_command(command)
+        elif operation.startswith('file.'):
             if operation == 'file.read_and_append':
                 return self._handle_file_read_and_append(parameters)
             return self._handle_file_operation(operation, parameters)
@@ -197,13 +252,13 @@ class ExecutionController:
             if operation == 'shell.execute_and_read':
                 return self._handle_shell_execute_and_read(parameters)
             return self._handle_shell_operation(operation, parameters)
-        elif operation.startswith('application.'):
-            return self._handle_application_operation(operation, parameters)
         elif operation == 'conditional_file_operation':
             return self._handle_conditional_file_operation(parameters)
         else:
-            logger.error(f"Unsupported operation: {operation}")
-            raise ValueError(f"Unsupported operation: {operation}")
+            # Show a user-friendly message for unsupported operations
+            msg = f"⚠️ Sorry, I can't automate the step '{operation}' yet."
+            logger.warning(msg)
+            return msg
     
     def _handle_file_operation(self, operation: str, parameters: Dict[str, Any]) -> Any:
         """Handle file operations."""

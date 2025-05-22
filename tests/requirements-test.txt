@@ -1,0 +1,34 @@
+# Core Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-xdist>=3.0.0
+pytest-timeout>=2.0.0
+pytest-mock>=3.0.0
+pytest-html>=3.0.0
+pytest-metadata>=3.0.0
+
+# Test Utilities
+coverage>=7.0.0
+mock>=5.0.0
+freezegun>=1.0.0
+responses>=0.23.0
+
+# AI Testing
+google-generativeai>=0.3.0
+
+# Multilingual Support
+langdetect>=1.0.9
+googletrans>=4.0.0-rc1
+
+# File Operations
+pathlib>=1.0.1
+
+# System Testing
+psutil>=5.9.0
+pyautogui>=0.9.53
+
+# Test Reporting
+pytest-html>=3.0.0
+pytest-metadata>=3.0.0
+pytest-xdist>=3.0.0
+pytest-timeout>=2.0.0 

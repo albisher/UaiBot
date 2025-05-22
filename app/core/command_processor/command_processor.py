@@ -1,3 +1,9 @@
+"""
+Command Processor Module
+
+This module handles command processing and interpretation using AI-driven logic.
+"""
+
 import re
 from typing import Dict, Optional, Any, Union, List
 import logging
@@ -14,7 +20,13 @@ import time
 logger = logging.getLogger(__name__)
 
 class CommandProcessor:
+    """
+    Processes and interprets commands using AI-driven logic.
+    Supports command sequences, file operations, and system commands.
+    """
+    
     def __init__(self, use_regex: bool = True, fast_mode: bool = False):
+        """Initialize the command processor."""
         self.use_regex = use_regex
         self.fast_mode = fast_mode
         self.system_commands = SystemCommands()
@@ -31,32 +43,57 @@ class CommandProcessor:
         self.command_queue = []
         self.command_results = {}
         
+        # Command type indicators
+        self.command_types = {
+            "file": ["create", "read", "write", "delete", "list", "search"],
+            "system": ["status", "info", "monitor", "control"],
+            "shell": ["execute", "run", "command"]
+        }
+        
+        # Command separators
+        self.separators = ["and", "then", "after", "next", "followed by", "subsequently"]
+        
+        # File operation patterns
+        self.file_patterns = {
+            "create": r"(?:create|make|new)\s+(?:file|document)\s+(?:named|called)?\s*['\"]?([^'\"]+)['\"]?",
+            "read": r"(?:read|open|view|show)\s+(?:file|document)\s+(?:named|called)?\s*['\"]?([^'\"]+)['\"]?",
+            "write": r"(?:write|save|update)\s+(?:to|in)\s+(?:file|document)\s+(?:named|called)?\s*['\"]?([^'\"]+)['\"]?",
+            "delete": r"(?:delete|remove|erase)\s+(?:file|document)\s+(?:named|called)?\s*['\"]?([^'\"]+)['\"]?",
+            "list": r"(?:list|show|display)\s+(?:files|documents)(?:\s+in\s+['\"]?([^'\"]+)['\"]?)?",
+            "search": r"(?:search|find|look\s+for)\s+(?:in|within)\s+(?:file|document)\s+(?:named|called)?\s*['\"]?([^'\"]+)['\"]?"
+        }
+        
+        # System command patterns
+        self.system_patterns = {
+            "status": r"(?:show|display|get)\s+(?:system|computer)\s+status",
+            "info": r"(?:show|display|get)\s+(?:system|computer)\s+info(?:rmation)?",
+            "monitor": r"(?:monitor|watch|track)\s+(?:system|computer)\s+(?:resources|performance)",
+            "control": r"(?:control|manage|adjust)\s+(?:system|computer)\s+(?:settings|configuration)"
+        }
+        
+        # Shell command patterns
+        self.shell_patterns = {
+            "execute": r"(?:execute|run|perform)\s+(?:command|operation)\s*['\"]?([^'\"]+)['\"]?",
+            "run": r"(?:run|execute|perform)\s*['\"]?([^'\"]+)['\"]?",
+            "command": r"(?:command|operation)\s*['\"]?([^'\"]+)['\"]?"
+        }
+    
     def ai_interpret_command(self, command: str) -> Dict[str, Any]:
-        """Interpret commands using AI-driven logic."""
+        """
+        Interpret commands using AI-driven logic.
+        
+        Args:
+            command: The command to interpret
+            
+        Returns:
+            Dictionary containing the interpreted command structure
+        """
         command_lower = command.lower()
         command_stripped = command.strip()
 
         # Split command into sequential parts
-        sequential_parts = []
-        current_part = []
+        sequential_parts = self._split_sequential_commands(command_lower)
         
-        # Common conjunctions and action separators
-        separators = ["and", "then", "after", "next", "followed by", "subsequently"]
-        
-        # Split the command into words
-        words = command_lower.split()
-        
-        for word in words:
-            if word in separators:
-                if current_part:
-                    sequential_parts.append(" ".join(current_part))
-                    current_part = []
-            else:
-                current_part.append(word)
-        
-        if current_part:
-            sequential_parts.append(" ".join(current_part))
-            
         # If we have multiple parts, return a sequence command
         if len(sequential_parts) > 1:
             return {
@@ -66,311 +103,124 @@ class CommandProcessor:
             
         # Otherwise, interpret as a single command
         return self._interpret_single_command(command)
+    
+    def _split_sequential_commands(self, command: str) -> List[str]:
+        """
+        Split a command into sequential parts based on separators.
         
+        Args:
+            command: The command to split
+            
+        Returns:
+            List of command parts
+        """
+        parts = []
+        current_part = []
+        words = command.split()
+        
+        for word in words:
+            if word in self.separators:
+                if current_part:
+                    parts.append(" ".join(current_part))
+                    current_part = []
+            else:
+                current_part.append(word)
+        
+        if current_part:
+            parts.append(" ".join(current_part))
+            
+        return parts
+    
     def _interpret_single_command(self, command: str) -> Dict[str, Any]:
-        """Interpret a single command part."""
+        """
+        Interpret a single command.
+        
+        Args:
+            command: The command to interpret
+            
+        Returns:
+            Dictionary containing the interpreted command structure
+        """
         command_lower = command.lower()
-
-        # Browser search
-        if any(word in command_lower for word in ["search", "look for", "find", "query", "look up", "google", "where is", "what is", "who is", "tell me about"]):
-            return {"type": "browser", "operation": "search", "query": command}
-
-        # Click middle link
-        if "click the middle link" in command_lower or "click middle link" in command_lower:
-            return {"type": "browser_interaction", "operation": "click_middle_link"}
-
-        # Focus browser
-        if "focus" in command_lower and "browser" in command_lower or "more focused on the text" in command_lower:
-            return {"type": "browser_interaction", "operation": "focus_browser"}
-
-        # Set volume
-        if "volume" in command_lower:
-            import re
-            match = re.search(r'(\d+)%', command_lower)
-            volume = int(match.group(1)) if match else 80
-            return {"type": "browser_interaction", "operation": "set_volume", "volume": volume}
-
-        # Go to YouTube in Safari
-        if "safari" in command_lower and "youtube" in command_lower:
-            return {"type": "browser_interaction", "operation": "open_url", "browser": "safari", "url": "https://www.youtube.com"}
-
-        # Search in current browser (contextual)
-        if "in there search for" in command_lower:
-            query = command_lower.split("in there search for", 1)[-1].strip()
-            return {"type": "browser", "operation": "search", "query": query}
-
-        # Play and cast to TV
-        if "play" in command_lower and "cast" in command_lower and "tv" in command_lower:
-            return {"type": "browser_interaction", "operation": "play_and_cast", "query": command}
-
-        # Check for browser commands
-        browser_indicators = [
-            # Question formats
-            "what's", "what are",
-            "when is", "why is", "which is",
-            
-            # Polite requests
-            "can you find", "could you search", "please search", "would you search",
-            "i want to know", "i need to know", "show me",
-            "get information about", "find out about",
-            
-            # Time and weather related
-            "what's the weather", "weather in", "current time in", "time in",
-            "what time is it in",
-            
-            # General information requests
-            "information about", "details about", "learn about", "read about",
-            "know about",
-            
-            # Action requests
-            "how do i", "how can i", "where can i", "what should i",
-            "when should i",
-            
-            # Comparison requests
-            "compare", "difference between", "versus", "vs",
-            
-            # Location based
-            "near me", "around here", "in this area", "local",
-            
-            # News and updates
-            "latest news about", "recent updates on", "what's new in",
-            "what's happening with"
-        ]
         
-        if any(indicator in command_lower for indicator in browser_indicators):
-            return {"type": "browser", "operation": "search", "command": command}
-
-        # --- File operations (English & basic Arabic) ---
-        # Create file
-        if (
-            "create" in command_lower and "file" in command_lower
-            or "make" in command_lower and "file" in command_lower
-            or "new file" in command_lower
-            or "انشاء ملف" in command_lower
-            or "ملف جديد" in command_lower
-        ):
-            filename = self._extract_filename(command)
-            content = self._extract_content(command)
-            # Handle commands like 'create a new file test.txt and write ...'
-            if not filename:
-                # Try to find filename after 'file' or 'ملف'
-                import re
-                match = re.search(r'(?:file|ملف)\s+([\w\-.]+)', command_lower)
-                if match:
-                    filename = match.group(1)
-            return {"type": "file", "operation": "create", "filename": filename, "content": content}
-
-        # Read file
-        if (
-            ("read" in command_lower or "show" in command_lower or "display" in command_lower or "open" in command_lower or "عرض" in command_lower or "افتح" in command_lower)
-            and ("file" in command_lower or "ملف" in command_lower or any(ext in command_lower for ext in [".txt", ".md", ".json", ".py"]))
-        ):
-            filename = self._extract_filename(command)
-            if not filename:
-                import re
-                match = re.search(r'(?:file|ملف)\s+([\w\-.]+)', command_lower)
-                if match:
-                    filename = match.group(1)
-            return {"type": "file", "operation": "read", "filename": filename}
-
-        # Write file
-        if (
-            ("write" in command_lower or "update" in command_lower or "save" in command_lower or "modify" in command_lower or "change" in command_lower or "اكتب" in command_lower or "تحديث" in command_lower)
-            and ("file" in command_lower or "ملف" in command_lower or any(ext in command_lower for ext in [".txt", ".md", ".json", ".py"]))
-        ):
-            filename = self._extract_filename(command)
-            content = self._extract_content(command)
-            return {"type": "file", "operation": "write", "filename": filename, "content": content}
-
-        # Append file
-        if (
-            ("append" in command_lower or "add" in command_lower or "اضف" in command_lower or "اضافة" in command_lower)
-            and ("file" in command_lower or "ملف" in command_lower or any(ext in command_lower for ext in [".txt", ".md", ".json", ".py"]))
-        ):
-            filename = self._extract_filename(command)
-            content = self._extract_content(command)
-            return {"type": "file", "operation": "append", "filename": filename, "content": content}
-
-        # Delete file
-        if (
-            ("delete" in command_lower or "remove" in command_lower or "حذف" in command_lower or "امسح" in command_lower)
-            and ("file" in command_lower or "ملف" in command_lower or any(ext in command_lower for ext in [".txt", ".md", ".json", ".py"]))
-        ):
-            filename = self._extract_filename(command)
-            if not filename:
-                import re
-                match = re.search(r'(?:file|ملف)\s+([\w\-.]+)', command_lower)
-                if match:
-                    filename = match.group(1)
-            return {"type": "file", "operation": "delete", "filename": filename}
-
-        # List files
-        if (
-            ("list" in command_lower or "show all" in command_lower or "عرض الكل" in command_lower or "عرض جميع" in command_lower)
-            and ("files" in command_lower or "ملفات" in command_lower or "directory" in command_lower or "مجلد" in command_lower or "." in command_lower)
-        ):
-            return {"type": "file", "operation": "list"}
-
-        # Search files
-        if (
-            ("search" in command_lower or "find" in command_lower or "look for" in command_lower or "ابحث" in command_lower)
-            and ("file" in command_lower or "ملف" in command_lower or "files" in command_lower or "ملفات" in command_lower)
-        ):
-            pattern = self._extract_pattern(command)
-            return {"type": "file", "operation": "search", "pattern": pattern}
-
-        # --- System, Language, Utility (unchanged for now) ---
-        # System operations
-        elif any(word in command_lower for word in ["system status", "system info"]):
-            return {"type": "system", "operation": "status"}
-        elif any(word in command_lower for word in ["cpu info", "processor info"]):
-            return {"type": "system", "operation": "cpu"}
-        elif any(word in command_lower for word in ["memory info", "ram info"]):
-            return {"type": "system", "operation": "memory"}
-        elif any(word in command_lower for word in ["disk info", "storage info"]):
-            return {"type": "system", "operation": "disk"}
-        elif any(word in command_lower for word in ["network info", "connection info"]):
-            return {"type": "system", "operation": "network"}
-        elif any(word in command_lower for word in ["process info", "running processes"]):
-            return {"type": "system", "operation": "process"}
-        elif any(word in command_lower for word in ["system logs", "show logs"]):
-            return {"type": "system", "operation": "logs"}
-            
-        # Language operations
-        elif any(word in command_lower for word in ["set language", "change language"]):
-            return {"type": "language", "operation": "set", "language": self._extract_language(command)}
-        elif any(word in command_lower for word in ["detect language", "identify language"]):
-            return {"type": "language", "operation": "detect", "text": self._extract_text(command)}
-        elif any(word in command_lower for word in ["translate", "convert to"]):
-            return {"type": "language", "operation": "translate", "text": self._extract_text(command), "target_language": self._extract_language(command)}
-        elif any(word in command_lower for word in ["supported languages", "available languages"]):
-            return {"type": "language", "operation": "list"}
-            
-        # Utility operations
-        elif any(word in command_lower for word in ["help", "show help"]):
-            return {"type": "utility", "operation": "help"}
-        elif any(word in command_lower for word in ["version", "show version"]):
-            return {"type": "utility", "operation": "version"}
-        elif any(word in command_lower for word in ["status", "show status"]):
-            return {"type": "utility", "operation": "status"}
-        elif any(word in command_lower for word in ["configuration", "show config"]):
-            return {"type": "utility", "operation": "config"}
-        elif any(word in command_lower for word in ["logs", "show logs"]):
-            return {"type": "utility", "operation": "logs"}
-        elif any(word in command_lower for word in ["enable debug", "turn on debug"]):
-            return {"type": "utility", "operation": "debug", "enabled": True}
-        elif any(word in command_lower for word in ["disable debug", "turn off debug"]):
-            return {"type": "utility", "operation": "debug", "enabled": False}
-        elif any(word in command_lower for word in ["errors", "show errors"]):
-            return {"type": "utility", "operation": "errors"}
-            
-        # Open Chrome
-        if "open" in command_lower and "chrome" in command_lower:
-            return {"type": "browser_interaction", "operation": "open_browser", "browser": "chrome"}
-
-        # In main bar write
-        if command.startswith("in main bar write"):
-            text = command.replace("in main bar write", "").strip()
-            return {
-                "type": "browser_interaction",
-                "operation": "type_in_address_bar",
-                "text": text
+        # Check for file operations
+        for operation, pattern in self.file_patterns.items():
+            match = re.search(pattern, command_lower)
+            if match:
+                return {
+                    "type": "file",
+                    "operation": operation,
+                    "parameters": {
+                        "filename": match.group(1) if match.groups() else None
+                    }
+                }
+        
+        # Check for system commands
+        for operation, pattern in self.system_patterns.items():
+            if re.search(pattern, command_lower):
+                return {
+                    "type": "system",
+                    "operation": operation,
+                    "parameters": {}
+                }
+        
+        # Check for shell commands
+        for operation, pattern in self.shell_patterns.items():
+            match = re.search(pattern, command_lower)
+            if match:
+                return {
+                    "type": "shell",
+                    "operation": operation,
+                    "parameters": {
+                        "command": match.group(1) if match.groups() else command
+                    }
+                }
+        
+        # Default to shell command if no specific type is matched
+        return {
+            "type": "shell",
+            "operation": "execute",
+            "parameters": {
+                "command": command
             }
-
-        # In the same page search bar write Kuwait
-        if "in the same page search bar write" in command_lower:
-            text = command_lower.split("in the same page search bar write", 1)[-1].strip()
-            return {"type": "browser_interaction", "operation": "type_in_search_bar", "text": text}
-
-        # On same page hit enter
-        if "on same page hit enter" in command_lower:
-            return {"type": "browser_interaction", "operation": "press_enter"}
-
-        # Move mouse to that chrome you just opened
-        if command.startswith("move mouse to that chrome you just opened"):
-            return {
-                "type": "browser_interaction",
-                "operation": "move_mouse_to_last_chrome"
-            }
-
-        return {"type": "error", "message": "Unknown command"}
+        }
+    
+    def _extract_command_from_ai_response(self, ai_response: str) -> str:
+        """
+        Extract just the command from an AI response text.
         
-    def _extract_filename(self, command: str) -> str:
-        """Extract filename from command."""
-        # Try to find filename in quotes
-        match = re.search(r'[\'"]([^\'"]+)[\'"]', command)
-        if match:
-            return match.group(1)
+        Args:
+            ai_response: The AI response text
             
-        # Try to find filename after certain keywords
-        for keyword in ["file", "called", "named"]:
-            parts = command.split(keyword)
-            if len(parts) > 1:
-                filename = parts[1].strip().split()[0]
-                if filename.endswith(('.txt', '.py', '.json', '.md')):
-                    return filename
-                    
-        return ""
+        Returns:
+            Extracted command string
+        """
+        # First check for code blocks - the preferred format
+        code_block_pattern = r'```(?:bash|shell|zsh|sh|console|terminal)?\s*(.*?)\s*```'
+        code_blocks = re.findall(code_block_pattern, ai_response, re.DOTALL)
         
-    def _extract_content(self, command: str) -> str:
-        """Extract content from command."""
-        # Try to find content in quotes
-        match = re.search(r'[\'"]([^\'"]+)[\'"]', command)
-        if match:
-            return match.group(1)
+        if code_blocks:
+            # Use the first code block
+            return code_blocks[0].strip()
             
-        # Try to find content after certain keywords
-        for keyword in ["content", "text", "with"]:
-            parts = command.split(keyword)
-            if len(parts) > 1:
-                return parts[1].strip()
+        # Next check for backtick-wrapped commands
+        backtick_pattern = r'`(.*?)`'
+        backticks = re.findall(backtick_pattern, ai_response)
+        
+        if backticks:
+            # Use the first backtick block
+            return backticks[0].strip()
+            
+        # If there are no code blocks or backticks, use the whole response
+        # but remove any explanatory text that might be present
+        lines = ai_response.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith(('#', '//', 'Note:', 'Here', 'Try')):
+                return line
                 
-        return ""
-        
-    def _extract_pattern(self, command: str) -> str:
-        """Extract pattern from command."""
-        # Try to find pattern in quotes
-        match = re.search(r'[\'"]([^\'"]+)[\'"]', command)
-        if match:
-            return match.group(1)
-            
-        # Try to find pattern after certain keywords
-        for keyword in ["for", "containing", "matching"]:
-            parts = command.split(keyword)
-            if len(parts) > 1:
-                return parts[1].strip()
-                
-        return ""
-        
-    def _extract_language(self, command: str) -> str:
-        """Extract language from command."""
-        # Try to find language in quotes
-        match = re.search(r'[\'"]([^\'"]+)[\'"]', command)
-        if match:
-            return match.group(1)
-            
-        # Try to find language after certain keywords
-        for keyword in ["to", "language"]:
-            parts = command.split(keyword)
-            if len(parts) > 1:
-                return parts[1].strip()
-                
-        return ""
-        
-    def _extract_text(self, command: str) -> str:
-        """Extract text from command."""
-        # Try to find text in quotes
-        match = re.search(r'[\'"]([^\'"]+)[\'"]', command)
-        if match:
-            return match.group(1)
-            
-        # Try to find text after certain keywords
-        for keyword in ["text", "content"]:
-            parts = command.split(keyword)
-            if len(parts) > 1:
-                return parts[1].strip()
-                
-        return ""
+        # If we couldn't find a clear command, return the original response
+        return ai_response.strip()
         
     def execute_command(self, command: str) -> Dict[str, Any]:
         """Execute the interpreted command."""

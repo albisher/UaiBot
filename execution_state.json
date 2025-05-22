@@ -1,10 +1,12 @@
 {
   "current_step": 0,
-  "completed_steps": [],
-  "failed_steps": [
-    1
+  "completed_steps": [
+    1,
+    2,
+    3
   ],
+  "failed_steps": [],
   "state_variables": {},
-  "start_time": "2025-05-22 17:39:08.437632",
-  "end_time": "2025-05-22 17:39:08.437882"
+  "start_time": "2025-05-22 21:33:05.843916",
+  "end_time": "2025-05-22 21:33:05.844247"
 }
