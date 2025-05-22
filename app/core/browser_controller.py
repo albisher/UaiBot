@@ -98,7 +98,12 @@ class BrowserController:
                         end if
                     end tell
                 '''
-            return self._execute_applescript(script)
+            result = self._execute_applescript(script)
+            # If result is empty and browser is not a known/installed browser, return error
+            known_browsers = set(self.macos_browser_map.values())
+            if not result and mapped_browser not in known_browsers:
+                return f"Error: Browser '{browser}' not found or could not be opened"
+            return result if result else "OK"
         else:
             if not self.playwright_available:
                 return "Error: Playwright not available for cross-platform browser automation"
