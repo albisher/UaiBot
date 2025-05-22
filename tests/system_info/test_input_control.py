@@ -135,7 +135,7 @@ def test_compatibility_layer():
     """Test the compatibility layer."""
     print("\n=== Testing Compatibility Layer ===")
     try:
-        from input_control.mouse_keyboard_handler import MouseKeyboardHandler
+        from app.core.command_processor.input_control.mouse_keyboard_handler import MouseKeyboardHandler
         
         print("Creating handler instance...")
         handler = MouseKeyboardHandler()

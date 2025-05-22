@@ -17,6 +17,8 @@ from app.core.command_processor.command_executor import CommandExecutor
 from app.core.parallel_utils import ParallelTaskManager, run_in_parallel
 from app.core.command_processor.ai_command_extractor import AICommandExtractor
 from app.utils.ai_json_tools import build_ai_prompt
+from app.core.controller import ExecutionController
+import logging
 
 # Simplified version of the command processor focused on handling natural language commands properly
 class CommandProcessor:
@@ -83,6 +85,9 @@ class CommandProcessor:
         
         # Fix the undefined 'thinking' variable
         self.thinking = False  # Add this at the top of the file with other global variables
+        
+        # Initialize Execution Controller for agentic plans
+        self.execution_controller = ExecutionController(shell_handler, ai_handler, quiet_mode)
         
     def _load_command_patterns(self):
         """Load command patterns from JSON file."""
@@ -276,13 +281,28 @@ class CommandProcessor:
                 self.user_settings["preferred_locations"]["downloads"] = downloads_path
 
     def process_command(self, user_input):
-        """Process user input using AI-driven approach."""
+        """Process user input using AI-driven approach or direct shell execution."""
         # Reset output state for new command
         self._reset_output_state()
         
         if not user_input.strip():
             return "Please enter a command or question."
         
+        # If the input looks like a direct shell command, run it directly
+        import shlex
+        shell_keywords = [
+            'ls', 'pwd', 'cd', 'cat', 'echo', 'rm', 'cp', 'mv', 'touch', 'mkdir', 'rmdir', 'date', 'whoami', 'uptime', 'df', 'du', 'free', 'ps', 'kill', 'top', 'htop', 'head', 'tail', 'grep', 'find', 'chmod', 'chown', 'ifconfig', 'ip', 'ping', 'curl', 'wget', 'tar', 'zip', 'unzip', 'ssh', 'scp', 'man', 'which', 'whereis', 'clear', 'history', 'env', 'export', 'alias', 'unalias', 'sudo', 'service', 'systemctl', 'journalctl', 'dmesg', 'mount', 'umount', 'ln', 'stat', 'sleep', 'yes', 'printenv', 'hostname', 'uname', 'who', 'last', 'logout', 'exit'
+        ]
+        try:
+            first_word = shlex.split(user_input)[0]
+        except Exception:
+            first_word = user_input.strip().split()[0] if user_input.strip() else ''
+        if first_word in shell_keywords:
+            # Direct shell command, execute and return
+            execution_result = self.shell_handler.execute_command(user_input)
+            return execution_result
+        
+        # Otherwise, use AI-driven approach
         # Format thinking process that will be folded
         thinking = self._format_thinking(
             f"🤖 Processing your request: '{user_input}'\n\n"
@@ -317,6 +337,8 @@ class CommandProcessor:
         try:
             # In fast mode, we'll use a shorter internal timeout
             ai_response = self.ai_handler.process_command(prompt_for_ai)
+            logger = logging.getLogger(__name__)
+            logger.info(f"Raw AI response: {ai_response}")
         except Exception as e:
             if self.fast_mode:
                 # In fast mode, provide a simple error and let the program continue to exit
@@ -338,23 +360,34 @@ class CommandProcessor:
             except Exception:
                 pass
         
-        # Format the result with colors
         result = f"{thinking}\n\n"
-        
+
+        # --- AGENTIC PLAN HANDLING ---
+        if success and isinstance(command, dict) and 'plan' in command:
+            # Route to execution controller
+            exec_result = self.execution_controller.execute_plan(command)
+            # Format the results for output
+            summary = []
+            for step_result in exec_result.get('results', []):
+                status = step_result.get('status', 'unknown')
+                desc = step_result.get('operation', step_result.get('description', ''))
+                output = step_result.get('output', '')
+                summary.append(f"Step {step_result.get('step')}: {desc} - {status}\nOutput: {output}")
+            result += "\n".join(summary)
+            return result
+        # --- END AGENTIC PLAN HANDLING ---
+
         if success and command:
             # Format the command with duplicate prevention
             command_display = self._format_command(command)
             if command_display:
                 result += command_display + "\n\n"
-            
             # Execute the command using the shell handler
             execution_result = self.shell_handler.execute_command(command)
-            
             # Format the execution result with duplicate prevention
             result_display = self._format_result(execution_result, command, metadata)
             if result_display:
                 result += result_display
-            
             return result
         elif metadata["is_error"]:
             # Format error response
@@ -872,12 +905,6 @@ class CommandProcessor:
             else:
                 if execution_result:
                     error_text = f"{self.color_settings['error']}❌ Error deleting file: {execution_result}{self.color_settings['reset']}"
-                    result_display = self._format_result(error_text, command)
-                    if result_display:
-                        result += result_display
-                    return result
-                else:
-                    error_text = f"{self.color_settings['error']}❌ Failed to delete file '{filename}'. The file still exists.{self.color_settings['reset']}"
                     result_display = self._format_result(error_text, command)
                     if result_display:
                         result += result_display
@@ -1453,12 +1480,6 @@ class CommandProcessor:
             else:
                 if execution_result:
                     error_text = f"{self.color_settings['error']}❌ Error deleting file: {execution_result}{self.color_settings['reset']}"
-                    result_display = self._format_result(error_text, command)
-                    if result_display:
-                        result += result_display
-                    return result
-                else:
-                    error_text = f"{self.color_settings['error']}❌ Failed to delete file '{filename}'. The file still exists.{self.color_settings['reset']}"
                     result_display = self._format_result(error_text, command)
                     if result_display:
                         result += result_display

@@ -4,75 +4,16 @@ Your task is to analyze the following user input, understand the user's intent, 
 Instructions:
 - Carefully analyze the user input provided below.
 - Identify the user's intent, decompose it into steps if needed, and extract all relevant parameters and conditions.
-- Reply ONLY with a JSON object in the format shown below.
-- Do not include any explanations or text outside the JSON.
+- Reply ONLY with a valid JSON object in the format shown below.
+- Do NOT include any explanations, markdown, or text outside the JSON.
 - For each step, provide a description, operation, parameters, confidence score, and any conditions or branching logic.
 - If the request is ambiguous, provide alternatives in the "alternatives" field.
 - Detect and include the language of the input.
+- For shell actions, ALWAYS include a 'command' field with the shell command to execute.
+- WARNING: If you reply with anything other than a valid JSON object, your response will be rejected.
 
 User Input:
 {user_input}
 
 Expected JSON reply format:
-```
-{
-  "plan": [
-    {
-      "step": 1,
-      "description": "Describe the first action in natural language.",
-      "operation": "operation.type",
-      "parameters": {
-        "key1": "value1",
-        "key2": "value2"
-      },
-      "confidence": 0.95,
-      "condition": null,
-      "on_success": [2],
-      "on_failure": [],
-      "explanation": "Explain why this step is needed."
-    }
-    // Additional steps as needed
-  ],
-  "overall_confidence": 0.95,
-  "alternatives": [],
-  "language": "en"
-}
-```
-
-Example:
-```
-{
-  "plan": [
-    {
-      "step": 1,
-      "description": "Create a file named test.txt",
-      "operation": "file.create",
-      "parameters": {
-        "filename": "test.txt",
-        "content": "hello"
-      },
-      "confidence": 0.98,
-      "condition": null,
-      "on_success": [2],
-      "on_failure": [],
-      "explanation": "Creates a new file with the specified content."
-    },
-    {
-      "step": 2,
-      "description": "Read the file test.txt",
-      "operation": "file.read",
-      "parameters": {
-        "filename": "test.txt"
-      },
-      "confidence": 0.95,
-      "condition": null,
-      "on_success": [],
-      "on_failure": [],
-      "explanation": "Reads the content of the file created in step 1."
-    }
-  ],
-  "overall_confidence": 0.96,
-  "alternatives": [],
-  "language": "en"
-}
 ```

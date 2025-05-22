@@ -1,0 +1,10 @@
+{
+  "current_step": 0,
+  "completed_steps": [],
+  "failed_steps": [
+    1
+  ],
+  "state_variables": {},
+  "start_time": "2025-05-22 17:39:08.437632",
+  "end_time": "2025-05-22 17:39:08.437882"
+}

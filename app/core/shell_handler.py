@@ -76,6 +76,10 @@ class ShellHandler:
             quiet_mode (bool): If True, reduces unnecessary terminal output.
             fast_mode (bool): If True, doesn't wait for feedback on errors, exits immediately.
         """
+        # If fast_mode is enabled, override safe_mode and dangerous command check
+        if fast_mode:
+            safe_mode = False
+            enable_dangerous_command_check = False
         self.safe_mode = safe_mode
         self.enable_dangerous_command_check = enable_dangerous_command_check
         self.suppress_prompt = suppress_prompt

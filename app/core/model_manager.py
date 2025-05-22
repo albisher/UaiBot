@@ -169,7 +169,7 @@ class ModelManager:
             import requests
             
             self.base_url = self.config.get("ollama_base_url", "http://localhost:11434")
-            self.ollama_model_name = self.config.get("ollama_model_name", "gemma:4b")
+            self.ollama_model_name = self.config.get("default_ollama_model", "gemma:4b")
             
             # Check connection to Ollama
             try:
@@ -220,7 +220,7 @@ class ModelManager:
         if self.model_type != "ollama":
             raise ValueError("set_ollama_model can only be used with Ollama model type")
         self.ollama_model_name = model_name
-        self.config.set("ollama_model_name", model_name)
+        self.config.set("default_ollama_model", model_name)
         self.config.save()
     
     def set_google_model(self, model_name: str) -> None:

@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import unittest
+import traceback
 
 # Add parent directory to path to ensure imports work
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,10 +16,11 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 try:
-    from uaibot.core.input_control.mouse_keyboard_handler import MouseKeyboardHandler
+    from app.core.command_processor.input_control.mouse_keyboard_handler import MouseKeyboardHandler
+    print("Successfully imported MouseKeyboardHandler")
 except ImportError as e:
     print(f"Error importing MouseKeyboardHandler: {e}")
-    print("Make sure you're running this script from the UaiBot project root.")
+    traceback.print_exc()
     sys.exit(1)
 
 class TestSimulationMode(unittest.TestCase):

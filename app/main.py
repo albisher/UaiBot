@@ -14,6 +14,7 @@ import logging
 import warnings
 import urllib3
 import argparse
+import json
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -71,8 +72,16 @@ class UaiBot:
             logger.info("Initializing platform components...")
             self.platform_manager.initialize(mode=mode, fast_mode=fast_mode) if 'mode' in self.platform_manager.initialize.__code__.co_varnames else self.platform_manager.initialize()
             
-            # Load configuration
-            self.config = config or {}
+            # Load configuration from file if not provided
+            if config is None:
+                config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'settings.json')
+                if os.path.exists(config_path):
+                    with open(config_path, 'r') as f:
+                        self.config = json.load(f)
+                else:
+                    self.config = {}
+            else:
+                self.config = config
             
             # Configure output facade with verbosity settings
             output_verbosity = self.config.get('output_verbosity', 'normal')
@@ -96,6 +105,11 @@ class UaiBot:
                     ok, selected_model = check_model_available(tags_json, default_model)
                     if ok:
                         print(f"[UaiBot] Using Ollama model: {selected_model}")
+                        # Update the config with the selected model
+                        if self.update_config(selected_model):
+                            self.config['default_ollama_model'] = selected_model
+                        else:
+                            print("[UaiBot] Warning: Failed to update configuration with selected model")
                     else:
                         print("[UaiBot] No available Ollama model found. Exiting.")
                         raise RuntimeError("No available Ollama model found.")
@@ -108,7 +122,8 @@ class UaiBot:
                 ollama_base_url=ollama_base_url,
                 cache_ttl=self.config.get('cache_ttl', 3600),
                 cache_size_mb=self.config.get('cache_size_mb', 100),
-                fast_mode=fast_mode
+                fast_mode=fast_mode,
+                debug=debug
             )
             
             # Patch the model name for Ollama if needed
@@ -134,13 +149,18 @@ Type 'help' for available commands or just ask me anything!
     def start(self) -> None:
         """Start the UaiBot interactive session."""
         try:
-            output.box(self.welcome_message, "Welcome")
+            if not self.fast_mode:
+                output.box(self.welcome_message, "Welcome")
             self._interactive_loop()
         except KeyboardInterrupt:
-            output.info("👋 Session interrupted. Goodbye!")
+            if not self.fast_mode:
+                output.info("👋 Session interrupted. Goodbye!")
         except Exception as e:
             logger.error(f"Error in interactive session: {str(e)}")
-            output.error(f"An error occurred: {str(e)}")
+            if not self.fast_mode:
+                output.error(f"An error occurred: {str(e)}")
+            else:
+                print(f"Error: {str(e)}")
         finally:
             self.cleanup()
     
@@ -148,36 +168,53 @@ Type 'help' for available commands or just ask me anything!
         """Main interactive loop for UaiBot."""
         while True:
             try:
-                user_input = input("\nYou: ").strip()
+                # Use minimal prompt in fast mode
+                prompt = ">" if self.fast_mode else "\nYou: "
+                user_input = input(prompt).strip()
                 
                 if not user_input:
                     continue
                 
                 if user_input.lower() in ['exit', 'quit', 'bye']:
-                    output.success("👋 Goodbye! Have a great day!")
+                    if not self.fast_mode:
+                        output.success("👋 Goodbye! Have a great day!")
                     break
                 
                 if user_input.lower() == 'help':
-                    self._show_help()
+                    if not self.fast_mode:
+                        self._show_help()
                     continue
                 
                 if user_input.lower() == 'clear':
                     self.ai_handler.clear_cache()
-                    output.success("Cache cleared successfully")
+                    if not self.fast_mode:
+                        output.success("Cache cleared successfully")
                     continue
                 
                 response = self.command_processor.process_command(user_input)
-                output.info(response)
+                if not self.fast_mode:
+                    output.info(response)
+                else:
+                    print(response)
                 
             except KeyboardInterrupt:
                 raise
             except CommandError as e:
-                output.error(f"Command error: {str(e)}")
+                if not self.fast_mode:
+                    output.error(f"Command error: {str(e)}")
+                else:
+                    print(f"Error: {str(e)}")
             except AIError as e:
-                output.error(f"AI processing error: {str(e)}")
+                if not self.fast_mode:
+                    output.error(f"AI processing error: {str(e)}")
+                else:
+                    print(f"Error: {str(e)}")
             except Exception as e:
                 logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-                output.error(f"An unexpected error occurred: {str(e)}")
+                if not self.fast_mode:
+                    output.error(f"An unexpected error occurred: {str(e)}")
+                else:
+                    print(f"Error: {str(e)}")
     
     def _show_help(self) -> None:
         """Show help information."""
@@ -219,65 +256,92 @@ You can also:
         except Exception as e:
             logger.error(f"Error during cleanup: {str(e)}")
 
+    def process_test_requests(self, file_path: str) -> None:
+        """
+        Process test requests from a file.
+        
+        Args:
+            file_path: Path to the file containing test requests
+        """
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+            requests = [line.strip() for line in lines if line.strip() and not line.strip().startswith('#')]
+            for request in requests:
+                output.box(f"🤖 Processing your request: '{request}'", "Request")
+                response = self.command_processor.process_command(request)
+                output.info(response)
+        except Exception as e:
+            logger.error(f"Error processing test requests: {str(e)}")
+            raise
+
+    def update_config(self, selected_model: str) -> bool:
+        """
+        Update the configuration with the selected model.
+        
+        Args:
+            selected_model: The selected model name
+            
+        Returns:
+            True if the update was successful, False otherwise
+        """
+        try:
+            # Get the project root directory
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            config_dir = os.path.join(project_root, 'config')
+            config_path = os.path.join(config_dir, 'settings.json')
+            
+            # Create config directory if it doesn't exist
+            os.makedirs(config_dir, exist_ok=True)
+            
+            # Load existing config or create new one
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+            else:
+                config = {}
+            
+            # Update the model setting
+            config['default_ollama_model'] = selected_model
+            
+            # Write the updated config
+            with open(config_path, 'w') as f:
+                json.dump(config, f, indent=2)
+            
+            logger.info(f"Updated configuration with model: {selected_model}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update configuration: {str(e)}")
+            return False
+
 def main():
     """Main entry point for UaiBot."""
+    parser = argparse.ArgumentParser(description='UaiBot: AI-powered shell assistant')
+    parser.add_argument('--debug', action='store_true', help='Enable debug output')
+    parser.add_argument('--fast', action='store_true', help='Enable fast mode')
+    parser.add_argument('-f', '--file', help='Process requests from a file')
+    args = parser.parse_args()
+    
     try:
         # Set up logging
-        setup_logging(
-            component="main",
-            log_level=logging.INFO,
-            max_bytes=10 * 1024 * 1024,  # 10MB
-            backup_count=5
-        )
-        
-        # Parse command-line arguments
-        parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant")
-        parser.add_argument("-f", "--file", type=str, help="Command to execute in file/automation mode")
-        parser.add_argument("-c", "--command", type=str, help="Command to execute")
-        parser.add_argument("--no-safe-mode", action="store_true", help="Disable safe mode for file operations")
-        parser.add_argument("--gui", "-g", action="store_true", help="Start in GUI mode")
-        parser.add_argument("--fast", action="store_true", help="Enable fast mode (minimal prompts, quick exit)")
-        parser.add_argument("--debug", "-d", action="store_true", help="Enable debug output for AI prompt/response/decision")
-        args = parser.parse_args()
-
-        # Determine mode
-        if args.command:
-            mode = 'command'
-        elif args.file:
-            mode = 'file'
+        if args.debug:
+            setup_logging(component="main", log_level=logging.DEBUG)
         else:
-            mode = 'interactive'
-
-        # Check if GUI mode is requested
-        if args.gui:
-            output.info("GUI mode requested. Please use 'python start_app.py --gui' instead.")
-            sys.exit(1)
+            setup_logging(component="main")
         
-        # Initialize and start UaiBot with mode awareness
-        bot = UaiBot(debug=args.debug, mode=mode, fast_mode=args.fast)
+        # Initialize UaiBot
+        uaibot = UaiBot(debug=args.debug, fast_mode=args.fast)
         
-        if mode == 'file':
-            # If the argument is a file, read its contents as the prompt. Otherwise, treat it as a direct prompt.
-            if os.path.isfile(args.file):
-                with open(args.file, 'r') as f:
-                    prompt = f.read().strip()
-            else:
-                prompt = args.file.strip()
-            result = bot.process_single_command(prompt)
-            output.info(result)
-        elif mode == 'command':
-            result = bot.process_single_command(args.command)
-            output.info(result)
+        if args.file:
+            uaibot.process_test_requests(args.file)
         else:
-            bot.start()
+            uaibot.start()
             
-    except KeyboardInterrupt:
-        output.info("\n👋 Goodbye!")
-        sys.exit(0)
     except Exception as e:
         logger.error(f"Fatal error: {str(e)}", exc_info=True)
-        output.error(f"Fatal error: {str(e)}")
         sys.exit(1)
+    finally:
+        logger.info("Resources cleaned up successfully")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

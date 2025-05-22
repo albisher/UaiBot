@@ -117,7 +117,6 @@ class ConfigManager:
             "google_api_key": "",
             "google_model_name": "gemini-pro",
             "ollama_base_url": "http://localhost:11434",
-            "ollama_model_name": "gemma:4b",
             "quiet_mode": False,
             "log_dir": "logs",
             "log_level": "INFO",

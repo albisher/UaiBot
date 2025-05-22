@@ -187,11 +187,6 @@ class QueryProcessor:
             Tuple[bool, str]: A tuple containing:
                 - bool: Success status of the query
                 - str: Response text or error message
-            
-        Raises:
-            ConnectionError: If cannot connect to Ollama API
-            ValueError: If model name is not set
-            Exception: For any other processing errors
         """
         try:
             # Prepare the prompt
@@ -223,17 +218,41 @@ class QueryProcessor:
             if "error" in result:
                 return False, f"Ollama error: {result['error']}"
             
+            # Extract the actual response content
+            response_text = result.get("response", "").strip()
+            
+            # Try to parse JSON if the response looks like JSON
+            if response_text.startswith("{") and response_text.endswith("}"):
+                try:
+                    json_response = json.loads(response_text)
+                    if isinstance(json_response, dict):
+                        # If it's a structured response, extract the command or content
+                        if "command" in json_response:
+                            response_text = json_response["command"]
+                        elif "content" in json_response:
+                            response_text = json_response["content"]
+                        elif "response" in json_response:
+                            response_text = json_response["response"]
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, use the raw response
+                    pass
+            
             # Update conversation history
             self.conversation_history.append({"role": "user", "content": query})
-            self.conversation_history.append({"role": "assistant", "content": result["response"]})
+            self.conversation_history.append({"role": "assistant", "content": response_text})
             
             # Trim history if needed
             max_history = self.config.get("max_history", 10)
-            if len(self.conversation_history) > max_history * 2:  # *2 because each exchange has 2 messages
+            if len(self.conversation_history) > max_history * 2:
                 self.conversation_history = self.conversation_history[-max_history * 2:]
             
-            return True, result["response"]
+            return True, response_text
             
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Failed to connect to Ollama API: {str(e)}"
+            self._log(error_msg)
+            logger.error(error_msg)
+            return False, error_msg
         except Exception as e:
             error_msg = f"Error in Ollama query: {str(e)}"
             self._log(error_msg)
@@ -248,6 +267,7 @@ class QueryProcessor:
         1. Starts with system information
         2. Adds relevant conversation history
         3. Appends the current query
+        4. Includes response format instructions
         
         Args:
             query (str): The user's query
@@ -255,10 +275,6 @@ class QueryProcessor:
             
         Returns:
             str: The prepared prompt
-            
-        Note:
-            The conversation history is limited to maintain context while
-            preventing the prompt from growing too large.
         """
         # Start with system information
         prompt: str = f"System Information:\n{system_info}\n\n"
@@ -271,8 +287,21 @@ class QueryProcessor:
                 prompt += f"{role}: {msg['content']}\n"
             prompt += "\n"
         
+        # Add response format instructions
+        prompt += """Instructions:
+1. Analyze the user's request carefully
+2. If the request is a command or action, respond with a JSON object containing:
+   - command: The actual command to execute
+   - explanation: Brief explanation of what the command does
+   - confidence: Your confidence in the response (0.0 to 1.0)
+3. If the request is informational, respond with a clear, concise answer
+4. If you're unsure, ask for clarification
+5. Always maintain a helpful and professional tone
+
+User query: """
+        
         # Add the current query
-        prompt += f"User query: {query}\n"
+        prompt += f"{query}\n"
         
         return prompt
     

@@ -329,7 +329,8 @@ class AIHandler:
         ollama_base_url: str = "http://localhost:11434",
         cache_ttl: int = 3600,  # 1 hour default TTL
         cache_size_mb: int = 100,  # 100MB default max size
-        fast_mode: bool = False  # Accept fast_mode for compatibility
+        fast_mode: bool = False,  # Accept fast_mode for compatibility
+        debug: bool = False
     ):
         """
         Initialize the AI handler.
@@ -342,14 +343,19 @@ class AIHandler:
             cache_ttl: Cache TTL in seconds
             cache_size_mb: Maximum cache size in megabytes
             fast_mode: Enable fast mode (minimal prompts, quick exit)
+            debug: Enable debug mode for additional logging
         """
         self.model_type = model_type.lower()
         self.google_model_name = google_model_name
         self.ollama_base_url = ollama_base_url
         self.fast_mode = fast_mode
+        self.debug = debug
         
         # Initialize cache
         self.cache = CacheManager(ttl_seconds=cache_ttl, max_size_mb=cache_size_mb)
+        
+        # Load configuration
+        self._load_config()
         
         # Initialize model client
         try:
@@ -364,7 +370,28 @@ class AIHandler:
         except Exception as e:
             logger.error(f"Failed to initialize AI client: {str(e)}")
             raise AIError(f"Failed to initialize AI client: {str(e)}")
-    
+
+    def _load_config(self):
+        """Load configuration from settings.json"""
+        try:
+            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'config', 'settings.json')
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            
+            # Update instance variables with config values
+            if self.model_type == 'ollama':
+                self.ollama_model_name = config.get('default_ollama_model', 'gemma3:4b')
+                self.ollama_base_url = config.get('ollama_base_url', 'http://localhost:11434')
+            elif self.model_type == 'google':
+                self.google_model_name = config.get('default_google_model', 'gemini-pro')
+        except Exception as e:
+            logger.warning(f"Failed to load configuration: {e}")
+            # Use default values if config loading fails
+            if self.model_type == 'ollama':
+                self.ollama_model_name = 'gemma3:4b'
+            elif self.model_type == 'google':
+                self.google_model_name = 'gemini-pro'
+
     def _init_google_client(self, api_key: str) -> None:
         """Initialize Google AI client."""
         try:
@@ -437,16 +464,53 @@ class AIHandler:
         """Process command using Ollama."""
         try:
             model_name = getattr(self, 'ollama_model_name', None) or 'gemma3:4b'
+            
+            # Prepare debug output if enabled
+            if self.debug:
+                debug_prompt = f"[DEBUG] Prompt sent to Ollama:\n{command}"
+                print(debug_prompt)
+            
+            # Make the request
             response = self.client.generate(model=model_name, prompt=command)
-            # Debug: print the full raw response from Ollama
-            print("[DEBUG] Ollama raw response:", response)
+            
+            # Process debug output
+            if self.debug:
+                # Only show relevant parts of the response
+                debug_response = {
+                    "model": response.get("model", model_name),
+                    "response": response.get("response", "").strip(),
+                    "done": response.get("done", True)
+                }
+                print("[DEBUG] Ollama response:", json.dumps(debug_response, indent=2))
+            
+            # Extract the response content
+            response_text = response.get("response", "").strip()
+            
+            # Try to parse JSON response
+            try:
+                if response_text.startswith("{") and response_text.endswith("}"):
+                    json_response = json.loads(response_text)
+                    if isinstance(json_response, dict):
+                        return {
+                            "command": json_response.get("command", response_text),
+                            "explanation": json_response.get("explanation", ""),
+                            "confidence": json_response.get("confidence", 0.95),
+                            "model": model_name
+                        }
+            except json.JSONDecodeError:
+                pass
+            
+            # Return structured response for non-JSON content
             return {
-                "command": response["response"],
-                "confidence": response.get("confidence", 0.95),
+                "command": response_text,
+                "explanation": "Direct response from AI",
+                "confidence": 0.95,
                 "model": model_name
             }
+            
         except Exception as e:
-            print(f"[DEBUG] Ollama exception: {e}")
+            if self.debug:
+                print(f"[DEBUG] Ollama exception: {str(e)}")
             raise AIError(f"Ollama processing error: {str(e)}")
     
     def clear_cache(self) -> None:

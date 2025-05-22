@@ -16,63 +16,14 @@ for root, dirs, files in os.walk(APP_DIR):
 
 def update_imports_in_file(filepath):
     with open(filepath, "r") as f:
-        lines = f.readlines()
+        content = f.read()
 
-    new_lines = []
-    for line in lines:
-        # Remove any chained 'from ... import ...' on the same line
-        if ", from " in line:
-            # Split on ', from' and treat each as a separate import
-            parts = line.split(", from ")
-            # The first part is a normal import, the rest need 'from ' prepended
-            new_lines.append(parts[0].strip() + "\n")
-            for part in parts[1:]:
-                new_lines.append("from " + part.strip() + "\n")
-            continue
-        # Handle multi-imports: from app.command_processor import X, Y
-        m = re.match(r"from app\.command_processor import (.+)", line)
-        if m:
-            names = [name.strip() for name in m.group(1).split(",")]
-            for name in names:
-                key = name.lower()
-                if key in module_map:
-                    new_lines.append(f"from app.command_processor.{key} import {name}\n")
-                else:
-                    new_lines.append(f"from app.command_processor import {name}\n")
-            continue
-        # Handle single import: from app.command_processor import X
-        m = re.match(r"from app\.command_processor import (\w+)", line)
-        if m:
-            name = m.group(1)
-            key = name.lower()
-            if key in module_map:
-                new_lines.append(f"from app.command_processor.{key} import {name}\n")
-            else:
-                new_lines.append(line)
-            continue
-        # For all submodules in app, fix imports
-        m = re.match(r"from app import (\w+)", line)
-        if m:
-            name = m.group(1)
-            key = name.lower()
-            if key in module_map:
-                new_lines.append(f"from app.{module_map[key]} import {name}\n")
-            else:
-                new_lines.append(line)
-            continue
-        m = re.match(r"import app\.(\w+)(?!\.)", line)
-        if m:
-            name = m.group(1)
-            key = name.lower()
-            if key in module_map:
-                new_lines.append(f"import app.{module_map[key]}\n")
-            else:
-                new_lines.append(line)
-            continue
-        new_lines.append(line)
+    # Replace uaibot imports with app imports
+    content = content.replace("from uaibot.", "from app.")
+    content = content.replace("import uaibot.", "import app.")
 
     with open(filepath, "w") as f:
-        f.writelines(new_lines)
+        f.write(content)
     print(f"Updated imports in {filepath}")
 
 def walk_and_update_tests():
