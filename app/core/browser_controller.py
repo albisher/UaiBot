@@ -53,6 +53,10 @@ class BrowserController:
         """
         if os.name == 'posix' and os.path.exists('/Applications'):
             mapped_browser = self._normalize_browser_name(browser)
+            # Check if the app exists in /Applications
+            app_path = f"/Applications/{mapped_browser}.app"
+            if not os.path.exists(app_path):
+                return f"Error: Browser '{browser}' not found in /Applications."
             # AppleScript: Incognito/profile not natively supported, but can try for Chrome
             if mapped_browser == 'Safari':
                 script = f'''
@@ -99,10 +103,6 @@ class BrowserController:
                     end tell
                 '''
             result = self._execute_applescript(script)
-            # If result is empty and browser is not a known/installed browser, return error
-            known_browsers = set(self.macos_browser_map.values())
-            if not result and mapped_browser not in known_browsers:
-                return f"Error: Browser '{browser}' not found or could not be opened"
             return result if result else "OK"
         else:
             if not self.playwright_available:

@@ -318,6 +318,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
     parser.add_argument('--fast', action='store_true', help='Enable fast mode')
     parser.add_argument('-f', '--file', help='Process requests from a file')
+    parser.add_argument('--batch', type=str, help='Path to file with batch user inputs (one per line)')
     args = parser.parse_args()
     
     try:
@@ -332,6 +333,20 @@ def main():
         
         if args.file:
             uaibot.process_test_requests(args.file)
+        elif args.batch:
+            # Batch mode: process each line in the file as a user input
+            with open(args.batch, 'r') as f:
+                for line in f:
+                    user_input = line.strip()
+                    if not user_input or user_input.startswith('#'):
+                        continue  # skip empty lines and comments
+                    print(f"\n[Batch] User: {user_input}")
+                    try:
+                        result = uaibot.process_single_command(user_input)
+                        print(f"[Batch] Result: {result}\n")
+                    except Exception as e:
+                        print(f"[Batch] Error processing input: {e}\n")
+            sys.exit(0)
         else:
             uaibot.start()
             

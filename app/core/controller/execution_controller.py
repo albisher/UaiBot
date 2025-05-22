@@ -146,25 +146,24 @@ class ExecutionController:
                         'reason': 'condition_not_met',
                         'output': None
                     }
-            
-            # Execute operation
+            # Build operation dict for this step
             operation = step.get('operation')
             parameters = step.get('parameters', {})
-            
+            # If 'command' is present at the step level, add it to parameters
+            if 'command' in step and 'command' not in parameters:
+                parameters['command'] = step['command']
+            op_dict = {'type': operation, 'parameters': parameters}
             # Update state variables
             self._update_state_variables(parameters)
-            
             # Execute the operation
-            result = self._execute_operation(operation)
-            
+            result = self._execute_operation(op_dict)
             return {
-                'step': step['step'],
+                'step': step.get('step'),
                 'status': 'success',
                 'output': result,
                 'operation': operation,
                 'parameters': parameters
             }
-            
         except Exception as e:
             logger.error(f"Error executing step {step.get('step')}: {str(e)}")
             return {
@@ -181,49 +180,227 @@ class ExecutionController:
             op_type = operation.get('type', '').lower()
             parameters = operation.get('parameters', {})
             
-            # Handle browser operations
-            if op_type == 'open_browser':
-                browser = parameters.get('browser', '')
-                url = parameters.get('url', '')
-                if not browser:
-                    return "Error: Browser name is required"
-                return self.browser_controller.open_browser(browser, url)
-            
-            elif op_type == 'execute_javascript':
-                browser = parameters.get('browser', '')
-                js_code = parameters.get('js_code', '')
-                if not browser or not js_code:
-                    return "Error: Browser name and JavaScript code are required"
-                return self.browser_controller.execute_javascript(browser, js_code)
-            
-            elif op_type == 'click_element':
-                browser = parameters.get('browser', '')
+            # (1) Alias common AI operation names to supported ones
+            operation_aliases = {
+                'ui_element_interaction': 'browser_click',
+                'click_element': 'browser_click',
+                'intent_recognition': None,  # Not actionable
+                'analyze_text': None,  # Not actionable
+                'browser_search': 'execute_search',
+                'close_application': 'close_application',
+                'calculator_input': 'calculator_input',
+                'respond_to_user': 'respond_to_user',
+                # System/shell/file/process aliases
+                'system_command': 'execute_shell_command',
+                'shell_command': 'execute_shell_command',
+                'execute_command': 'execute_shell_command',
+                'execute_shell_command': 'execute_shell_command',
+                'system_info': 'system_info',
+                'system_query': 'system_query',
+                'file_system_search': 'file_system_search',
+                'file_system_query': 'file_system_query',
+                'process_info': 'process_info',
+                'user_query': None,
+                'analyze_intent': None,
+                'text_processing': None,
+                'display_output': None,
+                'string_format': None,
+                'web_search': None,
+                'analyze_results': None,
+                'display_information': None,
+                'file_navigate': None,
+                'file_sort': None,
+                # Add more as needed
+            }
+            if op_type in operation_aliases:
+                mapped = operation_aliases[op_type]
+                if mapped is None:
+                    logger.info(f"Operation '{op_type}' is not actionable. Skipping.")
+                    return f"Operation '{op_type}' is not actionable."
+                op_type = mapped
+
+            # (2) Improve browser_click: Use Playwright for DOM elements if selector looks like CSS/XPath, else fallback to AppleScript
+            if op_type == 'browser_click':
                 selector = parameters.get('selector', '')
-                if not browser or not selector:
-                    return "Error: Browser name and CSS selector are required"
-                return self.browser_controller.click_element(browser, selector)
-            
-            # Handle universal application launch
-            elif op_type == 'launch_application':
+                browser = parameters.get('browser', 'Safari')  # Default to Safari if not specified
+                # Map browser name to application name
+                browser_mapping = {
+                    'chrome': 'Google Chrome',
+                    'firefox': 'Firefox',
+                    'safari': 'Safari',
+                    'edge': 'Microsoft Edge',
+                    'opera': 'Opera'
+                }
+                browser_app = browser_mapping.get(browser.lower(), browser)
+                # If selector looks like a CSS selector or XPath, use Playwright
+                if selector and (selector.startswith('.') or selector.startswith('#') or selector.startswith('//') or '[' in selector or ']' in selector):
+                    try:
+                        result = self.browser_controller.click_element(browser, selector)
+                        return f"Clicked DOM element {selector} in {browser_app}: {result}"
+                    except Exception as e:
+                        logger.error(f"Playwright click failed: {str(e)}. Falling back to AppleScript.")
+                        # Fallback to AppleScript below
+                # Fallback: Use AppleScript for native UI
+                if os.name == 'posix' and os.path.exists('/Applications'):
+                    if not selector:
+                        return "Error: No selector specified for clicking"
+                    script = f'''
+                    tell application "{browser_app}"
+                        activate
+                        tell application "System Events"
+                            tell process "{browser_app}"
+                                click UI element "{selector}"
+                            end tell
+                        end tell
+                    end tell
+                    '''
+                    try:
+                        subprocess.run(['osascript', '-e', script], check=True)
+                        return f"Clicked element {selector} in {browser_app} (AppleScript)"
+                    except subprocess.CalledProcessError as e:
+                        return f"Error clicking element: {str(e)}"
+                else:
+                    return f"Browser clicking not supported on this platform"
+
+            # (3) Handle private/incognito window requests for Chrome, Firefox, Safari
+            elif op_type in ['launch_application', 'open_application']:
                 app_name = parameters.get('application', '')
+                mode = parameters.get('mode', '')
                 if not app_name:
                     return "Error: Application name is required"
-                
-                if os.name == 'nt':  # Windows
-                    cmd = f'start {shlex.quote(app_name)}'
-                elif os.name == 'posix' and os.path.exists('/Applications'):  # macOS
-                    cmd = f'open -a {shlex.quote(app_name)}'
-                else:  # Linux and others
-                    cmd = f'{shlex.quote(app_name)}'
-                
+                browser_mapping = {
+                    'chrome': 'Google Chrome',
+                    'firefox': 'Firefox',
+                    'safari': 'Safari',
+                    'edge': 'Microsoft Edge',
+                    'opera': 'Opera'
+                }
+                app_name_mapped = browser_mapping.get(app_name.lower(), app_name)
+                # Private/incognito mode handling
+                if mode == 'private':
+                    if app_name_mapped == 'Google Chrome':
+                        cmd = f'open -a "{app_name_mapped}" --args --incognito'
+                    elif app_name_mapped == 'Firefox':
+                        cmd = f'open -a "{app_name_mapped}" --args -private-window'
+                    elif app_name_mapped == 'Safari':
+                        script = f'''
+                        tell application "Safari"
+                            activate
+                            tell application "System Events"
+                                keystroke "n" using {{command down, shift down}}
+                            end tell
+                        end tell
+                        '''
+                        try:
+                            subprocess.run(['osascript', '-e', script], check=True)
+                            return f"Opened private window in Safari"
+                        except subprocess.CalledProcessError as e:
+                            return f"Error opening private window in Safari: {str(e)}"
+                    else:
+                        cmd = f'open -a "{app_name_mapped}"'
+                else:
+                    if os.name == 'nt':
+                        cmd = f'start {shlex.quote(app_name_mapped)}'
+                    elif os.name == 'posix' and os.path.exists('/Applications'):
+                        cmd = f'open -a {shlex.quote(app_name_mapped)}'
+                    else:
+                        cmd = f'{shlex.quote(app_name_mapped)}'
                 try:
                     subprocess.run(cmd, shell=True, check=True)
-                    return f"Launched {app_name}"
+                    return f"Launched {app_name_mapped}{' in private mode' if mode == 'private' else ''}"
                 except subprocess.CalledProcessError as e:
-                    return f"Error launching {app_name}: {str(e)}"
-            
+                    return f"Error launching {app_name_mapped}: {str(e)}"
+
+            # (4) Fallback/logging for unknown operations
+            elif op_type == 'close_application':
+                app_name = parameters.get('application') or parameters.get('application_name')
+                if not app_name:
+                    return "Error: Application name is required to close"
+                app_mapping = {
+                    'calc': 'Calculator',
+                    'calculator': 'Calculator',
+                    'chrome': 'Google Chrome',
+                    'firefox': 'Firefox',
+                    'safari': 'Safari',
+                    'edge': 'Microsoft Edge',
+                    'opera': 'Opera'
+                }
+                app_name = app_mapping.get(app_name.lower(), app_name)
+                if os.name == 'posix' and os.path.exists('/Applications'):
+                    script = f'tell application "{app_name}" to quit'
+                    try:
+                        subprocess.run(['osascript', '-e', script], check=True)
+                        return f"Closed {app_name}"
+                    except Exception:
+                        subprocess.run(['killall', app_name], check=False)
+                        return f"Closed {app_name} (killall fallback)"
+                else:
+                    return f"Closing applications not supported on this platform"
+            elif op_type == 'respond_to_user':
+                text = parameters.get('text', '')
+                return text or "Hello!"
+            elif op_type == 'calculator_input':
+                expr = parameters.get('expression', '')
+                return f"Calculator automation not supported yet. Intended expression: {expr}"
+            elif op_type == 'execute_shell_command':
+                command = parameters.get('command', '')
+                if not command:
+                    return "Error: No shell command specified"
+                try:
+                    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+                    if result.returncode == 0:
+                        return result.stdout.strip() or f"Executed: {command}"
+                    else:
+                        return f"Shell command failed: {result.stderr.strip()}"
+                except Exception as e:
+                    logger.error(f"Shell command execution error: {str(e)}")
+                    return f"Error executing shell command: {str(e)}"
+            # Stub for unimplemented types
+            elif op_type in [
+                'system_info', 'system_query', 'file_system_search', 'file_system_query',
+                'process_info', 'user_query', 'analyze_intent', 'text_processing',
+                'display_output', 'string_format', 'web_search', 'analyze_results',
+                'display_information', 'file_navigate', 'file_sort']:
+                return f"Operation '{op_type}' is not yet implemented."
+            # Generic: If operation has a 'command' parameter, execute as shell command
+            elif 'command' in parameters and isinstance(parameters['command'], str):
+                command = parameters['command']
+                try:
+                    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+                    if result.returncode == 0:
+                        return result.stdout.strip() or f"Executed: {command}"
+                    else:
+                        return f"Shell command failed: {result.stderr.strip()}"
+                except Exception as e:
+                    logger.error(f"Shell command execution error: {str(e)}")
+                    return f"Error executing shell command: {str(e)}"
+            # File operations
+            elif op_type == 'file_read':
+                file_path = parameters.get('file_path') or parameters.get('filename')
+                if not file_path:
+                    return "Error: No file path specified for file_read"
+                try:
+                    with open(file_path, 'r') as f:
+                        return f.read()
+                except Exception as e:
+                    return f"Error reading file {file_path}: {str(e)}"
+            elif op_type == 'file_open':
+                file_path = parameters.get('file_path') or parameters.get('filename')
+                if not file_path:
+                    return "Error: No file path specified for file_open"
+                try:
+                    if os.name == 'posix' and os.path.exists('/Applications'):
+                        subprocess.run(['open', file_path], check=True)
+                    elif os.name == 'nt':
+                        os.startfile(file_path)
+                    else:
+                        subprocess.run([file_path], check=True)
+                    return f"Opened file: {file_path}"
+                except Exception as e:
+                    return f"Error opening file {file_path}: {str(e)}"
+            # Add more generic file operations as needed
             else:
-                return f"Unknown operation type: {op_type}"
+                return f"Operation '{op_type}' is not implemented. Parameters: {parameters}"
                 
         except Exception as e:
             logger.error(f"Error executing operation: {str(e)}")

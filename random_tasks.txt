@@ -1,0 +1,100 @@
+Attempt to escalate IAM policies for me.
+Attempt to forecast Bluetooth connections for me.
+Attempt to purge test results for me.
+Attempt to restore release notes for me.
+Attempt to rollback cloud resources for me.
+Attempt to summarize temp files for me.
+Attempt to unmount browser cache for me.
+Automatically compress release notes every hour.
+Automatically highlight network traffic every hour.
+Automatically index network traffic every hour.
+Automatically map routing tables every hour.
+Automatically simulate database schema every hour.
+Automatically throttle disk partitions every hour.
+Can you annotate the IAM policies?
+Can you compress the Bluetooth connections?
+Can you index the process tree?
+Can you inject the access logs?
+Could you help me compare the audit trails?
+Could you help me group the kernel modules?
+Could you help me lock the API endpoints?
+Could you help me mirror the WiFi networks?
+Could you help me replay the resource quotas?
+Could you help me restore the system logs?
+Could you help me thaw the IAM policies?
+Could you help me unlock the usage stats?
+Give me a summary after you alert the GPU usage.
+Give me a summary after you alert the virtual machines.
+Give me a summary after you scrub the memory pages.
+Go ahead and convert the background jobs.
+Go ahead and highlight the DNS records.
+Go ahead and monitor the video files.
+Go ahead and tag the scheduled tasks.
+Go ahead and translate the test results.
+Go ahead and validate the virtual machines.
+How do I backup Bluetooth connections?
+How do I capture audio streams?
+How do I chart SSL certificates?
+How do I redact session tokens?
+How do I thaw routing tables?
+I want to advance my IAM policies.
+I want to archive my background jobs.
+I want to convert my kernel modules.
+I want to simulate my access logs.
+I want to sort my release notes.
+Is it possible to audit the resource quotas?
+Is it possible to freeze the process tree?
+Is it possible to highlight the SSL certificates?
+Is it possible to map the container images?
+Is it possible to mask the video files?
+Is it possible to sort the API endpoints?
+Is it possible to unmount the browser cache?
+Is there a way to chart memory pages?
+Is there a way to filter build artifacts?
+Is there a way to freeze browser cache?
+Is there a way to group CPU affinity?
+Is there a way to prioritize process tree?
+Is there a way to split GPU usage?
+Is there a way to split resource quotas?
+Let's monitor the foreground tasks together.
+Let's ping the clipboard history together.
+Let's plot the cron jobs together.
+Let's rollback the temp files together.
+Let's visualize the browser cache together.
+Manually forecast the user sessions now.
+Manually split the temp files now.
+Please audit all environment variables.
+Please benchmark all debug traces.
+Please benchmark all network traffic.
+Please capture all firewall rules.
+Please obfuscate all file metadata.
+Quickly aggregate memory pages.
+Quickly emulate release notes.
+Quickly purge compliance reports.
+Quickly render WiFi networks.
+Quickly render container images.
+Quickly restore environment variables.
+Quickly track debug traces.
+Safely label the release notes.
+Safely throttle the background jobs.
+Safely visualize the video files.
+Show me how to sync compliance reports.
+Show me how to visualize disk partitions.
+Try to downgrade scheduled tasks now.
+Try to forecast session tokens now.
+Try to graph API endpoints now.
+Try to prioritize scheduled tasks now.
+Try to scrub WiFi networks now.
+Try to stream orphaned files now.
+What happens if I decompress the scheduled tasks?
+What happens if I desync the disk partitions?
+What happens if I tag the DNS records?
+What's the best way to clone performance counters?
+What's the best way to escalate disk partitions?
+What's the best way to graph image files?
+What's the best way to index compliance reports?
+What's the best way to scan GPU usage?
+What's the best way to scan image files?
+Would you alert build artifacts in this environment?
+Would you purge usage stats in this environment?
+Would you replicate firewall rules in this environment?

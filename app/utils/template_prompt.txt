@@ -16,4 +16,35 @@ User Input:
 {user_input}
 
 Expected JSON reply format:
-```
+{
+  "plan": [
+    {
+      "step": "open_browser",
+      "description": "Open Google Chrome browser",
+      "operation": "open_application",
+      "parameters": {"application": "chrome"},
+      "confidence": 0.98,
+      "conditions": null
+    },
+    {
+      "step": "navigate_to_url",
+      "description": "Navigate to the specified website",
+      "operation": "browser_navigate",
+      "parameters": {"url": "https://www.example.com"},
+      "confidence": 0.95,
+      "conditions": null
+    }
+  ],
+  "alternatives": [],
+  "language": "en"
+}
+
+Guidelines:
+- Reply ONLY with a valid JSON object matching the above format.
+- Do NOT include markdown, code fences, or any text outside the JSON.
+- Use the 'plan' key (preferred) or 'steps' key (if required by the model) for multi-step tasks.
+- Each step must have: step, description, operation, parameters, confidence, and conditions (null if not used).
+- If the request is ambiguous, provide alternatives in the 'alternatives' field.
+- Always detect and include the language of the input.
+- For shell actions, ALWAYS include a 'command' field in parameters.
+- WARNING: Any response not matching this JSON format will be rejected.

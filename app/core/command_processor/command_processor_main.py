@@ -374,12 +374,28 @@ class CommandProcessor:
         result = f"{thinking}\n\n"
 
         # --- AGENTIC PLAN HANDLING ---
-        if success and isinstance(command, dict) and 'plan' in command:
-            # No longer restrict operation names; pass all steps to the execution controller
-
-            # Route to execution controller
-            exec_result = self.execution_controller.execute_plan(command)
-            # Format the results for output
+        import json as _json
+        import re as _re
+        code_fence_pattern = r'^```(?:json|bash|shell|zsh|sh|console|terminal)?\s*([\s\S]*?)\s*```$'
+        plan_command = None
+        if success and isinstance(command, dict) and ('plan' in command or 'steps' in command):
+            plan_command = command
+        elif success and isinstance(command, str):
+            # Strip code fences and language tags
+            match = _re.match(code_fence_pattern, command.strip())
+            if match:
+                command_stripped = match.group(1).strip()
+            else:
+                command_stripped = command.strip()
+            if command_stripped.startswith('{'):
+                try:
+                    parsed = _json.loads(command_stripped)
+                    if isinstance(parsed, dict) and ('plan' in parsed or 'steps' in parsed):
+                        plan_command = parsed
+                except Exception:
+                    pass
+        if plan_command:
+            exec_result = self.execution_controller.execute_plan(plan_command)
             summary = []
             for step_result in exec_result.get('results', []):
                 status = step_result.get('status', 'unknown')
@@ -389,6 +405,49 @@ class CommandProcessor:
             result += "\n".join(summary)
             return result
         # --- END AGENTIC PLAN HANDLING ---
+
+        # --- FALLBACK: Try to parse agentic plan from command or ai_response if extractor failed ---
+        if not success:
+            # Try command string
+            plan_command = None
+            if isinstance(command, str):
+                match = _re.match(code_fence_pattern, command.strip())
+                if match:
+                    command_stripped = match.group(1).strip()
+                else:
+                    command_stripped = command.strip()
+                if command_stripped.startswith('{'):
+                    try:
+                        parsed = _json.loads(command_stripped)
+                        if isinstance(parsed, dict) and ('plan' in parsed or 'steps' in parsed):
+                            plan_command = parsed
+                    except Exception:
+                        pass
+            # Try ai_response string if not found
+            if not plan_command and isinstance(ai_response, str):
+                match = _re.match(code_fence_pattern, ai_response.strip())
+                if match:
+                    ai_stripped = match.group(1).strip()
+                else:
+                    ai_stripped = ai_response.strip()
+                if ai_stripped.startswith('{'):
+                    try:
+                        parsed = _json.loads(ai_stripped)
+                        if isinstance(parsed, dict) and ('plan' in parsed or 'steps' in parsed):
+                            plan_command = parsed
+                    except Exception:
+                        pass
+            if plan_command:
+                exec_result = self.execution_controller.execute_plan(plan_command)
+                summary = []
+                for step_result in exec_result.get('results', []):
+                    status = step_result.get('status', 'unknown')
+                    desc = step_result.get('operation', step_result.get('description', ''))
+                    output = step_result.get('output', '')
+                    summary.append(f"Step {step_result.get('step')}: {desc} - {status}\nOutput: {output}")
+                result += "\n".join(summary)
+                return result
+        # --- END FALLBACK ---
 
         if success and command:
             # Format the command with duplicate prevention
@@ -1556,3 +1615,34 @@ class CommandProcessor:
                     output.error(f"An error occurred: {str(e)}")
                 else:
                     print(f"Error: {str(e)}")
+
+    def _process_ai_response(self, ai_response: dict) -> None:
+        """Process the AI response, supporting multi-step plans (plan/steps arrays) and single operations."""
+        # Try to find a plan or steps array
+        plan = ai_response.get('plan') or ai_response.get('steps')
+        if plan and isinstance(plan, list):
+            results = []
+            for step in plan:
+                # Support both 'operation' and 'command' fields
+                operation = step.get('operation')
+                parameters = step.get('parameters', {})
+                # If 'command' is present at the step level, add it to parameters
+                if 'command' in step and 'command' not in parameters:
+                    parameters['command'] = step['command']
+                # Build operation dict for execution controller
+                op_dict = {'type': operation, 'parameters': parameters}
+                result = self.execution_controller._execute_operation(op_dict)
+                results.append({'step': step.get('step', step.get('description', '')), 'result': result})
+            # Display results for all steps
+            for r in results:
+                print(f"Step {r['step']}: {r['result']}")
+            return
+        # Fallback: single operation
+        operation = ai_response.get('operation')
+        parameters = ai_response.get('parameters', {})
+        if operation:
+            op_dict = {'type': operation, 'parameters': parameters}
+            result = self.execution_controller._execute_operation(op_dict)
+            print(result)
+            return
+        print('❌ No valid command structure found in JSON')
