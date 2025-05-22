@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
 - Follow the architecture defined in architecture.md and class_architecture.md

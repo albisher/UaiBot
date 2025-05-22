@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
 - Use Ollama as the default AI provider (gemma:7b model)
