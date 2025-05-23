@@ -8,7 +8,7 @@ import os
 import sys
 import argparse
 import subprocess
-from uaibot.datetime import datetime
+from datetime import datetime
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

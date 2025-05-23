@@ -10,7 +10,7 @@ import os
 import sys
 import platform
 import shutil
-from uaibot.pathlib import Path
+from pathlib import Path
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

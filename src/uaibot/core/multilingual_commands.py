@@ -1,5 +1,5 @@
 import langdetect
-from .typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional
 
 class MultilingualCommands:
     def __init__(self):

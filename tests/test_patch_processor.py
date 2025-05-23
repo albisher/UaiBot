@@ -4,7 +4,7 @@ Tests for processing patch files and generating readable reports.
 import os
 import json
 import pytest
-from uaibot.datetime import datetime
+from datetime import datetime
 from uaibot.typing import Dict, List, Any
 from uaibot.core.ai_handler import AIHandler
 from uaibot.core.model_config_manager import ModelConfigManager

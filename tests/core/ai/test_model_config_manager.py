@@ -4,7 +4,7 @@ Tests for the Model Configuration Manager module.
 import pytest
 import json
 import os
-from uaibot.datetime import datetime
+from datetime import datetime
 from uaibot.core.model_config_manager import ModelConfigManager, ModelConfig
 
 @pytest.fixture

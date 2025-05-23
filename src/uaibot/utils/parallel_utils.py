@@ -10,7 +10,7 @@ for CPU-intensive operations.
 import concurrent.futures
 import threading
 import logging
-from .typing import Callable, List, Any, Dict, Optional, Union, Tuple
+from typing import Callable, List, Any, Dict, Optional, Union, Tuple
 import time
 
 logger = logging.getLogger(__name__)

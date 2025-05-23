@@ -4,7 +4,7 @@ Handles detection and interaction with screen sessions.
 """
 import subprocess
 import logging
-from .typing import List
+from typing import List
 
 # Set up logging
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import platform as sys_platform
-from uaibot.datetime import datetime
+from datetime import datetime
 
 # Get the project root
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))

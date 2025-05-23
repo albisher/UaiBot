@@ -5,7 +5,7 @@ Windows-specific input handler implementation for mouse and keyboard control.
 import os
 import sys
 import time
-from .typing import Tuple, Optional, Union, Any, List, Callable
+from typing import Tuple, Optional, Union, Any, List, Callable
 
 from ...common.input_control.base_handler import BaseInputHandler
 

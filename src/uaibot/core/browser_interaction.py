@@ -1,7 +1,7 @@
 import logging
-from .typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List
 import webbrowser
-from .selenium import webdriver
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait

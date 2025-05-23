@@ -2,7 +2,7 @@
 import sys
 import re
 import os
-from uaibot.datetime import datetime
+from datetime import datetime
 from uaibot.typing import List, Dict, Any
 
 """

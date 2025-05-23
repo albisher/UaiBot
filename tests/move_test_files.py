@@ -5,7 +5,7 @@ Script to organize test files into their proper directories.
 
 import os
 import shutil
-from uaibot.pathlib import Path
+from pathlib import Path
 
 def organize_test_files():
     """Organize test files into their proper directories."""

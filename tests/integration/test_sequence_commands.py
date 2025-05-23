@@ -1,7 +1,7 @@
 import pytest
 import os
 import sys
-from uaibot.pathlib import Path
+from pathlib import Path
 import logging
 from uaibot.typing import Generator
 

@@ -8,7 +8,7 @@ import sys
 import unittest
 import tempfile
 import shutil
-from uaibot.pathlib import Path
+from pathlib import Path
 
 # Add project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))

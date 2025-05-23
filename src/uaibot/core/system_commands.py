@@ -1,7 +1,7 @@
 import psutil
 import platform
-from .datetime import datetime
-from .typing import Dict, Any, List
+from datetime import datetime
+from typing import Dict, Any, List
 
 class SystemCommands:
     def __init__(self):

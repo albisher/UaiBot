@@ -16,6 +16,7 @@ from uaibot.core.memory_handler import MemoryHandler
 from uaibot.core.browser_handler import BrowserAutomationHandler
 import pyautogui
 import time
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -472,4 +473,138 @@ class CommandProcessor:
         
     def get_command_results(self) -> Dict[str, Any]:
         """Get command results."""
-        return self.command_results 
+        return self.command_results
+
+    def _handle_with_ai(self, user_input, thinking=""):
+        """Process user input with AI to generate an executable command."""
+        # If thinking wasn't provided, generate it
+        if not thinking:
+            thinking = self._format_thinking(
+                f"🤖 Processing your request: '{user_input}'\n\n"
+                f"I'm thinking about how to best handle this...\n"
+                f"Using AI to interpret your request and generate an appropriate response..."
+            )
+        
+        # Use the unified AI prompt template
+        prompt_for_ai = build_ai_prompt(user_input)
+        
+        # Get response from AI with timeout handling in fast mode
+        try:
+            # In fast mode, we'll use a shorter internal timeout
+            ai_response = self.ai_handler.process_command(prompt_for_ai)
+            logger = logging.getLogger(__name__)
+            logger.info(f"Raw AI response: {ai_response}")
+            
+            # Handle Google model response
+            if isinstance(ai_response, dict):
+                if "error" in ai_response:
+                    error_msg = ai_response.get("error_message", "Unknown error from AI handler.")
+                    logger.error(f"AI handler error: {error_msg}")
+                    return f"{thinking}\n\n❌ AI Error: {error_msg}"
+                
+                # Extract command from response
+                command = ai_response.get('command', '')
+                if command:
+                    # Try to parse JSON if it's in a code block
+                    if command.startswith('```json') or command.startswith('```'):
+                        try:
+                            # Remove markdown if present
+                            json_str = command.strip('`').lstrip('json').strip()
+                            data = json.loads(json_str)
+                            
+                            # Handle plan-based structure
+                            if 'plan' in data and isinstance(data['plan'], list):
+                                results = []
+                                for step in data['plan']:
+                                    operation = step.get('operation')
+                                    parameters = step.get('parameters', {})
+                                    
+                                    # Execute the operation
+                                    if operation == 'respond_to_user':
+                                        return f"{thinking}\n\n{parameters.get('message', '')}"
+                                    elif operation in ('shell', 'system_command', 'execute_command', 'shell_command'):
+                                        shell_command = parameters.get('command', '')
+                                        if shell_command:
+                                            execution_result = self.shell_handler.execute_command(shell_command)
+                                            results.append(execution_result)
+                                    
+                                # Return combined results
+                                if results:
+                                    return f"{thinking}\n\n" + "\n".join(results)
+                                else:
+                                    return f"{thinking}\n\n{self.color_settings['important']}💬 No executable commands found in the response.{self.color_settings['reset']}"
+                            
+                            # Handle single command structure
+                            elif 'command' in data:
+                                shell_command = data['command']
+                                execution_result = self.shell_handler.execute_command(shell_command)
+                                return f"{thinking}\n\n{execution_result}"
+                            
+                        except json.JSONDecodeError:
+                            # If JSON parsing fails, try to extract shell command
+                            shell_command = self._extract_shell_command(command)
+                            if shell_command:
+                                execution_result = self.shell_handler.execute_command(shell_command)
+                                return f"{thinking}\n\n{execution_result}"
+                    else:
+                        # Use robust extraction for non-JSON responses
+                        shell_command = self._extract_shell_command(command)
+                        if shell_command:
+                            execution_result = self.shell_handler.execute_command(shell_command)
+                            return f"{thinking}\n\n{execution_result}"
+                
+                return f"{thinking}\n\n{self.color_settings['important']}💬 No valid command found in the response.{self.color_settings['reset']}"
+            
+            # For non-dict responses, try to extract command
+            shell_command = self._extract_shell_command(ai_response)
+            if shell_command:
+                execution_result = self.shell_handler.execute_command(shell_command)
+                return f"{thinking}\n\n{execution_result}"
+            
+            return f"{thinking}\n\n{self.color_settings['important']}💬 No valid command found in the response.{self.color_settings['reset']}"
+            
+        except Exception as e:
+            if self.fast_mode:
+                # In fast mode, provide a simple error and let the program continue to exit
+                return f"{thinking}\n\nError: Failed to get AI response: {str(e)}"
+            else:
+                # In normal mode, re-raise the exception
+                raise 
+
+    def _extract_shell_command(self, text: str) -> Optional[str]:
+        """
+        Extract a shell command from text using various methods.
+        
+        Args:
+            text: The text to extract command from
+            
+        Returns:
+            Extracted command string or None if no command found
+        """
+        # First check for code blocks - the preferred format
+        code_block_pattern = r'```(?:bash|shell|zsh|sh|console|terminal)?\s*(.*?)\s*```'
+        code_blocks = re.findall(code_block_pattern, text, re.DOTALL)
+        
+        if code_blocks:
+            # Use the first code block
+            return code_blocks[0].strip()
+            
+        # Next check for backtick-wrapped commands
+        backtick_pattern = r'`(.*?)`'
+        backticks = re.findall(backtick_pattern, text)
+        
+        if backticks:
+            # Use the first backtick block
+            return backticks[0].strip()
+            
+        # Try to find lines that look like commands
+        lines = text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith(('#', '//', 'Note:', 'Here', 'Try')):
+                # Check if line looks like a command
+                if any(c in line for c in ['$', '>', 'sudo', 'git', 'npm', 'python', 'pip']):
+                    return line
+                    
+        # If we couldn't find a clear command, return None
+        return None 

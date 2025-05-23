@@ -9,7 +9,7 @@ import sys
 import subprocess
 import json
 import platform
-from uaibot.datetime import datetime
+from datetime import datetime
 import argparse
 
 # Add project root to path

@@ -3,7 +3,7 @@ import psutil
 import platform
 import os
 import re
-from uaibot.datetime import datetime
+from datetime import datetime
 
 class TestSystemCommands(unittest.TestCase):
     def setUp(self):

@@ -11,8 +11,8 @@ import pytest
 import time
 import webbrowser
 import pyautogui
-from uaibot.pathlib import Path
-from uaibot.command_processor.CommandProcessor import CommandProcessor
+from pathlib import Path
+from uaibot.core.command_processor.command_processor import CommandProcessor
 from uaibot.core.browser_handler import BrowserAutomationHandler
 
 # Set up PyAutoGUI safety features

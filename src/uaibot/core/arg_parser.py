@@ -7,7 +7,7 @@ throughout the UaiBot application, eliminating duplication.
 
 import argparse
 import sys
-from .typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 
 class ArgumentParser:
     """

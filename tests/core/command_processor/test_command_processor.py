@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from uaibot.command_processor.CommandProcessor import CommandProcessor
+from uaibot.core.command_processor.command_processor import CommandProcessor
 from uaibot.command_processor.ShellHandler import ShellHandler
 
 @pytest.fixture

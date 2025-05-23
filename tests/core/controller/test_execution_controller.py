@@ -4,7 +4,7 @@ Test suite for the execution controller.
 
 import pytest
 from unittest.mock import Mock, patch
-from uaibot.pathlib import Path
+from pathlib import Path
 import json
 import os
 

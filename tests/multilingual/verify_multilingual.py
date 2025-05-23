@@ -7,7 +7,7 @@ Performs focused tests on specific language features in Arabic and English.
 import os
 import sys
 import json
-from uaibot.datetime import datetime
+from datetime import datetime
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

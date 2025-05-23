@@ -15,14 +15,14 @@ import os
 import json
 import time
 import shutil
-from uaibot.pathlib import Path
+from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
 # Add the project root to the path
 sys.path.insert(0, os.path.abspath('.'))
 
-from uaibot.command_processor.CommandProcessor import CommandProcessor
+from uaibot.core.command_processor.command_processor import CommandProcessor
 from uaibot.core.shell_handler import ShellHandler
 
 

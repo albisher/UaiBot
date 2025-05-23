@@ -5,7 +5,7 @@
 import os
 import sys
 import platform
-from uaibot.command_processor.CommandProcessor import CommandProcessor
+from uaibot.core.command_processor.command_processor_main import CommandProcessor
 
 class MockAIHandler:
     """Simple mock AI handler for testing."""
