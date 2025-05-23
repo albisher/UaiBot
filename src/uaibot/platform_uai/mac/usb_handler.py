@@ -7,62 +7,235 @@ import subprocess
 import json
 import time
 from uaibot.platform_uai.common.usb_handler import BaseUSBHandler, SimulatedUSBHandler
+import usb.core
+import usb.util
+from typing import List, Dict, Optional, Any
+import logging
+from ..common.usb_handler import USBHandler
 
-# Try to import USB libraries, fall back to simulation if not available
-try:
-    import usb.core
-    import usb.util
-    USB_LIBRARIES_AVAILABLE = True
-except ImportError:
-    USB_LIBRARIES_AVAILABLE = False
-    print("USB libraries not available, falling back to simulated USB")
+logger = logging.getLogger(__name__)
 
-class USBHandler(BaseUSBHandler):
-    def __init__(self):
-        self.devices = []
-        # Store list of connected devices for easier reference
-        self.refresh_devices()
+class MacUSBHandler(USBHandler):
+    """macOS-specific USB handler implementation."""
     
+    def __init__(self):
+        """Initialize the macOS USB handler."""
+        self.devices = {}
+        super().__init__()
+    
+    def _platform_specific_init(self) -> None:
+        """Initialize USB functionality for macOS."""
+        try:
+            # Find all USB devices
+            self.devices = {str(dev.idVendor) + ':' + str(dev.idProduct): dev 
+                          for dev in usb.core.find(find_all=True)}
+        except Exception as e:
+            logger.error(f"Failed to initialize USB: {e}")
+            raise
+    
+    def list_devices(self) -> List[Dict[str, Any]]:
+        """List connected USB devices on macOS.
+        
+        Returns:
+            List of dictionaries containing device information.
+        """
+        if not self.is_initialized:
+            return []
+        
+        devices = []
+        try:
+            for device_id, device in self.devices.items():
+                try:
+                    device_info = {
+                        'id': device_id,
+                        'vendor_id': device.idVendor,
+                        'product_id': device.idProduct,
+                        'manufacturer': usb.util.get_string(device, device.iManufacturer),
+                        'product': usb.util.get_string(device, device.iProduct),
+                        'serial_number': usb.util.get_string(device, device.iSerialNumber),
+                        'bus': device.bus,
+                        'address': device.address
+                    }
+                    devices.append(device_info)
+                except Exception as e:
+                    logger.error(f"Error getting info for device {device_id}: {e}")
+        except Exception as e:
+            logger.error(f"Error listing USB devices: {e}")
+        
+        return devices
+    
+    def get_device_info(self, device_id: str) -> Optional[Dict[str, Any]]:
+        """Get information about a specific USB device on macOS.
+        
+        Args:
+            device_id: ID of the device to get information for.
+            
+        Returns:
+            Dictionary containing device information or None if not found.
+        """
+        if not self.is_initialized:
+            return None
+        
+        try:
+            device = self.devices.get(device_id)
+            if device:
+                return {
+                    'id': device_id,
+                    'vendor_id': device.idVendor,
+                    'product_id': device.idProduct,
+                    'manufacturer': usb.util.get_string(device, device.iManufacturer),
+                    'product': usb.util.get_string(device, device.iProduct),
+                    'serial_number': usb.util.get_string(device, device.iSerialNumber),
+                    'bus': device.bus,
+                    'address': device.address
+                }
+        except Exception as e:
+            logger.error(f"Error getting device info for {device_id}: {e}")
+        
+        return None
+    
+    def connect_device(self, device_id: str) -> bool:
+        """Connect to a USB device on macOS.
+        
+        Args:
+            device_id: ID of the device to connect to.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        if not self.is_initialized:
+            return False
+        
+        try:
+            device = self.devices.get(device_id)
+            if device:
+                # Set the active configuration
+                device.set_configuration()
+                return True
+        except Exception as e:
+            logger.error(f"Error connecting to device {device_id}: {e}")
+        
+        return False
+    
+    def disconnect_device(self, device_id: str) -> bool:
+        """Disconnect from a USB device on macOS.
+        
+        Args:
+            device_id: ID of the device to disconnect from.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        if not self.is_initialized:
+            return False
+        
+        try:
+            device = self.devices.get(device_id)
+            if device:
+                # Release the device
+                usb.util.dispose_resources(device)
+                return True
+        except Exception as e:
+            logger.error(f"Error disconnecting from device {device_id}: {e}")
+        
+        return False
+    
+    def send_data(self, device_id: str, data: bytes) -> bool:
+        """Send data to a USB device on macOS.
+        
+        Args:
+            device_id: ID of the device to send data to.
+            data: Data to send.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        if not self.is_initialized:
+            return False
+        
+        try:
+            device = self.devices.get(device_id)
+            if device:
+                # Get the first OUT endpoint
+                endpoint = device[0][(0, 0)][0]
+                
+                # Send the data
+                device.write(endpoint.bEndpointAddress, data)
+                return True
+        except Exception as e:
+            logger.error(f"Error sending data to device {device_id}: {e}")
+        
+        return False
+    
+    def receive_data(self, device_id: str, size: int) -> Optional[bytes]:
+        """Receive data from a USB device on macOS.
+        
+        Args:
+            device_id: ID of the device to receive data from.
+            size: Number of bytes to receive.
+            
+        Returns:
+            Received data or None if failed.
+        """
+        if not self.is_initialized:
+            return None
+        
+        try:
+            device = self.devices.get(device_id)
+            if device:
+                # Get the first IN endpoint
+                endpoint = device[0][(0, 0)][1]
+                
+                # Receive the data
+                data = device.read(endpoint.bEndpointAddress, size)
+                return bytes(data)
+        except Exception as e:
+            logger.error(f"Error receiving data from device {device_id}: {e}")
+        
+        return None
+    
+    def _platform_specific_cleanup(self) -> None:
+        """Clean up USB resources."""
+        try:
+            # Release all devices
+            for device in self.devices.values():
+                try:
+                    usb.util.dispose_resources(device)
+                except Exception as e:
+                    logger.error(f"Error disposing device resources: {e}")
+            
+            self.devices.clear()
+        except Exception as e:
+            logger.error(f"Error during USB cleanup: {e}")
+
     def refresh_devices(self):
         """Refresh the list of connected USB devices"""
         try:
             # Use PyUSB to get the list of USB devices
-            self.devices = list(usb.core.find(find_all=True))
+            self.devices = {str(dev.idVendor) + ':' + str(dev.idProduct): dev 
+                          for dev in usb.core.find(find_all=True)}
         except usb.core.NoBackendError:
             print("WARNING: USB backend not available. Install libusb with 'brew install libusb'")
             print("USB device detection will be limited.")
-            self.devices = []
+            self.devices = {}
         except Exception as e:
             print(f"Error refreshing USB devices: {e}")
-            self.devices = []
-        return self.get_device_list()
+            self.devices = {}
+        return self.list_devices()
     
     def get_device_list(self):
         """Return a list of connected USB devices with details"""
         device_list = []
         
-        for device in self.devices:
+        for device_id, device in self.devices.items():
             try:
-                vendor_id = device.idVendor
-                product_id = device.idProduct
-                
-                # Try to get manufacturer and product strings
-                try:
-                    manufacturer = usb.util.get_string(device, device.iManufacturer)
-                except:
-                    manufacturer = "Unknown"
-                    
-                try:
-                    product = usb.util.get_string(device, device.iProduct)
-                except:
-                    product = "Unknown"
-                
-                # Create device info dictionary
                 device_info = {
-                    "vendor_id": hex(vendor_id),
-                    "product_id": hex(product_id),
-                    "manufacturer": manufacturer,
-                    "product": product,
+                    "id": device_id,
+                    "vendor_id": device.idVendor,
+                    "product_id": device.idProduct,
+                    "manufacturer": usb.util.get_string(device, device.iManufacturer),
+                    "product": usb.util.get_string(device, device.iProduct),
+                    "serial_number": usb.util.get_string(device, device.iSerialNumber),
                     "bus": device.bus,
                     "address": device.address
                 }
@@ -94,10 +267,10 @@ class USBHandler(BaseUSBHandler):
         self.refresh_devices()
         
         # Search for the device
-        for device in self.devices:
+        for device_id, device in self.devices.items():
             if ((vendor_id is None or device.idVendor == vendor_id) and
                 (product_id is None or device.idProduct == product_id)):
-                return device
+                return device_id, device
         
         return None
     

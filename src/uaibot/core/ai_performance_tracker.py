@@ -6,7 +6,7 @@ including response times, success rates, and token usage.
 """
 import time
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, DefaultDict
 from datetime import datetime
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -22,15 +22,22 @@ class ModelMetrics:
     total_tokens: int = 0
     total_response_time: float = 0.0
     last_used: Optional[datetime] = None
-    error_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    error_counts: DefaultDict[str, int] = field(default_factory=lambda: defaultdict(int))
+
+@dataclass
+class PerformanceMetrics:
+    """Data class for storing overall performance metrics."""
+    timestamp: datetime = field(default_factory=datetime.now)
+    uptime: float = 0.0
+    models: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
 class AIPerformanceTracker:
     """Tracks and manages AI model performance metrics."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the performance tracker."""
         self.metrics: Dict[str, ModelMetrics] = defaultdict(ModelMetrics)
-        self.start_time = time.time()
+        self.start_time: float = time.time()
     
     def track_request(
         self,
@@ -123,11 +130,10 @@ class AIPerformanceTracker:
             filepath: Path to save the metrics
         """
         import json
-        metrics_data = {
-            "timestamp": datetime.now().isoformat(),
-            "uptime": time.time() - self.start_time,
-            "models": self.get_all_metrics()
-        }
+        metrics_data = PerformanceMetrics(
+            uptime=time.time() - self.start_time,
+            models=self.get_all_metrics()
+        )
         
         with open(filepath, 'w') as f:
-            json.dump(metrics_data, f, indent=2) 
+            json.dump(metrics_data.__dict__, f, indent=2) 

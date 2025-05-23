@@ -5,8 +5,20 @@ Base input handler for cross-platform mouse and keyboard control.
 This module provides the abstract base class for platform-specific input handlers.
 Platform-specific implementations should inherit from and extend this class.
 """
-from .abc import ABC, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Tuple, Union, Optional, Any, Callable
+from dataclasses import dataclass
+
+@dataclass
+class InputEvent:
+    """Data class representing an input event."""
+    event_type: str
+    x: Optional[int] = None
+    y: Optional[int] = None
+    button: Optional[str] = None
+    key: Optional[str] = None
+    modifiers: Optional[list[str]] = None
+    timestamp: Optional[float] = None
 
 class BaseInputHandler(ABC):
     """
@@ -147,4 +159,29 @@ class BaseInputHandler(ABC):
         Returns:
             bool: True if in simulation mode, False otherwise
         """
+        pass
+
+    @abstractmethod
+    def move_mouse(self, x: int, y: int) -> None:
+        """Move the mouse cursor to the specified coordinates."""
+        pass
+    
+    @abstractmethod
+    def click_mouse(self, button: str = "left") -> None:
+        """Click the specified mouse button."""
+        pass
+    
+    @abstractmethod
+    def release_key(self, key: str) -> None:
+        """Release a keyboard key."""
+        pass
+    
+    @abstractmethod
+    def is_key_pressed(self, key: str) -> bool:
+        """Check if a key is currently pressed."""
+        pass
+    
+    @abstractmethod
+    def simulate_input(self, event: InputEvent) -> None:
+        """Simulate an input event."""
         pass

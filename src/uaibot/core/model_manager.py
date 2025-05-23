@@ -17,8 +17,9 @@ Example:
     >>> model_manager.set_ollama_model("gemma-pro")
 """
 import logging
-from typing import Optional, Dict, Any, Union, List, TypeVar, Generic
+from typing import Optional, Dict, Any, Union, List, TypeVar, Generic, Protocol
 from dataclasses import dataclass, field
+from datetime import datetime
 from .config_manager import ConfigManager
 
 try:
@@ -41,6 +42,7 @@ class ModelConfig:
     top_p: float = 0.95
     top_k: int = 40
     max_output_tokens: int = 1024
+    last_updated: datetime = field(default_factory=datetime.now)
 
 @dataclass
 class ModelInfo:
@@ -48,6 +50,28 @@ class ModelInfo:
     name: str
     base_url: str
     config: ModelConfig = field(default_factory=ModelConfig)
+    last_used: Optional[datetime] = None
+
+@dataclass
+class ModelResponse:
+    """Data class for storing model responses."""
+    text: str
+    tokens: int
+    prompt_tokens: int
+    completion_tokens: int
+    timestamp: datetime = field(default_factory=datetime.now)
+
+class ModelManagerProtocol(Protocol):
+    """
+    Protocol defining the required interface for model managers.
+    
+    This protocol specifies the minimum interface that model managers must implement
+    to work with the system. It ensures type safety and consistent behavior
+    across different model implementations.
+    """
+    model_info: ModelInfo
+    config: ConfigManager
+    quiet_mode: bool
 
 class ModelManager:
     """

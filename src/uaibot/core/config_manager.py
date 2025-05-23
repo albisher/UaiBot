@@ -21,12 +21,15 @@ import os
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, Union, List, TypeVar, cast
 from dataclasses import dataclass, field
+from datetime import datetime
 import re
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+T = TypeVar('T')
 
 @dataclass
 class LoggingConfig:
@@ -35,6 +38,7 @@ class LoggingConfig:
     log_file: str = "log/uaibot.log"
     log_errors: bool = True
     log_commands: bool = True
+    last_updated: datetime = field(default_factory=datetime.now)
 
 @dataclass
 class FileOperationConfig:
@@ -43,12 +47,14 @@ class FileOperationConfig:
     max_content_length: int = 1000
     default_directory: str = "data"
     test_directory: str = "tests"
+    last_updated: datetime = field(default_factory=datetime.now)
 
 @dataclass
 class LanguageConfig:
     """Configuration for language support."""
     english: bool = True
     arabic: bool = True
+    last_updated: datetime = field(default_factory=datetime.now)
 
 @dataclass
 class Config:
@@ -66,6 +72,7 @@ class Config:
     language_support: LanguageConfig = field(default_factory=LanguageConfig)
     file_operation_settings: FileOperationConfig = field(default_factory=FileOperationConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    last_updated: datetime = field(default_factory=datetime.now)
 
 class ConfigManager:
     """
@@ -86,7 +93,7 @@ class ConfigManager:
         config (Config): Current configuration settings
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the configuration manager."""
         self.config_dir = Path('config')
         self.settings_file = self.config_dir / 'settings.json'
@@ -96,7 +103,7 @@ class ConfigManager:
     
     def _load_config(self) -> Config:
         """Load configuration from files."""
-        config_dict = {}
+        config_dict: Dict[str, Any] = {}
         
         # Load settings.json
         if self.settings_file.exists():
@@ -112,7 +119,7 @@ class ConfigManager:
         return self._dict_to_config(config_dict)
     
     def _dict_to_config(self, config_dict: Dict[str, Any]) -> Config:
-        """Convert dictionary to Config object."""
+        """Convert dictionary to Config object, filtering out unknown keys."""
         # Handle nested configs
         if 'language_support' in config_dict:
             config_dict['language_support'] = LanguageConfig(**config_dict['language_support'])
@@ -120,8 +127,10 @@ class ConfigManager:
             config_dict['file_operation_settings'] = FileOperationConfig(**config_dict['file_operation_settings'])
         if 'logging' in config_dict:
             config_dict['logging'] = LoggingConfig(**config_dict['logging'])
-        
-        return Config(**config_dict)
+        # Only keep keys that are fields in Config
+        config_fields = set(f.name for f in Config.__dataclass_fields__.values())
+        filtered = {k: v for k, v in config_dict.items() if k in config_fields}
+        return Config(**filtered)
     
     def _interpolate_value(self, value: Any) -> Any:
         """Interpolate environment variables in a value, recursively for nested dicts/lists."""
@@ -134,7 +143,7 @@ class ConfigManager:
                     return os.environ.get(var_name, default)
                 return os.environ.get(var_name, value)
             # Also interpolate any ${VAR} or ${VAR:-default} inside the string
-            def replacer(match):
+            def replacer(match: re.Match) -> str:
                 var = match.group(1)
                 if ':-' in var:
                     var_name, default = var.split(':-', 1)
@@ -147,14 +156,17 @@ class ConfigManager:
             return [self._interpolate_value(item) for item in value]
         return value
     
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: Optional[T] = None) -> Union[T, Any]:
         """Get a configuration value."""
         value = getattr(self.config, key, default)
         return self._interpolate_value(value)
     
     def set(self, key: str, value: Any) -> None:
         """Set a configuration value."""
+        if not hasattr(self.config, key):
+            raise ValueError(f"Invalid configuration key: {key}")
         setattr(self.config, key, value)
+        self.config.last_updated = datetime.now()
     
     def save(self) -> None:
         """Save configuration to files."""
@@ -182,20 +194,24 @@ class ConfigManager:
             'output_verbosity': config.output_verbosity,
             'language_support': {
                 'english': config.language_support.english,
-                'arabic': config.language_support.arabic
+                'arabic': config.language_support.arabic,
+                'last_updated': config.language_support.last_updated.isoformat()
             },
             'file_operation_settings': {
                 'max_results': config.file_operation_settings.max_results,
                 'max_content_length': config.file_operation_settings.max_content_length,
                 'default_directory': config.file_operation_settings.default_directory,
-                'test_directory': config.file_operation_settings.test_directory
+                'test_directory': config.file_operation_settings.test_directory,
+                'last_updated': config.file_operation_settings.last_updated.isoformat()
             },
             'logging': {
                 'log_level': config.logging.log_level,
                 'log_file': config.logging.log_file,
                 'log_errors': config.logging.log_errors,
-                'log_commands': config.logging.log_commands
-            }
+                'log_commands': config.logging.log_commands,
+                'last_updated': config.logging.last_updated.isoformat()
+            },
+            'last_updated': config.last_updated.isoformat()
         }
     
     def _validate_config(self) -> None:
@@ -212,6 +228,14 @@ class ConfigManager:
         
         if self.config.default_ai_provider != 'ollama':
             raise ValueError("Invalid AI provider. Only 'ollama' is supported.")
+        
+        # Validate nested configs
+        if not isinstance(self.config.language_support, LanguageConfig):
+            raise ValueError("Invalid language support configuration")
+        if not isinstance(self.config.file_operation_settings, FileOperationConfig):
+            raise ValueError("Invalid file operation settings")
+        if not isinstance(self.config.logging, LoggingConfig):
+            raise ValueError("Invalid logging configuration")
     
     def reload(self) -> None:
         """Reload configuration from files."""

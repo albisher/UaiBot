@@ -12,9 +12,27 @@ from uaibot.utils import get_platform_name, get_project_root, load_config
 import logging
 from uaibot.platform_uai.mac.apple_silicon import apple_silicon_optimizer
 from uaibot.platform_uai.platform_utils import get_audio_handler, get_usb_handler, get_input_handler
+from typing import Dict, Optional, List, Union
+from dataclasses import dataclass
+
+@dataclass
+class PlatformInfo:
+    """Information about the current platform."""
+    system: str
+    release: str
+    version: str
+    machine: str
+    processor: str
+    is_supported: bool
 
 class PlatformManager:
+    """Manages platform-specific functionality and compatibility."""
+    
     def __init__(self):
+        """Initialize the platform manager."""
+        self.supported_platforms = ['Darwin', 'Linux', 'Windows']
+        self.platform_info = self._get_platform_info()
+        self._validate_platform()
         self.platform_name = get_platform_name()
         self.config = load_config()
         self.audio_handler = None
@@ -23,33 +41,114 @@ class PlatformManager:
         self.apple_silicon_optimizer = None
         self.is_apple_silicon = False
         
-        # Check if the platform is supported
-        if not self.platform_name:
-            print(f"ERROR: Unsupported platform: {platform.system()}")
-            self.platform_supported = False
-        else:
-            self.platform_supported = True
+    def _get_platform_info(self) -> PlatformInfo:
+        """Get information about the current platform.
+        
+        Returns:
+            PlatformInfo object containing platform details.
+        """
+        system = platform.system()
+        return PlatformInfo(
+            system=system,
+            release=platform.release(),
+            version=platform.version(),
+            machine=platform.machine(),
+            processor=platform.processor(),
+            is_supported=system in self.supported_platforms
+        )
+    
+    def _validate_platform(self) -> None:
+        """Validate that the current platform is supported.
+        
+        Raises:
+            RuntimeError: If the platform is not supported.
+        """
+        if not self.platform_info.is_supported:
+            raise RuntimeError(
+                f"Unsupported platform: {self.platform_info.system}. "
+                f"Supported platforms are: {', '.join(self.supported_platforms)}"
+            )
+    
+    def get_platform_info(self) -> Dict[str, str]:
+        """Get platform information as a dictionary.
+        
+        Returns:
+            Dictionary containing platform information.
+        """
+        return {
+            'system': self.platform_info.system,
+            'release': self.platform_info.release,
+            'version': self.platform_info.version,
+            'machine': self.platform_info.machine,
+            'processor': self.platform_info.processor,
+            'is_supported': str(self.platform_info.is_supported)
+        }
+    
+    def get_platform_specific_path(self, path: str) -> str:
+        """Convert a path to be platform-specific.
+        
+        Args:
+            path: Path to convert.
             
-            # Check for Apple Silicon if on Mac
-            if self.platform_name == 'mac' and platform.system() == 'Darwin' and platform.machine() == 'arm64':
-                self._init_apple_silicon()
+        Returns:
+            Platform-specific path.
+        """
+        if self.platform_info.system == 'Windows':
+            return path.replace('/', '\\')
+        return path.replace('\\', '/')
+    
+    def get_platform_specific_command(self, command: str) -> str:
+        """Convert a command to be platform-specific.
+        
+        Args:
+            command: Command to convert.
             
-    def _init_apple_silicon(self):
-        """Initialize Apple Silicon specific optimizations if available"""
-        try:
-            # Try to import the Apple Silicon optimizer
-            self.apple_silicon_optimizer = apple_silicon_optimizer
-            self.is_apple_silicon = self.apple_silicon_optimizer.is_apple_silicon
-            
-            if self.is_apple_silicon:
-                print(f"Detected Apple Silicon: {self.apple_silicon_optimizer.chip_details.get('name', 'Unknown')}")
-        except ImportError as e:
-            print(f"Note: Apple Silicon optimizations not available: {e}")
-            self.is_apple_silicon = False
-            
+        Returns:
+            Platform-specific command.
+        """
+        if self.platform_info.system == 'Windows':
+            # Handle Windows-specific command conversions
+            if command.startswith('ls'):
+                return command.replace('ls', 'dir')
+            elif command.startswith('rm'):
+                return command.replace('rm', 'del')
+            elif command.startswith('cp'):
+                return command.replace('cp', 'copy')
+            elif command.startswith('mv'):
+                return command.replace('mv', 'move')
+        return command
+    
+    def is_platform_supported(self) -> bool:
+        """Check if the current platform is supported.
+        
+        Returns:
+            True if the platform is supported, False otherwise.
+        """
+        return self.platform_info.is_supported
+    
+    def get_platform_specific_environment(self) -> Dict[str, str]:
+        """Get platform-specific environment variables.
+        
+        Returns:
+            Dictionary containing platform-specific environment variables.
+        """
+        env = os.environ.copy()
+        
+        if self.platform_info.system == 'Windows':
+            # Add Windows-specific environment variables
+            env['COMSPEC'] = os.environ.get('COMSPEC', 'cmd.exe')
+        elif self.platform_info.system == 'Darwin':
+            # Add macOS-specific environment variables
+            env['SHELL'] = os.environ.get('SHELL', '/bin/zsh')
+        elif self.platform_info.system == 'Linux':
+            # Add Linux-specific environment variables
+            env['SHELL'] = os.environ.get('SHELL', '/bin/bash')
+        
+        return env
+    
     def initialize(self, mode='interactive', fast_mode=False):
         """Initialize all platform-specific components with mode awareness."""
-        if not self.platform_supported:
+        if not self.platform_info.is_supported:
             print("Cannot initialize - platform not supported")
             return False
         logger = logging.getLogger("UaiBot.PlatformManager")
@@ -57,15 +156,15 @@ class PlatformManager:
             # Initialize audio handler
             self.audio_handler = get_audio_handler()
             if not self.audio_handler:
-                logger.warning(f"Audio handler not initialized for {self.platform_name}")
+                logger.warning(f"Audio handler not initialized for {self.platform_info.system}")
             # Initialize USB handler
             self.usb_handler = get_usb_handler()
             if not self.usb_handler:
-                logger.warning(f"USB handler not initialized for {self.platform_name}")
+                logger.warning(f"USB handler not initialized for {self.platform_info.system}")
             # Initialize Input handler
             self.input_handler = get_input_handler()
             if not self.input_handler:
-                logger.warning(f"Input handler not initialized for {self.platform_name}")
+                logger.warning(f"Input handler not initialized for {self.platform_info.system}")
             # In non-interactive or fast mode, do not block or prompt
             if mode != 'interactive' or fast_mode:
                 return True
@@ -85,26 +184,6 @@ class PlatformManager:
     def get_input_handler(self):
         """Get the platform-specific input handler"""
         return self.input_handler
-    
-    def get_platform_info(self):
-        """Get information about the current platform"""
-        info = {
-            'name': self.platform_name,
-            'system': platform.system(),
-            'release': platform.release(),
-            'version': platform.version(),
-            'architecture': platform.machine(),
-            'processor': platform.processor(),
-        }
-        
-        # Add Apple Silicon specific info if available
-        if self.is_apple_silicon and self.apple_silicon_optimizer:
-            apple_silicon_info = self.apple_silicon_optimizer.get_optimization_status()
-            info['apple_silicon'] = True
-            info['chip_name'] = apple_silicon_info.get('chip_details', {}).get('name', 'Unknown Apple Silicon')
-            info['neural_engine_available'] = apple_silicon_info.get('neural_engine_available', False)
-        
-        return info
     
     def get_ml_optimizations(self):
         """Get machine learning optimizations for the current platform"""

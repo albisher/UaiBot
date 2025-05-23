@@ -173,3 +173,8 @@ coverage.xml
 *.bak
 *.swp
 *~
+
+# Ignore results and metrics output
+results/
+metrics/
+logs/ 

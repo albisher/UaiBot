@@ -5,6 +5,10 @@ import platform
 import os
 import sys
 import importlib.util
+from typing import Optional, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 def detect_platform():
     """
@@ -70,74 +74,80 @@ def load_platform_handler(module_name):
             print(f"Failed to load common module {common_module_path}: {e2}")
             return None
 
-def get_audio_handler():
-    """
-    Get the appropriate audio handler for the current platform
+def get_audio_handler() -> Optional[Any]:
+    """Get the appropriate audio handler for the current platform.
     
     Returns:
-        An instance of the platform-specific AudioHandler
+        Audio handler instance or None if not available.
     """
-    audio_module = load_platform_handler('audio_handler')
-    if not audio_module:
-        return None
-        
+    system = platform.system()
     try:
-        # Check if the module has an AudioHandler class
-        if hasattr(audio_module, 'AudioHandler'):
-            return audio_module.AudioHandler()
-        else:
-            print(f"ERROR: AudioHandler class not found in module")
-            return None
-    except Exception as e:
-        print(f"Failed to instantiate AudioHandler: {e}")
-        return None
-
-def get_usb_handler():
-    """
-    Get the appropriate USB handler for the current platform
-    
-    Returns:
-        An instance of the platform-specific USBHandler
-    """
-    usb_module = load_platform_handler('usb_handler')
-    if not usb_module:
-        return None
-        
-    try:
-        # Check if the module has a USBHandler class
-        if hasattr(usb_module, 'USBHandler'):
-            return usb_module.USBHandler()
-        else:
-            print(f"ERROR: USBHandler class not found in module")
-            return None
-    except Exception as e:
-        print(f"Failed to instantiate USBHandler: {e}")
-        return None
-
-def get_input_handler():
-    """
-    Get the appropriate input handler for the current platform
-    
-    Returns:
-        An instance of the platform-specific InputHandler
-    """
-    platform_name, platform_dir = detect_platform()
-    
-    if platform_name == 'ubuntu':
-        # For Ubuntu, use the specific input handler
-        try:
-            from uaibot.platform_uai.ubuntu.input_control.ubuntu_input_handler import UbuntuInputHandler
-            print("Using Ubuntu-specific input handler")
-            return UbuntuInputHandler()
-        except ImportError as e:
-            print(f"Failed to load Ubuntu input handler: {e}")
-            return None
-    
-    # For other platforms, try the common implementation
-    try:
-        from uaibot.platform_uai.common.input_control import MouseKeyboardHandler
-        print("Using common MouseKeyboardHandler as fallback")
-        return MouseKeyboardHandler()
+        if system == 'Darwin':
+            from uaibot.platform_uai.mac.audio_handler import MacAudioHandler
+            return MacAudioHandler()
+        elif system == 'Linux':
+            from uaibot.platform_uai.linux.audio_handler import LinuxAudioHandler
+            return LinuxAudioHandler()
+        elif system == 'Windows':
+            from uaibot.platform_uai.windows.audio_handler import WindowsAudioHandler
+            return WindowsAudioHandler()
     except ImportError as e:
-        print(f"Failed to load common MouseKeyboardHandler: {e}")
-        return None
+        logger.warning(f"Failed to import audio handler for {system}: {e}")
+    return None
+
+def get_usb_handler() -> Optional[Any]:
+    """Get the appropriate USB handler for the current platform.
+    
+    Returns:
+        USB handler instance or None if not available.
+    """
+    system = platform.system()
+    try:
+        if system == 'Darwin':
+            from uaibot.platform_uai.mac.usb_handler import MacUSBHandler
+            return MacUSBHandler()
+        elif system == 'Linux':
+            from uaibot.platform_uai.linux.usb_handler import LinuxUSBHandler
+            return LinuxUSBHandler()
+        elif system == 'Windows':
+            from uaibot.platform_uai.windows.usb_handler import WindowsUSBHandler
+            return WindowsUSBHandler()
+    except ImportError as e:
+        logger.warning(f"Failed to import USB handler for {system}: {e}")
+    return None
+
+def get_input_handler() -> Optional[Any]:
+    """Get the appropriate input handler for the current platform.
+    
+    Returns:
+        Input handler instance or None if not available.
+    """
+    system = platform.system()
+    try:
+        if system == 'Darwin':
+            from uaibot.platform_uai.mac.input_handler import MacInputHandler
+            return MacInputHandler()
+        elif system == 'Linux':
+            from uaibot.platform_uai.linux.input_handler import LinuxInputHandler
+            return LinuxInputHandler()
+        elif system == 'Windows':
+            from uaibot.platform_uai.windows.input_handler import WindowsInputHandler
+            return WindowsInputHandler()
+    except ImportError as e:
+        logger.warning(f"Failed to import input handler for {system}: {e}")
+    return None
+
+def get_platform_name() -> Optional[str]:
+    """Get the platform name in a standardized format.
+    
+    Returns:
+        Platform name ('mac', 'linux', 'windows') or None if unsupported.
+    """
+    system = platform.system()
+    if system == 'Darwin':
+        return 'mac'
+    elif system == 'Linux':
+        return 'linux'
+    elif system == 'Windows':
+        return 'windows'
+    return None

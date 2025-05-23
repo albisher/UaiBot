@@ -2,73 +2,137 @@
 Common USB handler base class for UaiBot.
 Provides USB device detection and interaction.
 """
-from .abc import ABC, abstractmethod
+from abc import ABC, abstractmethod
+from typing import List, Dict, Optional, Any
+import logging
 
-class BaseUSBHandler(ABC):
-    """Base class for USB handlers across different platforms."""
+logger = logging.getLogger(__name__)
+
+class USBHandler(ABC):
+    """Abstract base class for platform-specific USB handlers."""
     
-    def __init__(self, simulation_mode=False):
-        """
-        Initialize USB handler.
+    def __init__(self):
+        """Initialize the USB handler."""
+        self.is_initialized = False
+        self._initialize()
+    
+    def _initialize(self) -> None:
+        """Initialize the USB handler.
         
-        Args:
-            simulation_mode (bool): Whether to run in simulation mode
+        This method should be implemented by platform-specific handlers
+        to perform any necessary setup.
         """
-        self.simulation_mode = simulation_mode
-        self.initialized = False
-        self.connected_devices = []
-        
+        try:
+            self._platform_specific_init()
+            self.is_initialized = True
+        except Exception as e:
+            logger.error(f"Failed to initialize USB handler: {e}")
+            self.is_initialized = False
+    
     @abstractmethod
-    def list_devices(self):
-        """
-        List all connected USB devices.
+    def _platform_specific_init(self) -> None:
+        """Platform-specific initialization.
         
-        Returns:
-            list: List of device information dictionaries
+        This method should be implemented by platform-specific handlers
+        to perform any necessary setup.
         """
         pass
     
     @abstractmethod
-    def get_device_info(self, device_id):
+    def list_devices(self) -> List[Dict[str, Any]]:
+        """List connected USB devices.
+        
+        Returns:
+            List of dictionaries containing device information.
         """
-        Get detailed information about a device.
+        pass
+    
+    @abstractmethod
+    def get_device_info(self, device_id: str) -> Optional[Dict[str, Any]]:
+        """Get information about a specific USB device.
         
         Args:
-            device_id (str): Device identifier
+            device_id: ID of the device to get information for.
             
         Returns:
-            dict: Device information
+            Dictionary containing device information or None if not found.
         """
         pass
     
     @abstractmethod
-    def monitor_devices(self, callback):
-        """
-        Monitor USB device connections/disconnections.
+    def connect_device(self, device_id: str) -> bool:
+        """Connect to a USB device.
         
         Args:
-            callback (callable): Function to call on device events
+            device_id: ID of the device to connect to.
             
         Returns:
-            object: Monitor handle
+            True if successful, False otherwise.
         """
         pass
     
-    def stop_monitoring(self):
-        """Stop USB device monitoring."""
+    @abstractmethod
+    def disconnect_device(self, device_id: str) -> bool:
+        """Disconnect from a USB device.
+        
+        Args:
+            device_id: ID of the device to disconnect from.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
         pass
     
-    def cleanup(self):
-        """Clean up resources."""
-        self.stop_monitoring()
-        self.initialized = False
+    @abstractmethod
+    def send_data(self, device_id: str, data: bytes) -> bool:
+        """Send data to a USB device.
+        
+        Args:
+            device_id: ID of the device to send data to.
+            data: Data to send.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        pass
+    
+    @abstractmethod
+    def receive_data(self, device_id: str, size: int) -> Optional[bytes]:
+        """Receive data from a USB device.
+        
+        Args:
+            device_id: ID of the device to receive data from.
+            size: Number of bytes to receive.
+            
+        Returns:
+            Received data or None if failed.
+        """
+        pass
+    
+    def cleanup(self) -> None:
+        """Clean up resources used by the USB handler."""
+        if self.is_initialized:
+            try:
+                self._platform_specific_cleanup()
+                self.is_initialized = False
+            except Exception as e:
+                logger.error(f"Failed to cleanup USB handler: {e}")
+    
+    @abstractmethod
+    def _platform_specific_cleanup(self) -> None:
+        """Platform-specific cleanup.
+        
+        This method should be implemented by platform-specific handlers
+        to perform any necessary cleanup.
+        """
+        pass
 
-class SimulatedUSBHandler(BaseUSBHandler):
+class SimulatedUSBHandler(USBHandler):
     """Simulated USB handler for environments without USB access."""
     
     def __init__(self):
         """Initialize simulated USB handler."""
-        super().__init__(simulation_mode=True)
+        super().__init__()
         self.initialized = True
         self.monitoring = False
         print("Initialized SimulatedUSBHandler")
@@ -79,12 +143,16 @@ class SimulatedUSBHandler(BaseUSBHandler):
             {"id": "sim002", "name": "Simulated USB Keyboard", "type": "hid"}
         ]
     
-    def list_devices(self):
+    def _platform_specific_init(self) -> None:
+        """Platform-specific initialization."""
+        pass
+    
+    def list_devices(self) -> List[Dict[str, Any]]:
         """Return simulated USB devices."""
         print("[SIMULATION] Listing USB devices")
         return self.connected_devices
     
-    def get_device_info(self, device_id):
+    def get_device_info(self, device_id: str) -> Optional[Dict[str, Any]]:
         """Return simulated device info."""
         print(f"[SIMULATION] Getting info for device: {device_id}")
         for device in self.connected_devices:
@@ -92,14 +160,26 @@ class SimulatedUSBHandler(BaseUSBHandler):
                 return {**device, "details": "Simulated device information"}
         return None
     
-    def monitor_devices(self, callback):
-        """Simulate USB device monitoring."""
-        print("[SIMULATION] Starting USB device monitoring")
-        self.monitoring = True
-        return "sim-monitor-handle"
+    def connect_device(self, device_id: str) -> bool:
+        """Connect to a simulated USB device."""
+        print(f"[SIMULATION] Connecting to device: {device_id}")
+        return True
     
-    def stop_monitoring(self):
-        """Stop simulated monitoring."""
-        if self.monitoring:
-            print("[SIMULATION] Stopping USB device monitoring")
-            self.monitoring = False
+    def disconnect_device(self, device_id: str) -> bool:
+        """Disconnect from a simulated USB device."""
+        print(f"[SIMULATION] Disconnecting from device: {device_id}")
+        return True
+    
+    def send_data(self, device_id: str, data: bytes) -> bool:
+        """Send data to a simulated USB device."""
+        print(f"[SIMULATION] Sending data to device: {device_id}")
+        return True
+    
+    def receive_data(self, device_id: str, size: int) -> Optional[bytes]:
+        """Receive data from a simulated USB device."""
+        print(f"[SIMULATION] Receiving data from device: {device_id}")
+        return b"Received data"
+    
+    def _platform_specific_cleanup(self) -> None:
+        """Platform-specific cleanup."""
+        pass

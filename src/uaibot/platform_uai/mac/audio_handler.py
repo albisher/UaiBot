@@ -8,6 +8,12 @@ import wave
 import os
 from uaibot.utils import get_project_root
 from uaibot.platform_uai.common.audio_handler import BaseAudioHandler, SimulatedAudioHandler
+import tempfile
+import pyaudio
+from typing import List, Dict, Optional, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Try to import pyaudio, fall back to simulation if not available
 try:
@@ -17,183 +23,259 @@ except ImportError:
     PYAUDIO_AVAILABLE = False
     print("PyAudio not available, falling back to simulated audio")
 
-class AudioHandler(BaseAudioHandler):
+class MacAudioHandler(BaseAudioHandler):
+    """macOS-specific audio handler implementation."""
+    
     def __init__(self):
-        self.p = pyaudio.PyAudio()
-        self.input_device = None
-        self.output_device = None
-        self.default_recording_seconds = 5
-        self.format = pyaudio.paInt16
-        self.channels = 1
-        self.rate = 44100
-        self.chunk = 1024
-        self.recordings_dir = os.path.join(get_project_root(), "audio", "recordings")
+        """Initialize the macOS audio handler."""
+        self.pyaudio = None
+        self.recording_stream = None
+        self.recording_frames = []
+        self.recording_file = None
+        super().__init__()
+    
+    def _platform_specific_init(self) -> None:
+        """Initialize PyAudio for macOS."""
+        try:
+            self.pyaudio = pyaudio.PyAudio()
+        except Exception as e:
+            logger.error(f"Failed to initialize PyAudio: {e}")
+            raise
+    
+    def list_audio_devices(self) -> List[Dict[str, Any]]:
+        """List available audio devices on macOS.
         
-        # Create recordings directory if it doesn't exist
-        if not os.path.exists(self.recordings_dir):
-            os.makedirs(self.recordings_dir)
+        Returns:
+            List of dictionaries containing device information.
+        """
+        if not self.is_initialized:
+            return []
         
-        # Set default devices on initialization
-        self.set_default_devices()
-
-    def set_default_devices(self):
-        """Set default audio input and output devices"""
-        devices = self.list_audio_devices()
-        
-        # Try to find the default input device (microphone)
-        for device in devices:
-            if device['maxInputChannels'] > 0 and 'microphone' in device['name'].lower():
-                self.input_device = device['index']
-                break
-        
-        # If no microphone found, use the first available input device
-        if self.input_device is None:
-            for device in devices:
-                if device['maxInputChannels'] > 0:
-                    self.input_device = device['index']
-                    break
-        
-        # Try to find the default output device (speaker)
-        for device in devices:
-            if device['maxOutputChannels'] > 0 and ('speaker' in device['name'].lower() or 'headphone' in device['name'].lower()):
-                self.output_device = device['index']
-                break
-        
-        # If no speaker found, use the first available output device
-        if self.output_device is None:
-            for device in devices:
-                if device['maxOutputChannels'] > 0:
-                    self.output_device = device['index']
-                    break
-
-    def list_audio_devices(self):
-        """List available audio devices using PyAudio"""
         devices = []
-        for i in range(self.p.get_device_count()):
-            device_info = self.p.get_device_info_by_index(i)
-            devices.append({
-                "index": i,
-                "name": device_info["name"],
-                "maxInputChannels": device_info["maxInputChannels"],
-                "maxOutputChannels": device_info["maxOutputChannels"],
-                "defaultSampleRate": device_info["defaultSampleRate"],
-            })
+        for i in range(self.pyaudio.get_device_count()):
+            try:
+                device_info = self.pyaudio.get_device_info_by_index(i)
+                devices.append({
+                    'id': i,
+                    'name': device_info['name'],
+                    'input_channels': device_info['maxInputChannels'],
+                    'output_channels': device_info['maxOutputChannels'],
+                    'default_samplerate': device_info['defaultSampleRate']
+                })
+            except Exception as e:
+                logger.error(f"Error getting device info for device {i}: {e}")
+        
         return devices
     
-    def record_audio(self, seconds=None, filename=None):
+    def get_default_input_device(self) -> Optional[Dict[str, Any]]:
+        """Get the default input device on macOS.
+        
+        Returns:
+            Dictionary containing device information or None if not available.
         """
-        Record audio for a specified number of seconds
+        if not self.is_initialized:
+            return None
+        
+        try:
+            device_info = self.pyaudio.get_default_input_device_info()
+            return {
+                'id': device_info['index'],
+                'name': device_info['name'],
+                'input_channels': device_info['maxInputChannels'],
+                'output_channels': device_info['maxOutputChannels'],
+                'default_samplerate': device_info['defaultSampleRate']
+            }
+        except Exception as e:
+            logger.error(f"Error getting default input device: {e}")
+            return None
+    
+    def get_default_output_device(self) -> Optional[Dict[str, Any]]:
+        """Get the default output device on macOS.
+        
+        Returns:
+            Dictionary containing device information or None if not available.
+        """
+        if not self.is_initialized:
+            return None
+        
+        try:
+            device_info = self.pyaudio.get_default_output_device_info()
+            return {
+                'id': device_info['index'],
+                'name': device_info['name'],
+                'input_channels': device_info['maxInputChannels'],
+                'output_channels': device_info['maxOutputChannels'],
+                'default_samplerate': device_info['defaultSampleRate']
+            }
+        except Exception as e:
+            logger.error(f"Error getting default output device: {e}")
+            return None
+    
+    def start_recording(self, device_id: Optional[str] = None) -> bool:
+        """Start recording audio on macOS.
         
         Args:
-            seconds (float): Duration to record in seconds
-            filename (str): Output filename (if None, generates a timestamped filename)
+            device_id: ID of the device to use for recording.
             
         Returns:
-            str: Path to the recorded audio file
+            True if successful, False otherwise.
         """
-        if seconds is None:
-            seconds = self.default_recording_seconds
+        if not self.is_initialized:
+            return False
+        
+        try:
+            # Create a temporary file for recording
+            self.recording_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
             
-        if filename is None:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = os.path.join(self.recordings_dir, f"recording_{timestamp}.wav")
-        elif not os.path.isabs(filename):
-            filename = os.path.join(self.recordings_dir, filename)
+            # Initialize recording parameters
+            CHUNK = 1024
+            FORMAT = pyaudio.paInt16
+            CHANNELS = 1
+            RATE = 44100
             
-        frames = []
+            # Open recording stream
+            self.recording_stream = self.pyaudio.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                input_device_index=int(device_id) if device_id else None,
+                frames_per_buffer=CHUNK
+            )
+            
+            self.recording_frames = []
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error starting recording: {e}")
+            return False
+    
+    def stop_recording(self) -> Optional[str]:
+        """Stop recording audio on macOS.
         
-        print(f"Recording from device index {self.input_device} for {seconds} seconds...")
-        
-        stream = self.p.open(
-            format=self.format,
-            channels=self.channels,
-            rate=self.rate,
-            input=True,
-            input_device_index=self.input_device,
-            frames_per_buffer=self.chunk
-        )
-        
-        for i in range(0, int(self.rate / self.chunk * seconds)):
-            data = stream.read(self.chunk)
-            frames.append(data)
-        
-        stream.stop_stream()
-        stream.close()
-        
-        # Save recording
-        wf = wave.open(filename, 'wb')
-        wf.setnchannels(self.channels)
-        wf.setsampwidth(self.p.get_sample_size(self.format))
-        wf.setframerate(self.rate)
-        wf.writeframes(b''.join(frames))
-        wf.close()
-        
-        print(f"Recording saved to {filename}")
-        return filename
-        
-    def play_audio(self, filename):
+        Returns:
+            Path to the recorded audio file or None if recording failed.
         """
-        Play an audio file
+        if not self.recording_stream:
+            return None
+        
+        try:
+            # Stop and close the recording stream
+            self.recording_stream.stop_stream()
+            self.recording_stream.close()
+            self.recording_stream = None
+            
+            # Save the recorded audio to the temporary file
+            CHANNELS = 1
+            RATE = 44100
+            FORMAT = pyaudio.paInt16
+            
+            wf = wave.open(self.recording_file.name, 'wb')
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(self.pyaudio.get_sample_size(FORMAT))
+            wf.setframerate(RATE)
+            wf.writeframes(b''.join(self.recording_frames))
+            wf.close()
+            
+            # Get the file path and reset recording state
+            file_path = self.recording_file.name
+            self.recording_file = None
+            self.recording_frames = []
+            
+            return file_path
+            
+        except Exception as e:
+            logger.error(f"Error stopping recording: {e}")
+            return None
+    
+    def play_audio(self, file_path: str, device_id: Optional[str] = None) -> bool:
+        """Play an audio file on macOS.
         
         Args:
-            filename (str): Path to the audio file to play
+            file_path: Path to the audio file.
+            device_id: ID of the device to use for playback.
+            
+        Returns:
+            True if successful, False otherwise.
         """
-        if not os.path.isabs(filename):
-            filename = os.path.join(self.recordings_dir, filename)
-            
-        if not os.path.exists(filename):
-            print(f"Error: File {filename} not found")
+        if not self.is_initialized:
             return False
+        
+        try:
+            # Open the audio file
+            wf = wave.open(file_path, 'rb')
             
-        # Open the wave file
-        wf = wave.open(filename, 'rb')
-        
-        # Open a stream
-        stream = self.p.open(
-            format=self.p.get_format_from_width(wf.getsampwidth()),
-            channels=wf.getnchannels(),
-            rate=wf.getframerate(),
-            output=True,
-            output_device_index=self.output_device
-        )
-        
-        # Read data in chunks and play
-        data = wf.readframes(self.chunk)
-        while len(data) > 0:
-            stream.write(data)
-            data = wf.readframes(self.chunk)
+            # Open playback stream
+            stream = self.pyaudio.open(
+                format=self.pyaudio.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True,
+                output_device_index=int(device_id) if device_id else None
+            )
             
-        # Clean up
-        stream.stop_stream()
-        stream.close()
-        
-        return True
+            # Read data in chunks and play
+            data = wf.readframes(1024)
+            while data:
+                stream.write(data)
+                data = wf.readframes(1024)
+            
+            # Clean up
+            stream.stop_stream()
+            stream.close()
+            wf.close()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error playing audio: {e}")
+            return False
     
-    def set_input_device(self, device_index):
-        """Set the audio input device"""
-        devices = self.list_audio_devices()
-        valid_indices = [device["index"] for device in devices if device["maxInputChannels"] > 0]
+    def get_audio_levels(self) -> Dict[str, float]:
+        """Get current audio levels on macOS.
         
-        if device_index in valid_indices:
-            self.input_device = device_index
-            return True
-        else:
-            print(f"Error: Invalid input device index {device_index}")
-            return False
-            
-    def set_output_device(self, device_index):
-        """Set the audio output device"""
-        devices = self.list_audio_devices()
-        valid_indices = [device["index"] for device in devices if device["maxOutputChannels"] > 0]
+        Returns:
+            Dictionary containing input and output levels.
+        """
+        if not self.is_initialized:
+            return {"input": 0.0, "output": 0.0}
         
-        if device_index in valid_indices:
-            self.output_device = device_index
-            return True
-        else:
-            print(f"Error: Invalid output device index {device_index}")
-            return False
+        try:
+            # Get input level from recording stream if active
+            input_level = 0.0
+            if self.recording_stream:
+                data = self.recording_stream.read(1024, exception_on_overflow=False)
+                input_level = max(abs(int.from_bytes(data[i:i+2], byteorder='little', signed=True)) 
+                                for i in range(0, len(data), 2)) / 32768.0
             
+            # Output level is not directly accessible, return 0.0
+            return {
+                "input": input_level,
+                "output": 0.0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting audio levels: {e}")
+            return {"input": 0.0, "output": 0.0}
+    
+    def _platform_specific_cleanup(self) -> None:
+        """Clean up PyAudio resources."""
+        if self.recording_stream:
+            self.recording_stream.stop_stream()
+            self.recording_stream.close()
+            self.recording_stream = None
+        
+        if self.recording_file:
+            try:
+                os.unlink(self.recording_file.name)
+            except Exception as e:
+                logger.error(f"Error removing temporary recording file: {e}")
+            self.recording_file = None
+        
+        if self.pyaudio:
+            self.pyaudio.terminate()
+            self.pyaudio = None
+
     def __del__(self):
         """Clean up PyAudio on destruction"""
         if hasattr(self, 'p') and self.p:

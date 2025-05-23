@@ -9,12 +9,230 @@ import logging
 import shutil
 from pathlib import Path
 from datetime import datetime
+from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
 from uaibot.core.file_utils import search_files, expand_path, find_cv_files
-from typing import Dict, Any
 from uaibot.core.logging_config import get_logger
 from uaibot.core.file_utils import FileUtils
 
 logger = get_logger(__name__)
+
+@dataclass
+class FileOperation:
+    """Data class representing a file operation."""
+    operation: str
+    filename: Optional[str] = None
+    content: Optional[str] = None
+    directory: Optional[str] = None
+    pattern: Optional[str] = None
+
+class FileOperations:
+    """Class to handle file operations in a structured way."""
+    
+    def __init__(self):
+        self.file_utils = FileUtils()
+    
+    def parse_request(self, request: str) -> FileOperation:
+        """Parse a natural language file operation request."""
+        parsed = parse_file_request(request)
+        return FileOperation(
+            operation=parsed.get('operation'),
+            filename=parsed.get('filename'),
+            content=parsed.get('content'),
+            directory=parsed.get('directory'),
+            pattern=parsed.get('pattern')
+        )
+    
+    def execute(self, operation: FileOperation) -> str:
+        """Execute a file operation."""
+        if operation.directory:
+            if not os.path.exists(operation.directory):
+                try:
+                    os.makedirs(operation.directory, exist_ok=True)
+                    logger.info(f"Created directory: {operation.directory}")
+                except Exception as e:
+                    return f"Error: Could not create directory '{operation.directory}': {str(e)}"
+            
+            if operation.filename:
+                operation.filename = os.path.join(operation.directory, operation.filename)
+        
+        if operation.operation == 'create':
+            return self._create_file(operation)
+        elif operation.operation == 'read':
+            return self._read_file(operation)
+        elif operation.operation == 'write':
+            return self._write_file(operation)
+        elif operation.operation == 'append':
+            return self._append_file(operation)
+        elif operation.operation == 'delete':
+            return self._delete_file(operation)
+        elif operation.operation == 'search':
+            return self._search_files(operation)
+        elif operation.operation == 'list':
+            return self._list_files(operation)
+        elif operation.operation == 'rename':
+            return self._rename_file(operation)
+        elif operation.operation == 'copy':
+            return self._copy_file(operation)
+        elif operation.operation == 'info':
+            return self._get_file_info(operation)
+        else:
+            return f"Error: Unknown operation '{operation.operation}'"
+    
+    def _create_file(self, operation: FileOperation) -> str:
+        """Create a new file."""
+        if not operation.filename:
+            return "Error: No filename specified for creation"
+        
+        if os.path.exists(operation.filename):
+            return f"Error: File '{operation.filename}' already exists"
+        
+        try:
+            with open(operation.filename, 'w') as f:
+                if operation.content:
+                    f.write(operation.content)
+            return f"✅ Created file '{operation.filename}' successfully"
+        except Exception as e:
+            return f"Error creating file '{operation.filename}': {str(e)}"
+    
+    def _read_file(self, operation: FileOperation) -> str:
+        """Read a file's contents."""
+        if not operation.filename:
+            return "Error: No filename specified for reading"
+        
+        if not os.path.exists(operation.filename):
+            return f"Error: File '{operation.filename}' does not exist"
+        
+        try:
+            with open(operation.filename, 'r') as f:
+                content = f.read()
+            return f"📄 Contents of '{operation.filename}':\n{content}"
+        except Exception as e:
+            return f"Error reading file '{operation.filename}': {str(e)}"
+    
+    def _write_file(self, operation: FileOperation) -> str:
+        """Write content to a file."""
+        if not operation.filename:
+            return "Error: No filename specified for writing"
+        
+        if not operation.content:
+            return "Error: No content specified for writing"
+        
+        try:
+            with open(operation.filename, 'w') as f:
+                f.write(operation.content)
+            return f"✅ Wrote content to '{operation.filename}' successfully"
+        except Exception as e:
+            return f"Error writing to file '{operation.filename}': {str(e)}"
+    
+    def _append_file(self, operation: FileOperation) -> str:
+        """Append content to a file."""
+        if not operation.filename:
+            return "Error: No filename specified for appending"
+        
+        if not operation.content:
+            return "Error: No content specified for appending"
+        
+        try:
+            with open(operation.filename, 'a') as f:
+                f.write(operation.content)
+            return f"✅ Appended content to '{operation.filename}' successfully"
+        except Exception as e:
+            return f"Error appending to file '{operation.filename}': {str(e)}"
+    
+    def _delete_file(self, operation: FileOperation) -> str:
+        """Delete a file."""
+        if not operation.filename:
+            return "Error: No filename specified for deletion"
+        
+        if not os.path.exists(operation.filename):
+            return f"Error: File '{operation.filename}' does not exist"
+        
+        try:
+            os.remove(operation.filename)
+            return f"✅ Deleted file '{operation.filename}' successfully"
+        except Exception as e:
+            return f"Error deleting file '{operation.filename}': {str(e)}"
+    
+    def _search_files(self, operation: FileOperation) -> str:
+        """Search for files matching a pattern."""
+        if not operation.pattern:
+            return "Error: No search pattern specified"
+        
+        try:
+            results = self.file_utils.search_files(operation.pattern, operation.directory)
+            if not results:
+                return f"No files found matching pattern '{operation.pattern}'"
+            return f"Found {len(results)} files:\n" + "\n".join(results)
+        except Exception as e:
+            return f"Error searching files: {str(e)}"
+    
+    def _list_files(self, operation: FileOperation) -> str:
+        """List files in a directory."""
+        directory = operation.directory or "."
+        try:
+            files = os.listdir(directory)
+            if not files:
+                return f"No files found in '{directory}'"
+            return f"Files in '{directory}':\n" + "\n".join(files)
+        except Exception as e:
+            return f"Error listing files in '{directory}': {str(e)}"
+    
+    def _rename_file(self, operation: FileOperation) -> str:
+        """Rename a file."""
+        if not operation.filename:
+            return "Error: No source filename specified"
+        
+        if not operation.content:  # Using content field for new filename
+            return "Error: No new filename specified"
+        
+        if not os.path.exists(operation.filename):
+            return f"Error: File '{operation.filename}' does not exist"
+        
+        try:
+            os.rename(operation.filename, operation.content)
+            return f"✅ Renamed '{operation.filename}' to '{operation.content}' successfully"
+        except Exception as e:
+            return f"Error renaming file: {str(e)}"
+    
+    def _copy_file(self, operation: FileOperation) -> str:
+        """Copy a file."""
+        if not operation.filename:
+            return "Error: No source filename specified"
+        
+        if not operation.content:  # Using content field for destination filename
+            return "Error: No destination filename specified"
+        
+        if not os.path.exists(operation.filename):
+            return f"Error: File '{operation.filename}' does not exist"
+        
+        try:
+            shutil.copy2(operation.filename, operation.content)
+            return f"✅ Copied '{operation.filename}' to '{operation.content}' successfully"
+        except Exception as e:
+            return f"Error copying file: {str(e)}"
+    
+    def _get_file_info(self, operation: FileOperation) -> str:
+        """Get information about a file."""
+        if not operation.filename:
+            return "Error: No filename specified"
+        
+        if not os.path.exists(operation.filename):
+            return f"Error: File '{operation.filename}' does not exist"
+        
+        try:
+            stat = os.stat(operation.filename)
+            info = {
+                "Size": f"{stat.st_size} bytes",
+                "Created": datetime.fromtimestamp(stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S'),
+                "Modified": datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                "Accessed": datetime.fromtimestamp(stat.st_atime).strftime('%Y-%m-%d %H:%M:%S'),
+                "Mode": oct(stat.st_mode)[-3:],
+                "Inode": stat.st_ino
+            }
+            return f"📄 File info for '{operation.filename}':\n" + "\n".join(f"{k}: {v}" for k, v in info.items())
+        except Exception as e:
+            return f"Error getting file info: {str(e)}"
 
 # File operation keywords for improved mapping
 FILE_OPERATIONS = {

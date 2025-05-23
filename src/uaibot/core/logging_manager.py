@@ -15,12 +15,35 @@ Example:
 import logging
 import os
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Union, TypeVar, Protocol
+from typing import Optional, List, Dict, Any, Union, TypeVar, Protocol, Set
+from dataclasses import dataclass, field
+from pathlib import Path
 from .config_manager import ConfigManager
 
 # Type variables
 T = TypeVar('T')
 HandlerType = TypeVar('HandlerType', bound=logging.Handler)
+
+@dataclass
+class LoggingConfig:
+    """Configuration for logging settings."""
+    log_level: str = "INFO"
+    log_dir: str = "logs"
+    quiet_mode: bool = False
+    log_format: str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    date_format: str = '%Y-%m-%d %H:%M:%S'
+    modules: Set[str] = field(default_factory=lambda: {
+        'core.ai_handler',
+        'core.model_manager',
+        'core.query_processor',
+        'core.system_info_gatherer',
+        'command_processor.command_processor',
+        'command_processor.screen_session_manager',
+        'command_processor.usb_query_handler',
+        'command_processor.folder_search_handler',
+        'command_processor.direct_execution_handler'
+    })
+    last_updated: datetime = field(default_factory=datetime.now)
 
 class LoggingManager:
     """
@@ -35,8 +58,9 @@ class LoggingManager:
     
     Attributes:
         config (ConfigManager): Configuration manager instance
-        log_dir (str): Directory where log files are stored
+        log_dir (Path): Directory where log files are stored
         quiet_mode (bool): If True, suppresses console output
+        logging_config (LoggingConfig): Current logging configuration
     """
     
     def __init__(self, config: ConfigManager) -> None:
@@ -50,8 +74,11 @@ class LoggingManager:
             The log directory will be created if it doesn't exist.
         """
         self.config = config
-        self.log_dir: str = config.get("log_dir", "logs")
-        self.quiet_mode: bool = config.get("quiet_mode", False)
+        self.logging_config = LoggingConfig(
+            log_level=config.get("log_level", "INFO"),
+            log_dir=config.get("log_dir", "logs"),
+            quiet_mode=config.get("quiet_mode", False)
+        )
         self._setup_logging()
     
     def _setup_logging(self) -> None:
@@ -67,20 +94,21 @@ class LoggingManager:
         The log format includes timestamp, logger name, log level, and message.
         """
         # Create logs directory if it doesn't exist
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+        log_dir = Path(self.logging_config.log_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
         
         # Generate log filename with timestamp
         timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file: str = os.path.join(self.log_dir, f"uaibot_{timestamp}.log")
+        log_file: Path = log_dir / f"uaibot_{timestamp}.log"
         
         # Configure root logger
         logging.basicConfig(
             level=self._get_log_level(),
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format=self.logging_config.log_format,
+            datefmt=self.logging_config.date_format,
             handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler() if not self.quiet_mode else logging.NullHandler()
+                logging.FileHandler(str(log_file)),
+                logging.StreamHandler() if not self.logging_config.quiet_mode else logging.NullHandler()
             ]
         )
         
@@ -98,7 +126,7 @@ class LoggingManager:
             The log level is read from the configuration and converted
             from string to the appropriate logging constant.
         """
-        level_str = self.config.get("log_level", "INFO").upper()
+        level_str = self.logging_config.log_level.upper()
         return getattr(logging, level_str, logging.INFO)
     
     def _setup_module_loggers(self) -> None:
@@ -109,21 +137,8 @@ class LoggingManager:
         ensuring consistent logging behavior across the application.
         Each logger is set to the configured log level.
         """
-        # Configure loggers for different modules
-        modules: List[str] = [
-            'core.ai_handler',
-            'core.model_manager',
-            'core.query_processor',
-            'core.system_info_gatherer',
-            'command_processor.command_processor',
-            'command_processor.screen_session_manager',
-            'command_processor.usb_query_handler',
-            'command_processor.folder_search_handler',
-            'command_processor.direct_execution_handler'
-        ]
-        
         log_level = self._get_log_level()
-        for module in modules:
+        for module in self.logging_config.modules:
             logger = logging.getLogger(module)
             logger.setLevel(log_level)
     
@@ -161,6 +176,8 @@ class LoggingManager:
         """
         # Update configuration
         level_name = logging.getLevelName(level)
+        self.logging_config.log_level = level_name
+        self.logging_config.last_updated = datetime.now()
         self.config.set("log_level", level_name)
         self.config.save()
         
@@ -186,11 +203,12 @@ class LoggingManager:
             but are not displayed in the console.
         """
         # Update configuration
+        self.logging_config.quiet_mode = quiet
+        self.logging_config.last_updated = datetime.now()
         self.config.set("quiet_mode", quiet)
         self.config.save()
         
         # Update handlers
-        self.quiet_mode = quiet
         root_logger: logging.Logger = logging.getLogger()
         
         # Remove existing handlers
@@ -201,12 +219,12 @@ class LoggingManager:
         if not quiet:
             root_logger.addHandler(logging.StreamHandler())
     
-    def get_current_log_file(self) -> Optional[str]:
+    def get_current_log_file(self) -> Optional[Path]:
         """
         Get the path of the current log file.
         
         Returns:
-            Optional[str]: Path to the current log file, or None if not found
+            Optional[Path]: Path to the current log file, or None if not found
             
         Note:
             This method searches through all handlers of the root logger
@@ -215,5 +233,5 @@ class LoggingManager:
         """
         for handler in logging.getLogger().handlers:
             if isinstance(handler, logging.FileHandler):
-                return handler.baseFilename
+                return Path(handler.baseFilename)
         return None 
