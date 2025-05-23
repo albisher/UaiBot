@@ -111,11 +111,11 @@ def test_module_composition(quiet=True):
     
     # First check if main modules can be imported
     try:
-        from app.core.ai_handler import AIHandler
-        from app.core.shell_handler import ShellHandler
-        from app.core.command_processor import CommandProcessor
-        from app.core.device_manager import USBDetector
-        from app.core.screen_handler.screen_manager import ScreenManager
+        from uaibot.core.ai_handler import AIHandler
+        from uaibot.core.shell_handler import ShellHandler
+        from uaibot.core.command_processor import CommandProcessor
+        from uaibot.core.device_manager import USBDetector
+        from uaibot.core.screen_handler.screen_manager import ScreenManager
         print_success("All primary modules imported successfully")
     except ImportError as e:
         print_failure(f"Failed to import primary modules: {e}")
@@ -260,8 +260,8 @@ def test_integration():
         {
             "name": "USB Device Detection",
             "setup": """
-from app.device_manager import USBDetector
-from app.core.shell_handler import ShellHandler
+from uaibot.device_manager import USBDetector
+from uaibot.core.shell_handler import ShellHandler
 
 usb_detector = USBDetector(quiet_mode=True)
 shell_handler = ShellHandler(quiet_mode=True)
@@ -278,8 +278,8 @@ result = (devices_from_shell == devices_from_detector)
         {
             "name": "Screen Manager Integration",
             "setup": """
-from app.core.screen_handler.screen_manager import ScreenManager
-from app.core.shell_handler import ShellHandler
+from uaibot.core.screen_handler.screen_manager import ScreenManager
+from uaibot.core.shell_handler import ShellHandler
 
 screen_manager = ScreenManager(quiet_mode=True)
 shell_handler = ShellHandler(quiet_mode=True)
@@ -304,8 +304,8 @@ class MockAIHandler:
     def query_ai(self, *args, **kwargs):
         return "echo test response"
 
-from app.core.shell_handler import ShellHandler
-from app.command_processor.CommandProcessor import CommandProcessor
+from uaibot.core.shell_handler import ShellHandler
+from uaibot.command_processor.CommandProcessor import CommandProcessor
 
 shell_handler = ShellHandler(quiet_mode=True)
 command_processor = CommandProcessor(

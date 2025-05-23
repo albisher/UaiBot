@@ -9,9 +9,9 @@ import sys
 import argparse
 import subprocess
 import platform
-from src.datetime import datetime
+from uaibot.datetime import datetime
 import json
-from src.pathlib import Path
+from uaibot.pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

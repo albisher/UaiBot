@@ -11,7 +11,7 @@ import time
 # Add the project root to the path so we can import from core
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.utils import run_command
+from uaibot.utils import run_command
 
 def test_basic_commands():
     """Test basic command execution with different methods"""

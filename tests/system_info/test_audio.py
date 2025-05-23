@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import platform as sys_platform
-from src.datetime import datetime
+from uaibot.datetime import datetime
 
 # Get the project root
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +25,7 @@ RESET = "\033[0m"
 
 # Import the platform manager to get the appropriate audio handler
 try:
-    from app.platform_uai.platform_manager import PlatformManager
+    from uaibot.platform_uai.platform_manager import PlatformManager
 except ImportError as e:
     print(f"{RED}Error importing platform modules: {e}{RESET}")
     print(f"Make sure you're running this script from the UaiBot project root.")

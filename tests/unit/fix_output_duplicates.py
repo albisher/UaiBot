@@ -3,7 +3,7 @@ import os
 import sys
 import subprocess
 import re
-from src.output_formatter import formatter
+from uaibot.output_formatter import formatter
 
 def run_test_command(command, use_no_safe_mode=True):
     """

@@ -15,7 +15,7 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import required modules
-from app.core.ai_handler import get_system_info
+from uaibot.core.ai_handler import get_system_info
 
 class MockPlatform:
     """Mock platform module for testing different OS configurations."""

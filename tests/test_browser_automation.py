@@ -10,7 +10,7 @@ import sys
 import time
 import tempfile
 import pytest
-from app.core.browser_controller import BrowserController
+from uaibot.core.browser_controller import BrowserController
 
 def test_browser_controller():
     """Test the BrowserController class with various browsers and features."""

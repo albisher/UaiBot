@@ -13,8 +13,8 @@ import platform
 import argparse
 import subprocess
 import logging
-from src.datetime import datetime
-from src.typing import Dict, List, Optional, Tuple, Union, Any
+from uaibot.datetime import datetime
+from uaibot.typing import Dict, List, Optional, Tuple, Union, Any
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

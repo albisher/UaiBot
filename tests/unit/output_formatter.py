@@ -9,7 +9,7 @@ import sys
 import shutil
 import logging
 import platform
-from src.typing import Optional, List, Dict, Any, Union
+from uaibot.typing import Optional, List, Dict, Any, Union
 
 # Add project root to sys.path to enable imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,7 +18,7 @@ sys.path.append(project_root)
 
 # Try to import the proper output formatter
 try:
-    from app.utils.output_style_manager import OutputStyleManager
+    from uaibot.utils.output_style_manager import OutputStyleManager
     STYLE_MGR_AVAILABLE = True
 except ImportError:
     STYLE_MGR_AVAILABLE = False

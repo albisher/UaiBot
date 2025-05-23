@@ -12,8 +12,8 @@ import random
 import logging
 import platform
 import subprocess
-from src.typing import Dict, List, Optional, Tuple, Union
-from src.datetime import datetime
+from uaibot.typing import Dict, List, Optional, Tuple, Union
+from uaibot.datetime import datetime
 
 # Add project root to sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))

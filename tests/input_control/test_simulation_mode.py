@@ -16,7 +16,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 try:
-    from app.core.command_processor.input_control.mouse_keyboard_handler import MouseKeyboardHandler
+    from uaibot.core.command_processor.input_control.mouse_keyboard_handler import MouseKeyboardHandler
     print("Successfully imported MouseKeyboardHandler")
 except ImportError as e:
     print(f"Error importing MouseKeyboardHandler: {e}")

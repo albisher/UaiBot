@@ -9,8 +9,8 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.uaibot.core.config_manager import ConfigManager
-from src.uaibot.core.key_manager import KeyManager
+from uaibot.uaibot.core.config_manager import ConfigManager
+from uaibot.uaibot.core.key_manager import KeyManager
 
 def check_directory_structure():
     """Check if all required directories exist."""

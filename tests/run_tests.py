@@ -9,7 +9,7 @@ import os
 import sys
 import pytest
 import logging
-from src.pathlib import Path
+from uaibot.pathlib import Path
 
 # Configure logging
 logging.basicConfig(

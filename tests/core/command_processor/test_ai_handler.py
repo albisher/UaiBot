@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from app.core.ai_handler import AIHandler
+from uaibot.core.ai_handler import AIHandler
 
 @pytest.fixture
 def mock_ollama_client():

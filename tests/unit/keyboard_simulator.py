@@ -9,7 +9,7 @@ import sys
 import time
 import random
 import platform
-from src.typing import List, Dict, Optional, Callable
+from uaibot.typing import List, Dict, Optional, Callable
 
 # Common keyboard layouts for realistic typing simulation
 QWERTY_LAYOUT = {

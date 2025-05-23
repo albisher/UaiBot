@@ -7,7 +7,7 @@ following Ubuntu test conventions and cursor rules.
 
 import unittest
 import json
-from app.core.command_processor.ai_command_extractor import AICommandExtractor
+from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
 import pytest
 
 class TestAICommandExtractor(unittest.TestCase):

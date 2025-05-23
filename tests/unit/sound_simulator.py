@@ -9,7 +9,7 @@ import sys
 import time
 import random
 import platform
-from src.typing import Dict, Optional, Tuple, List
+from uaibot.typing import Dict, Optional, Tuple, List
 
 class SoundSimulator:
     """Cross-platform sound testing utilities."""
@@ -45,7 +45,7 @@ class SoundSimulator:
             
         try:
             # Try pydub with simpleaudio
-            from src.pydub import AudioSegment
+            from uaibot.pydub import AudioSegment
             from pydub.playback import play
             backend["type"] = "pydub"
             backend["module"] = {"AudioSegment": AudioSegment, "play": play}

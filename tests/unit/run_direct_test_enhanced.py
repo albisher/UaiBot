@@ -8,7 +8,7 @@ import re
 
 # Import the utility functions
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from app.utils import run_command
+from uaibot.utils import run_command
 
 # Create an enhanced version of the command processor's extract_command_from_ai_response function
 def extract_command_from_ai_response(ai_response):

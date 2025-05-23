@@ -321,6 +321,60 @@ class CommandProcessor:
         self._command_shown = False
         self._result_shown = False
         
+    def _extract_shell_command(self, command):
+        """Extract a shell command string from a command field that may be a string, dict, or JSON block."""
+        import json as _json
+        # If already a string and not a JSON block, return as is
+        if isinstance(command, str):
+            cmd = command.strip()
+            # If it's a JSON block, try to parse
+            if (cmd.startswith('{') and cmd.endswith('}')) or (cmd.startswith('```json') or cmd.startswith('```')):
+                # Remove markdown if present
+                if cmd.startswith('```'):
+                    cmd = cmd.strip('`').lstrip('json').strip()
+                try:
+                    data = _json.loads(cmd)
+                    # If it's a plan, extract the first shell step
+                    if isinstance(data, dict):
+                        if 'plan' in data and isinstance(data['plan'], list):
+                            for step in data['plan']:
+                                operation = step.get('operation')
+                                parameters = step.get('parameters', {})
+                                
+                                # Try to map the operation to a shell command
+                                shell_command = self._map_operation_to_command(operation, parameters)
+                                if shell_command:
+                                    return shell_command
+                                
+                                # Fallback to old behavior
+                                if step.get('operation') in ('shell', 'system_command', 'execute_command') and step.get('description'):
+                                    return step['description']
+                        if 'command' in data and isinstance(data['command'], str):
+                            return data['command']
+                except Exception:
+                    pass
+            else:
+                return cmd
+        elif isinstance(command, dict):
+            # If it's a plan dict
+            if 'plan' in command and isinstance(command['plan'], list):
+                for step in command['plan']:
+                    operation = step.get('operation')
+                    parameters = step.get('parameters', {})
+                    
+                    # Try to map the operation to a shell command
+                    shell_command = self._map_operation_to_command(operation, parameters)
+                    if shell_command:
+                        return shell_command
+                    
+                    # Fallback to old behavior
+                    if step.get('operation') in ('shell', 'system_command', 'execute_command') and step.get('description'):
+                        return step['description']
+            if 'command' in command and isinstance(command['command'], str):
+                return command['command']
+        # Not a shell command
+        return None
+
     def _handle_with_ai(self, user_input, thinking=""):
         """Process user input with AI to generate an executable command."""
         # If thinking wasn't provided, generate it
@@ -348,43 +402,67 @@ class CommandProcessor:
                     logger.error(f"AI handler error: {error_msg}")
                     return f"{thinking}\n\n❌ AI Error: {error_msg}"
                 
-                # Extract command from Google response
-                if self.ai_handler.model_type == 'google':
-                    # Google responses are already in the correct format with 'command' field
-                    command = ai_response.get('command', '')
-                    if command:
-                        # Check if command is a JSON string
-                        if isinstance(command, str) and command.strip().startswith('{'):
-                            try:
-                                command_json = json.loads(command)
-                                if isinstance(command_json, dict) and ('plan' in command_json or 'steps' in command_json):
-                                    # Execute the plan
-                                    exec_result = self.execution_controller.execute_plan(command_json)
-                                    summary = []
-                                    for step_result in exec_result.get('results', []):
-                                        status = step_result.get('status', 'unknown')
-                                        desc = step_result.get('operation', step_result.get('description', ''))
-                                        output = step_result.get('output', '')
-                                        summary.append(f"Step {step_result.get('step')}: {desc} - {status}\nOutput: {output}")
-                                    return f"{thinking}\n\n" + "\n".join(summary)
-                            except json.JSONDecodeError:
-                                pass
-                        
-                        # If not a plan or JSON parsing failed, execute as regular command
-                        execution_result = self.shell_handler.execute_command(command)
-                        result = f"{thinking}\n\n"
-                        command_display = self._format_command(command)
-                        if command_display:
-                            result += command_display + "\n\n"
-                        result_display = self._format_result(execution_result, command, {})
-                        if result_display:
-                            result += result_display
-                        return result
+                # Extract command from response
+                command = ai_response.get('command', '')
+                if command:
+                    # Try to parse JSON if it's in a code block
+                    if command.startswith('```json') or command.startswith('```'):
+                        try:
+                            # Remove markdown if present
+                            json_str = command.strip('`').lstrip('json').strip()
+                            data = json.loads(json_str)
+                            
+                            # Handle plan-based structure
+                            if 'plan' in data and isinstance(data['plan'], list):
+                                results = []
+                                for step in data['plan']:
+                                    operation = step.get('operation')
+                                    parameters = step.get('parameters', {})
+                                    
+                                    # Execute the operation
+                                    if operation == 'respond_to_user':
+                                        return f"{thinking}\n\n{parameters.get('message', '')}"
+                                    elif operation in ('shell', 'system_command', 'execute_command', 'shell_command'):
+                                        shell_command = parameters.get('command', '')
+                                        if shell_command:
+                                            execution_result = self.shell_handler.execute_command(shell_command)
+                                            results.append(execution_result)
+                                    
+                                # Return combined results
+                                if results:
+                                    return f"{thinking}\n\n" + "\n".join(results)
+                                else:
+                                    return f"{thinking}\n\n{self.color_settings['important']}💬 No executable commands found in the response.{self.color_settings['reset']}"
+                            
+                            # Handle single command structure
+                            elif 'command' in data:
+                                shell_command = data['command']
+                                execution_result = self.shell_handler.execute_command(shell_command)
+                                return f"{thinking}\n\n{execution_result}"
+                            
+                        except json.JSONDecodeError:
+                            # If JSON parsing fails, try to extract shell command
+                            shell_command = self._extract_shell_command(command)
+                            if shell_command:
+                                execution_result = self.shell_handler.execute_command(shell_command)
+                                return f"{thinking}\n\n{execution_result}"
                     else:
-                        return f"{thinking}\n\n{self.color_settings['important']}💬 No command found in the response.{self.color_settings['reset']}"
-                else:
-                    # For non-Google models, use the existing command extraction logic
-                    ai_response = ai_response.get('command', '')
+                        # Use robust extraction for non-JSON responses
+                        shell_command = self._extract_shell_command(command)
+                        if shell_command:
+                            execution_result = self.shell_handler.execute_command(shell_command)
+                            return f"{thinking}\n\n{execution_result}"
+                
+                return f"{thinking}\n\n{self.color_settings['important']}💬 No valid command found in the response.{self.color_settings['reset']}"
+            
+            # For non-dict responses, try to extract command
+            shell_command = self._extract_shell_command(ai_response)
+            if shell_command:
+                execution_result = self.shell_handler.execute_command(shell_command)
+                return f"{thinking}\n\n{execution_result}"
+            
+            return f"{thinking}\n\n{self.color_settings['important']}💬 No valid command found in the response.{self.color_settings['reset']}"
+            
         except Exception as e:
             if self.fast_mode:
                 # In fast mode, provide a simple error and let the program continue to exit
@@ -392,44 +470,6 @@ class CommandProcessor:
             else:
                 # In normal mode, re-raise the exception
                 raise
-        
-        # Extract command from AI response using the command extractor (for non-Google models)
-        success, command, metadata = self.command_extractor.extract_command(ai_response)
-
-        # If command is a JSON block, extract the 'command' field
-        import json as _json
-        if isinstance(command, str) and command.strip().startswith('{'):
-            try:
-                command_json = _json.loads(command)
-                if isinstance(command_json, dict) and 'command' in command_json:
-                    command = command_json['command']
-            except Exception:
-                pass
-        
-        result = f"{thinking}\n\n"
-        
-        if success and command:
-            # Format the command with duplicate prevention
-            command_display = self._format_command(command)
-            if command_display:
-                result += command_display + "\n\n"
-            # Execute the command using the shell handler
-            execution_result = self.shell_handler.execute_command(command)
-            # Format the execution result with duplicate prevention
-            result_display = self._format_result(execution_result, command, metadata)
-            if result_display:
-                result += result_display
-            return result
-        elif metadata["is_error"]:
-            # Format error response
-            error_text = f"{self.color_settings['error']}❌ {metadata['error_message']}{self.color_settings['reset']}"
-            result_display = self._format_result(error_text, "Error", metadata)
-            if result_display:
-                result += result_display
-            return result
-        else:
-            # If no command could be extracted, return the AI's response directly
-            return f"{thinking}\n\n{self.color_settings['important']}💬 I couldn't find a specific command for that, but here's some information:{self.color_settings['reset']}\n\n{ai_response}"
     
     def _format_thinking(self, thinking_text):
         """Format the thinking process as a folded/collapsible section."""
@@ -1605,3 +1645,25 @@ class CommandProcessor:
             print(result)
             return
         print('❌ No valid command structure found in JSON')
+
+    def _map_operation_to_command(self, operation, parameters):
+        """Map high-level operations to shell commands."""
+        if operation == 'open_application':
+            app = parameters.get('application', '').lower()
+            if app == 'chrome':
+                return 'open -a "Google Chrome"'
+            elif app == 'firefox':
+                return 'open -a Firefox'
+            elif app == 'safari':
+                return 'open -a Safari'
+            elif app == 'notes':
+                return 'open -a Notes'
+            elif app == 'default_browser':
+                return 'open -a "Google Chrome"'  # Default to Chrome
+            else:
+                return f'open -a "{app}"'
+        elif operation == 'browser_navigate':
+            url = parameters.get('url', '')
+            if url:
+                return f'open -a "Google Chrome" "{url}"'
+        return None

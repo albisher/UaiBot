@@ -9,7 +9,7 @@ import platform
 # Add the project root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.platform_uai.platform_utils import detect_platform, get_audio_handler, get_usb_handler
+from uaibot.platform_uai.platform_utils import detect_platform, get_audio_handler, get_usb_handler
 
 def main():
     # Print system information

@@ -9,7 +9,7 @@ import sys
 import time
 import random
 import platform
-from src.typing import Tuple, Dict, Optional, List
+from uaibot.typing import Tuple, Dict, Optional, List
 
 class MouseSimulator:
     """Cross-platform mouse event simulator for testing."""

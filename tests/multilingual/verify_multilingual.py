@@ -7,7 +7,7 @@ Performs focused tests on specific language features in Arabic and English.
 import os
 import sys
 import json
-from src.datetime import datetime
+from uaibot.datetime import datetime
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +15,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Import utility functions
-from app.utils import get_platform_name
+from uaibot.utils import get_platform_name
 from tests.test_multilingual import run_uaibot_command
 
 # Define verification test cases

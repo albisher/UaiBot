@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
-from app.command_processor.CommandProcessor import CommandProcessor
-from app.command_processor.ShellHandler import ShellHandler
+from uaibot.command_processor.CommandProcessor import CommandProcessor
+from uaibot.command_processor.ShellHandler import ShellHandler
 
 @pytest.fixture
 def mock_ai_handler():

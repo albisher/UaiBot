@@ -1,5 +1,5 @@
 import pytest
-from app.core.command_processor.multilingual_support import MultilingualSupport
+from uaibot.core.command_processor.multilingual_support import MultilingualSupport
 
 class TestMultilingualSupport:
     @pytest.fixture

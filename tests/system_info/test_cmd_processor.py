@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath('.'))  # Add current directory to path
 
 # Import our modified command processor from the root directory
-from app.command_processor.CommandProcessor import CommandProcessor
-from app.core.shell_handler import ShellHandler
+from uaibot.command_processor.CommandProcessor import CommandProcessor
+from uaibot.core.shell_handler import ShellHandler
 
 # Mock AI Handler for testing, now with JSON and structured responses
 class MockAIHandler:

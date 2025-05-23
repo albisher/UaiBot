@@ -1,23 +1,24 @@
 """
 User Interaction History Module
 
-This module tracks and manages user interaction history to enable
-adaptive prompting and improved AI responses based on context.
+This module maintains a history of user interactions and commands
+for context-aware processing and learning.
 """
 
 import os
 import json
 import time
 from datetime import datetime
+from collections import deque  # Fix: Import from standard library collections
 from typing import Dict, Any, List, Optional, Tuple
-from .collections import deque
 import logging
 
 logger = logging.getLogger(__name__)
 
 class UserInteractionHistory:
     """
-    Tracks and manages user interaction history for adaptive prompting.
+    Maintains a history of user interactions and commands.
+    Provides methods for adding, retrieving, and analyzing interactions.
     """
     
     def __init__(self, 
@@ -35,6 +36,8 @@ class UserInteractionHistory:
         self.max_history = max_history
         self.persistent_storage = persistent_storage
         self.history = deque(maxlen=max_history)
+        self.command_frequency = {}
+        self.last_interaction_time = None
         
         # Set up storage path
         if persistent_storage:
@@ -107,6 +110,12 @@ class UserInteractionHistory:
         # Save to disk if persistent storage is enabled
         if self.persistent_storage:
             self._save_interaction(interaction)
+        
+        # Update command frequency
+        if command_executed:
+            self.command_frequency[command_executed] = self.command_frequency.get(command_executed, 0) + 1
+        
+        self.last_interaction_time = datetime.now()
     
     def get_recent_interactions(self, 
                               count: int = None, 
@@ -223,6 +232,15 @@ class UserInteractionHistory:
                     
         return common_topics
     
+    def get_command_frequency(self) -> Dict[str, int]:
+        """
+        Get the frequency of commands in the history.
+        
+        Returns:
+            Dictionary mapping commands to their frequency
+        """
+        return self.command_frequency.copy()
+    
     def _save_interaction(self, interaction: Dict[str, Any]) -> None:
         """
         Save a single interaction to persistent storage.
@@ -281,6 +299,8 @@ class UserInteractionHistory:
         """Clear the interaction history from memory and optionally disk."""
         # Clear memory
         self.history.clear()
+        self.command_frequency.clear()
+        self.last_interaction_time = None
         
         # Clear disk storage if enabled
         if self.persistent_storage and os.path.exists(self.storage_path):

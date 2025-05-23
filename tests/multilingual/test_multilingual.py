@@ -9,7 +9,7 @@ import sys
 import subprocess
 import json
 import platform
-from src.datetime import datetime
+from uaibot.datetime import datetime
 import argparse
 
 # Add project root to path
@@ -18,7 +18,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Import utility functions
-from app.utils import get_platform_name, load_config, get_project_root
+from uaibot.utils import get_platform_name, load_config, get_project_root
 
 # Define test cases for both English and Arabic
 ENGLISH_TEST_CASES = [

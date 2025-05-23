@@ -60,6 +60,9 @@ class AICommandExtractor:
                 - Extracted plan (dict or None)
                 - Metadata about the extraction (dictionary)
         """
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Starting command extraction with response: {ai_response[:200]}...")
+
         metadata = {
             "source": None,
             "confidence": 0.0,
@@ -70,10 +73,12 @@ class AICommandExtractor:
             "plan": None,
             "overall_confidence": None,
             "language": None,
+            "extraction_steps": []  # Track which extraction methods were attempted
         }
 
         # Check for empty response
         if not ai_response or not ai_response.strip():
+            logger.warning("Empty AI response received")
             metadata["is_error"] = True
             metadata["error_message"] = "Empty AI response"
             return False, None, metadata
@@ -81,13 +86,16 @@ class AICommandExtractor:
         # Check for error indicators
         is_error, error_message = self._check_for_error(ai_response)
         if is_error:
+            logger.warning(f"Error detected in AI response: {error_message}")
             metadata["is_error"] = True
             metadata["error_message"] = error_message
             return False, None, metadata
 
         # Try to extract JSON from code blocks or raw text
+        logger.debug("Attempting JSON extraction from code blocks")
         json_blocks = self._extract_json_blocks(ai_response)
         if not json_blocks:
+            logger.debug("No JSON found in code blocks, trying raw text")
             json_blocks = self._extract_raw_json(ai_response)
 
         # Try to parse JSON blocks
@@ -95,39 +103,62 @@ class AICommandExtractor:
         for json_str in json_blocks:
             try:
                 data = json.loads(json_str)
+                logger.debug(f"Successfully parsed JSON: {json.dumps(data)[:200]}...")
                 break
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.debug(f"JSON parsing failed: {str(e)}")
                 continue
 
         # If JSON parsing failed, try other extraction methods
         if not data:
+            logger.debug("JSON parsing failed, trying alternative extraction methods")
+            metadata["extraction_steps"].append("json_failed")
+
             # Try to extract command from code blocks
+            logger.debug("Attempting code block extraction")
             code_blocks = self._extract_code_blocks(ai_response)
             if code_blocks:
+                logger.debug(f"Found code block: {code_blocks[0][:100]}...")
                 command = code_blocks[0].strip()
+                metadata["source"] = "code_block"
+                metadata["extraction_steps"].append("code_block_success")
                 return True, {"command": command, "type": "shell"}, metadata
+            metadata["extraction_steps"].append("code_block_failed")
 
             # Try to extract command from phrases
+            logger.debug("Attempting phrase extraction")
             command = self._extract_command_from_phrases(ai_response)
             if command:
+                logger.debug(f"Found command in phrases: {command[:100]}...")
+                metadata["source"] = "phrase"
+                metadata["extraction_steps"].append("phrase_success")
                 return True, {"command": command, "type": "shell"}, metadata
+            metadata["extraction_steps"].append("phrase_failed")
 
             # Try to extract Arabic command
+            logger.debug("Attempting Arabic command extraction")
             command = self._extract_arabic_command(ai_response)
             if command:
+                logger.debug(f"Found Arabic command: {command[:100]}...")
+                metadata["source"] = "arabic"
+                metadata["extraction_steps"].append("arabic_success")
                 return True, {"command": command, "type": "shell"}, metadata
+            metadata["extraction_steps"].append("arabic_failed")
 
+            logger.warning("All extraction methods failed")
             metadata["is_error"] = True
             metadata["error_message"] = "No valid command found in AI response"
             return False, None, metadata
 
         # Process parsed JSON data
+        logger.debug("Processing parsed JSON data")
         metadata["parsed_json"] = data
         metadata["confidence"] = data.get("confidence", 0.95)
         metadata["language"] = data.get("language", "en")
 
         # Handle plan-based structure
         if "plan" in data and isinstance(data["plan"], list):
+            logger.debug("Found plan-based structure")
             metadata["plan"] = data["plan"]
             metadata["overall_confidence"] = data.get("overall_confidence")
             metadata["alternatives"] = data.get("alternatives", [])
@@ -136,6 +167,7 @@ class AICommandExtractor:
 
         # Handle single command structure
         if "command" in data:
+            logger.debug("Found single command structure")
             metadata["source"] = "command_json"
             return True, {
                 "plan": [{
@@ -153,6 +185,7 @@ class AICommandExtractor:
 
         # Handle multiple commands structure
         if "commands" in data and isinstance(data["commands"], list):
+            logger.debug("Found multiple commands structure")
             metadata["source"] = "commands_json"
             return True, {
                 "plan": [
@@ -171,178 +204,179 @@ class AICommandExtractor:
                 ]
             }, metadata
 
+        logger.warning("No valid command structure found in JSON")
         metadata["is_error"] = True
         metadata["error_message"] = "No valid command structure found in JSON"
         return False, None, metadata
 
     def _extract_json_blocks(self, text: str) -> List[str]:
-        """Extract JSON blocks from code blocks."""
-        blocks = []
-        lines = text.split('\n')
-        in_json_block = False
-        current_block = []
+        """Extract JSON blocks from text, handling various formats."""
+        logger = logging.getLogger(__name__)
+        json_blocks = []
         
-        for line in lines:
-            if line.strip().startswith('```json'):
-                in_json_block = True
-                current_block = []
-            elif in_json_block and line.strip().startswith('```'):
-                in_json_block = False
-                if current_block:
-                    blocks.append('\n'.join(current_block))
-            elif in_json_block:
-                current_block.append(line)
+        # Pattern for JSON in code blocks
+        code_block_pattern = r'```(?:json)?\s*({[\s\S]*?})\s*```'
+        code_blocks = re.findall(code_block_pattern, text, re.DOTALL)
         
-        return blocks
+        if code_blocks:
+            logger.debug(f"Found {len(code_blocks)} JSON code blocks")
+            json_blocks.extend(code_blocks)
+        
+        # Pattern for JSON in triple backticks without language specifier
+        triple_backtick_pattern = r'```\s*({[\s\S]*?})\s*```'
+        triple_blocks = re.findall(triple_backtick_pattern, text, re.DOTALL)
+        
+        if triple_blocks:
+            logger.debug(f"Found {len(triple_blocks)} triple backtick blocks")
+            json_blocks.extend(triple_blocks)
+        
+        # Pattern for JSON in single backticks
+        single_backtick_pattern = r'`({[\s\S]*?})`'
+        single_blocks = re.findall(single_backtick_pattern, text, re.DOTALL)
+        
+        if single_blocks:
+            logger.debug(f"Found {len(single_blocks)} single backtick blocks")
+            json_blocks.extend(single_blocks)
+        
+        # Validate each block is actually JSON
+        valid_blocks = []
+        for block in json_blocks:
+            try:
+                # Try to parse the JSON
+                json.loads(block)
+                valid_blocks.append(block)
+            except json.JSONDecodeError:
+                logger.debug(f"Invalid JSON block found: {block[:100]}...")
+                continue
+        
+        return valid_blocks
 
     def _extract_raw_json(self, text: str) -> List[str]:
-        """Extract raw JSON objects from text."""
-        blocks = []
-        lines = text.split('\n')
-        current_block = []
-        brace_count = 0
+        """Extract raw JSON from text without code block markers."""
+        logger = logging.getLogger(__name__)
+        json_blocks = []
         
-        for line in lines:
-            if '{' in line:
-                brace_count += line.count('{')
-                current_block.append(line)
-            elif '}' in line:
-                brace_count -= line.count('}')
-                current_block.append(line)
-                if brace_count == 0 and current_block:
-                    blocks.append('\n'.join(current_block))
-                    current_block = []
-            elif current_block:
-                current_block.append(line)
+        # Pattern for raw JSON objects
+        json_pattern = r'({[\s\S]*?})'
+        matches = re.findall(json_pattern, text, re.DOTALL)
         
-        return blocks
+        if matches:
+            logger.debug(f"Found {len(matches)} potential raw JSON blocks")
+            
+            # Validate each match is actually JSON
+            for match in matches:
+                try:
+                    # Try to parse the JSON
+                    json.loads(match)
+                    json_blocks.append(match)
+                except json.JSONDecodeError:
+                    logger.debug(f"Invalid raw JSON found: {match[:100]}...")
+                    continue
+        
+        return json_blocks
 
     def _extract_code_blocks(self, text: str) -> List[str]:
-        """Extract code blocks from text."""
-        blocks = []
-        lines = text.split('\n')
-        in_block = False
-        current_block = []
+        """Extract code blocks from text, handling various formats."""
+        logger = logging.getLogger(__name__)
+        code_blocks = []
         
-        for line in lines:
-            if any(line.strip().startswith(marker) for marker in self.code_block_markers):
-                in_block = True
-                current_block = []
-            elif in_block and line.strip().startswith('```'):
-                in_block = False
-                if current_block:
-                    blocks.append('\n'.join(current_block))
-            elif in_block:
-                current_block.append(line)
+        # Pattern for code blocks with language specifier
+        code_block_pattern = r'```(?:bash|shell|zsh|sh|console|terminal)?\s*(.*?)\s*```'
+        blocks = re.findall(code_block_pattern, text, re.DOTALL)
         
-        return blocks
+        if blocks:
+            logger.debug(f"Found {len(blocks)} code blocks with language specifier")
+            code_blocks.extend(blocks)
+        
+        # Pattern for code blocks without language specifier
+        raw_block_pattern = r'```\s*(.*?)\s*```'
+        raw_blocks = re.findall(raw_block_pattern, text, re.DOTALL)
+        
+        if raw_blocks:
+            logger.debug(f"Found {len(raw_blocks)} raw code blocks")
+            code_blocks.extend(raw_blocks)
+        
+        # Pattern for inline code
+        inline_pattern = r'`(.*?)`'
+        inline_blocks = re.findall(inline_pattern, text)
+        
+        if inline_blocks:
+            logger.debug(f"Found {len(inline_blocks)} inline code blocks")
+            code_blocks.extend(inline_blocks)
+        
+        # Clean and validate each block
+        valid_blocks = []
+        for block in code_blocks:
+            # Clean the block
+            cleaned = block.strip()
+            if cleaned:
+                # Skip if it looks like JSON
+                if cleaned.startswith('{') and cleaned.endswith('}'):
+                    try:
+                        json.loads(cleaned)
+                        logger.debug(f"Skipping JSON block: {cleaned[:100]}...")
+                        continue
+                    except json.JSONDecodeError:
+                        pass
+                valid_blocks.append(cleaned)
+        
+        return valid_blocks
 
     def _extract_command_from_phrases(self, text: str) -> Optional[str]:
-        """Extract command from phrases like 'use the command...'."""
-        words = text.lower().split()
+        """Extract command from natural language phrases."""
+        logger = logging.getLogger(__name__)
         
-        for phrase in self.command_indicator_phrases:
-            # Check if all words in the phrase appear in sequence
-            for i in range(len(words) - len(phrase) + 1):
-                if words[i:i + len(phrase)] == phrase:
-                    # Found the phrase, look for the command
-                    remaining = ' '.join(words[i + len(phrase):])
-                    
-                    # Check for quoted command
-                    if remaining.startswith(("'", '"')):
-                        quote_char = remaining[0]
-                        end_quote = remaining.find(quote_char, 1)
-                        if end_quote != -1:
-                            return remaining[1:end_quote]
-                    
-                    # Check for backtick command
-                    if remaining.startswith('`'):
-                        end_backtick = remaining.find('`', 1)
-                        if end_backtick != -1:
-                            return remaining[1:end_backtick]
-                    
-                    # Take the first word as command
-                    return remaining.split()[0]
+        # Common command indicators
+        command_indicators = [
+            r'run\s+(?:the\s+)?command:\s*(.*?)(?:\.|$)',
+            r'execute\s+(?:the\s+)?command:\s*(.*?)(?:\.|$)',
+            r'use\s+(?:the\s+)?command:\s*(.*?)(?:\.|$)',
+            r'command\s+is:\s*(.*?)(?:\.|$)',
+            r'run:\s*(.*?)(?:\.|$)',
+            r'execute:\s*(.*?)(?:\.|$)',
+            r'use:\s*(.*?)(?:\.|$)',
+            r'command:\s*(.*?)(?:\.|$)'
+        ]
+        
+        for pattern in command_indicators:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                command = matches[0].strip()
+                logger.debug(f"Found command in phrase: {command[:100]}...")
+                return command
+        
+        # Try to find lines that look like commands
+        lines = text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith(('#', '//', 'Note:', 'Here', 'Try')):
+                # Check if line looks like a command
+                if any(c in line for c in ['$', '>', 'sudo', 'git', 'npm', 'python', 'pip']):
+                    logger.debug(f"Found command-like line: {line[:100]}...")
+                    return line
         
         return None
 
     def _extract_arabic_command(self, text: str) -> Optional[str]:
-        """Extract Arabic commands from text."""
-        # Special case for the write with content pattern: "اكتب 'content' في ملف filename"
-        if "اكتب" in text and "في ملف" in text:
-            content_match = re.search(r"'([^']*)'", text)
-            filename_match = re.search(r"في ملف\s+(\S+)", text)
-            if content_match and filename_match:
-                content = content_match.group(1)
-                filename = filename_match.group(1)
-                return f"echo '{content}' > {filename}"
-
-        # Process Arabic commands based on keywords
-        for indicator in self.arabic_command_indicators:
-            if indicator in text:
-                words = text.split()
-                # Find the index of the Arabic command indicator
-                for i, word in enumerate(words):
-                    if indicator in word:
-                        # Handle more complex filenames with "باسم" (meaning "named")
-                        if "باسم" in text:
-                            # Extract the filename after "باسم" (named)
-                            name_idx = words.index("باسم") if "باسم" in words else -1
-                            if name_idx >= 0 and name_idx + 1 < len(words):
-                                filename = words[name_idx + 1]
-                                
-                                # Map Arabic command indicators to shell commands
-                                if indicator in ["احذف", "امسح", "ازل", "أزل"]:
-                                    return f"rm {filename}"
-                                elif indicator in ["اقرأ", "اعرض"]:
-                                    return f"cat {filename}"
-                                elif indicator in ["انشئ", "انشاء"]:
-                                    return f"touch {filename}"
-                                elif indicator in ["اكتب", "أكتب", "اضف", "أضف"]:
-                                    # Look for content in single quotes
-                                    content_match = re.search(r"'([^']*)'", text)
-                                    if content_match:
-                                        content = content_match.group(1)
-                                        return f"echo '{content}' > {filename}"
-                                    else:
-                                        return f"touch {filename}"
-                        
-                        # Extract filename after the indicator with "ملف" (file)
-                        elif i + 1 < len(words) and "ملف" in words[i+1]:
-                            # The pattern is typically: [arabic command] ملف [filename]
-                            if i + 2 < len(words):
-                                filename = words[i+2]
-                                
-                                # If the filename is followed by "في" (in), then the actual filename comes after
-                                if "في" in text and "ملف" in text:
-                                    try:
-                                        # Find the word "في" (in) followed by "ملف" (file)
-                                        if "في" in words and "ملف" in words:
-                                            في_idx = words.index("في")
-                                            if في_idx + 2 < len(words) and words[في_idx + 1] == "ملف":
-                                                filename = words[في_idx + 2]
-                                    except (ValueError, IndexError):
-                                        pass
-                                    
-                                # Map Arabic command indicators to shell commands
-                                if indicator in ["احذف", "امسح", "ازل", "أزل"]:
-                                    return f"rm {filename}"
-                                elif indicator in ["اقرأ", "اعرض"]:
-                                    return f"cat {filename}"
-                                elif indicator in ["انشئ", "انشاء"]:
-                                    return f"touch {filename}"
-                                elif indicator in ["اكتب", "أكتب", "اضف", "أضف"]:
-                                    # Look for content in single quotes
-                                    content_match = re.search(r"'([^']*)'", text)
-                                    if content_match:
-                                        content = content_match.group(1)
-                                        return f"echo '{content}' > {filename}"
-                                    else:
-                                        return f"touch {filename}"
-                        
-                        # Special case for directory listing
-                        elif "المجلد" in text and "الحالي" in text:
-                            return "ls -l"
+        """Extract command from Arabic text."""
+        logger = logging.getLogger(__name__)
+        
+        # Common Arabic command indicators
+        arabic_indicators = [
+            r'نفذ\s+(?:الامر|الاوامر):\s*(.*?)(?:\.|$)',
+            r'استخدم\s+(?:الامر|الاوامر):\s*(.*?)(?:\.|$)',
+            r'الامر\s+هو:\s*(.*?)(?:\.|$)',
+            r'نفذ:\s*(.*?)(?:\.|$)',
+            r'استخدم:\s*(.*?)(?:\.|$)',
+            r'الامر:\s*(.*?)(?:\.|$)'
+        ]
+        
+        for pattern in arabic_indicators:
+            matches = re.findall(pattern, text)
+            if matches:
+                command = matches[0].strip()
+                logger.debug(f"Found Arabic command: {command[:100]}...")
+                return command
         
         return None
 

@@ -9,6 +9,7 @@ import json
 import logging
 import platform
 import os
+import re
 from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List, Union
 
@@ -36,7 +37,7 @@ class AIDrivenProcessor:
         """
         self.quiet_mode = quiet_mode
         self.use_cache = use_cache
-        self.response_cache = AIResponseCache(max_size=cache_size, ttl=cache_ttl) if use_cache else None
+        self.response_cache = AIResponseCache(max_size=cache_size, ttl_seconds=cache_ttl) if use_cache else None
         
         # Enhanced examples dictionary with more comprehensive examples
         self.format_examples = {
@@ -176,44 +177,6 @@ class AIDrivenProcessor:
         # Get current timestamp for context
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Select a subset of examples based on the platform and request content
-        selected_examples = []
-        
-        # Always include basic command and file operations
-        base_examples = ["list_files", "create_file", "read_file"]
-        for key in base_examples:
-            if key in self.format_examples:
-                selected_examples.append(self.format_examples[key])
-        
-        # Check if request contains Arabic characters using Unicode ranges
-        has_arabic = any('\u0600' <= char <= '\u06FF' for char in user_request)
-        if has_arabic and "arabic_example" in self.format_examples:
-            selected_examples.append(self.format_examples["arabic_example"])
-        elif "spanish" in user_request.lower() and "spanish_example" in self.format_examples:
-            selected_examples.append(self.format_examples["spanish_example"])
-        
-        # Add platform-specific examples if available
-        if platform_info and "system" in platform_info:
-            if platform_info["system"].lower() == "darwin" and "macos_example" in self.format_examples:
-                selected_examples.append(self.format_examples["macos_example"])
-            elif platform_info["system"].lower() == "linux" and "linux_example" in self.format_examples:
-                selected_examples.append(self.format_examples["linux_example"])
-        
-        # Check if request might need multiple steps
-        complex_keywords = ["project", "setup", "install", "configure", "create and", "multiple", "steps"]
-        if any(keyword in user_request.lower() for keyword in complex_keywords) and "complex_example" in self.format_examples:
-            selected_examples.append(self.format_examples["complex_example"])
-        
-        # Add error response example
-        if "security_error" in self.format_examples:
-            selected_examples.append(self.format_examples["security_error"])
-        
-        # Format the examples as JSON strings
-        examples_str = "\n\n".join([
-            f"Example {i+1}:\n```json\n{json.dumps(e, indent=2)}\n```" 
-            for i, e in enumerate(selected_examples)
-        ])
-        
         # Create a comprehensive system prompt that encourages AI to handle all request types
         prompt = f"""
 CURRENT TIME: {current_time}
@@ -230,20 +193,22 @@ INSTRUCTIONS:
 7. For file operations like "create a file named test.txt", use the file_operation structure.
 8. For informational requests, provide relevant information AND related commands.
 9. Format all responses as valid JSON with proper escaping.
+10. NEVER include markdown formatting or triple backticks in your response.
+11. NEVER include explanatory text outside the JSON structure.
+12. If you're unsure about a command, use the error format and explain why.
 
 RESPONSE FORMATS:
 
 FORMAT 1 (for executable shell commands):
-```json
 {{
   "command": "<executable shell command>",
   "explanation": "<brief explanation of what the command does>",
-  "alternatives": ["<alternative command 1>", "<alternative command 2>"]
+  "alternatives": ["<alternative command 1>", "<alternative command 2>"],
+  "confidence": 0.95,
+  "type": "shell"
 }}
-```
 
 FORMAT 2 (for file operations):
-```json
 {{
   "file_operation": "<create|read|write|delete|search|list>",
   "operation_params": {{
@@ -252,50 +217,70 @@ FORMAT 2 (for file operations):
     "directory": "<directory path if applicable>",
     "search_term": "<search term if applicable>"
   }},
-  "explanation": "<brief explanation of the operation>"
+  "explanation": "<brief explanation of the operation>",
+  "confidence": 0.95,
+  "type": "file"
 }}
-```
 
 FORMAT 3 (for information/conversational queries):
-```json
 {{
   "info_type": "<system_info|general_question|help|definition>",
   "response": "<your detailed response>",
   "related_command": "<optional command related to the query>",
-  "explanation": "<brief explanation of the response>"
+  "explanation": "<brief explanation of the response>",
+  "confidence": 0.95,
+  "type": "info"
 }}
-```
 
 FORMAT 4 (for requests that cannot be fulfilled):
-```json
 {{
   "error": true,
   "error_message": "<explain why this cannot be executed>",
-  "suggested_approach": "<if applicable, suggest how the user might accomplish this>"
+  "suggested_approach": "<if applicable, suggest how the user might accomplish this>",
+  "confidence": 0.95,
+  "type": "error"
 }}
-```
 
-MULTILINGUAL EXAMPLES:
+EXAMPLES:
 
-English example: "list files in directory" →
-```json
+1. English command: "list files in directory"
 {{
   "command": "ls -la",
   "explanation": "Lists all files in the current directory with details",
-  "alternatives": ["ls", "find . -maxdepth 1"]
+  "alternatives": ["ls", "find . -maxdepth 1"],
+  "confidence": 0.95,
+  "type": "shell"
 }}
-```
 
-Arabic example: "انشاء ملف جديد باسم test_ar.txt" →
-```json
+2. Arabic command: "انشاء ملف جديد باسم test_ar.txt"
 {{
   "file_operation": "create",
   "operation_params": {{
     "filename": "test_ar.txt"
   }},
-  "explanation": "Creates a new empty file named test_ar.txt"
+  "explanation": "Creates a new empty file named test_ar.txt",
+  "confidence": 0.95,
+  "type": "file"
 }}
-```
+
+3. Information request: "what is the current directory?"
+{{
+  "info_type": "system_info",
+  "response": "The current directory is where you are currently working in the terminal.",
+  "related_command": "pwd",
+  "explanation": "Shows the current working directory path",
+  "confidence": 0.95,
+  "type": "info"
+}}
+
+4. Error case: "delete system files"
+{{
+  "error": true,
+  "error_message": "Cannot delete system files as it may cause system instability",
+  "suggested_approach": "Please specify which specific files you want to delete, and I'll help you do it safely",
+  "confidence": 0.95,
+  "type": "error"
+}}
 
 IMPORTANT GUIDELINES:
 1. ONLY respond with the JSON format that best matches the request type
@@ -303,6 +288,9 @@ IMPORTANT GUIDELINES:
 3. Don't include explanations outside the JSON structure
 4. For ANY request, find the appropriate JSON format - don't say "I can't handle this"
 5. Commands should be executable directly in a shell without modification
+6. Always include the confidence and type fields in your response
+7. If you're unsure about a command, use the error format
+8. Never include markdown or triple backticks in your response
 
 Now process the user's request and respond with ONLY the appropriate JSON format:
 """

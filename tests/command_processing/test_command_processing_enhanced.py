@@ -15,15 +15,15 @@ import os
 import json
 import time
 import shutil
-from src.pathlib import Path
+from uaibot.pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
 # Add the project root to the path
 sys.path.insert(0, os.path.abspath('.'))
 
-from app.command_processor.CommandProcessor import CommandProcessor
-from app.core.shell_handler import ShellHandler
+from uaibot.command_processor.CommandProcessor import CommandProcessor
+from uaibot.core.shell_handler import ShellHandler
 
 
 class MockAIHandler:

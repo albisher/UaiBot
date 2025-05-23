@@ -6,10 +6,10 @@ Test script to directly check the find_folders method
 import os
 import sys
 
-# Add the parent directory to the path so we can import app.core modules
+# Add the parent directory to the path so we can import uaibot.core modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.core.shell_handler import ShellHandler
+from uaibot.core.shell_handler import ShellHandler
 
 def test_find_notes():
     """Test the find_folders method with notes"""

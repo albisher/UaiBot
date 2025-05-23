@@ -1,5 +1,5 @@
 import pytest
-from app.main import UaiBot
+from uaibot.main import UaiBot
 from unittest.mock import Mock, patch
 
 def test_uaibot_initialization(mock_platform_manager, test_config):

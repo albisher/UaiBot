@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import UaiBot modules
-from app.utils import run_command
-from app.core.shell_handler import ShellHandler
+from uaibot.utils import run_command
+from uaibot.core.shell_handler import ShellHandler
 
 # Dynamically load the CommandProcessor from the main directory
 from importlib.machinery import SourceFileLoader

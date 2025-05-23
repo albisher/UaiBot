@@ -4,11 +4,11 @@ Test suite for the execution controller.
 
 import pytest
 from unittest.mock import Mock, patch
-from src.pathlib import Path
+from uaibot.pathlib import Path
 import json
 import os
 
-from app.core.controller.execution_controller import ExecutionController
+from uaibot.core.controller.execution_controller import ExecutionController
 
 @pytest.fixture
 def mock_shell_handler():

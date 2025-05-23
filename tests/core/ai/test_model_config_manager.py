@@ -4,8 +4,8 @@ Tests for the Model Configuration Manager module.
 import pytest
 import json
 import os
-from src.datetime import datetime
-from app.core.model_config_manager import ModelConfigManager, ModelConfig
+from uaibot.datetime import datetime
+from uaibot.core.model_config_manager import ModelConfigManager, ModelConfig
 
 @pytest.fixture
 def temp_config_dir(tmp_path):

@@ -4,12 +4,12 @@
 import sys
 import os
 import unittest
-from src.unittest import mock
+from uaibot.unittest import mock
 import platform
 
 # Add the parent directory to the path so we can import the module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from app.core.ai_handler import get_system_info
+from uaibot.core.ai_handler import get_system_info
 
 class TestSystemInfo(unittest.TestCase):
     

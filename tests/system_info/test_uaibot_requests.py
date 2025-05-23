@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Import required modules
 try:
-    from app.core.ai_handler import AIHandler, get_system_info
-    from app.core.shell_handler import ShellHandler
+    from uaibot.core.ai_handler import AIHandler, get_system_info
+    from uaibot.core.shell_handler import ShellHandler
 except ImportError as e:
     print(f"Error importing UaiBot modules: {e}")
     print("Make sure you're running this script from the UaiBot directory")

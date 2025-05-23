@@ -1,168 +1,108 @@
 """
 AI Response Cache Module
 
-This module implements a caching mechanism for AI responses
-to improve performance by avoiding redundant processing of
-similar queries.
+This module implements caching for AI responses to improve performance
+and reduce API calls.
 """
 
-import hashlib
-import json
 import time
-import sys
-from typing import Dict, Any, Optional, Tuple
 import logging
-import threading
+from typing import Dict, Any, Optional
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
 class AIResponseCache:
     """
-    Caches AI responses to reduce processing time for similar queries.
-    Implements time-based invalidation and LRU eviction policy.
+    Cache for AI responses with TTL (Time To Live) support.
     """
     
     def __init__(self, max_size: int = 100, ttl_seconds: int = 3600):
         """
-        Initialize the cache with the specified maximum size and time-to-live.
+        Initialize the cache.
         
         Args:
-            max_size: Maximum number of entries in the cache
-            ttl_seconds: Time-to-live for cache entries in seconds
+            max_size: Maximum number of items to store in the cache
+            ttl_seconds: Time to live for cache entries in seconds
         """
-        self._cache = {}
-        self._access_times = {}
-        self._max_size = max_size
-        self._ttl_seconds = ttl_seconds
-        self._lock = threading.RLock()  # Use RLock for thread safety
+        self.max_size = max_size
+        self.ttl_seconds = ttl_seconds
+        self.cache = OrderedDict()
+        self.timestamps = {}
         
-    def generate_key(self, query: str, context: Dict[str, Any] = None) -> str:
-        """
-        Generate a cache key from the query and context.
-        
-        Args:
-            query: The user query
-            context: Additional context information
-            
-        Returns:
-            A string key for the cache
-        """
-        # Normalize the query by removing extra whitespace and converting to lowercase
-        normalized_query = ' '.join(query.strip().lower().split())
-        
-        # Extract only the relevant parts of the context to avoid unnecessary cache misses
-        relevant_context = {}
-        if context:
-            # Only include platform-specific information that affects command execution
-            if 'os_type' in context:
-                relevant_context['os_type'] = context['os_type']
-            if 'os_version' in context:
-                relevant_context['os_version'] = context['os_version']
-            if 'shell_type' in context:
-                relevant_context['shell_type'] = context['shell_type']
-        
-        # Create a combined string for hashing
-        combined = f"{normalized_query}|{json.dumps(relevant_context, sort_keys=True)}"
-        
-        # Use a fast hash function
-        return hashlib.md5(combined.encode('utf-8')).hexdigest()
-    
     def get(self, key: str) -> Optional[Dict[str, Any]]:
         """
-        Get a value from the cache if it exists and is not expired.
+        Get a value from the cache.
         
         Args:
-            key: The cache key
+            key: Cache key
             
         Returns:
-            The cached value or None if not found or expired
+            Cached value or None if not found or expired
         """
-        with self._lock:
-            if key in self._cache:
-                # Check if the entry has expired
-                access_time = self._access_times.get(key, 0)
-                current_time = time.time()
-                
-                if current_time - access_time > self._ttl_seconds:
-                    # Entry has expired, remove it
-                    del self._cache[key]
-                    del self._access_times[key]
-                    return None
-                
-                # Update the access time
-                self._access_times[key] = current_time
-                return self._cache[key]
-            
+        if key not in self.cache:
             return None
-    
+            
+        # Check if entry has expired
+        if time.time() - self.timestamps[key] > self.ttl_seconds:
+            logger.debug(f"Cache entry expired for key: {key}")
+            self._remove(key)
+            return None
+            
+        # Move to end (most recently used)
+        value = self.cache.pop(key)
+        self.cache[key] = value
+        return value
+        
     def put(self, key: str, value: Dict[str, Any]) -> None:
         """
-        Put a value in the cache.
+        Add a value to the cache.
         
         Args:
-            key: The cache key
-            value: The value to cache
+            key: Cache key
+            value: Value to cache
         """
-        with self._lock:
-            # Check if we need to evict an entry
-            if len(self._cache) >= self._max_size and key not in self._cache:
-                self._evict_lru()
+        # Remove if exists
+        if key in self.cache:
+            self._remove(key)
             
-            # Add the new entry
-            self._cache[key] = value
-            self._access_times[key] = time.time()
-    
-    def _evict_lru(self) -> None:
-        """
-        Evict the least recently used entry from the cache.
-        """
-        if not self._access_times:
-            return
+        # Check if cache is full
+        if len(self.cache) >= self.max_size:
+            # Remove oldest entry
+            oldest_key = next(iter(self.cache))
+            self._remove(oldest_key)
+            
+        # Add new entry
+        self.cache[key] = value
+        self.timestamps[key] = time.time()
         
-        # Find the least recently used key
-        lru_key = min(self._access_times.items(), key=lambda x: x[1])[0]
+    def _remove(self, key: str) -> None:
+        """
+        Remove an entry from the cache.
         
-        # Remove it from the cache
-        del self._cache[lru_key]
-        del self._access_times[lru_key]
-    
+        Args:
+            key: Cache key to remove
+        """
+        if key in self.cache:
+            del self.cache[key]
+            del self.timestamps[key]
+            
     def clear(self) -> None:
-        """
-        Clear all entries from the cache.
-        """
-        with self._lock:
-            self._cache.clear()
-            self._access_times.clear()
-    
-    def invalidate(self, key: str) -> bool:
-        """
-        Invalidate a specific cache entry.
+        """Clear all entries from the cache."""
+        self.cache.clear()
+        self.timestamps.clear()
         
-        Args:
-            key: The cache key to invalidate
-            
-        Returns:
-            True if the key was found and invalidated, False otherwise
-        """
-        with self._lock:
-            if key in self._cache:
-                del self._cache[key]
-                del self._access_times[key]
-                return True
-            return False
-    
     def get_stats(self) -> Dict[str, Any]:
         """
-        Get statistics about the cache.
+        Get cache statistics.
         
         Returns:
-            Dictionary with cache statistics
+            Dictionary containing cache statistics
         """
-        with self._lock:
-            return {
-                "size": len(self._cache),
-                "max_size": self._max_size,
-                "ttl_seconds": self._ttl_seconds,
-                "keys": list(self._cache.keys()),
-                "memory_usage_bytes": sys.getsizeof(self._cache) + sys.getsizeof(self._access_times)
-            }
+        return {
+            "size": len(self.cache),
+            "max_size": self.max_size,
+            "ttl_seconds": self.ttl_seconds,
+            "hits": getattr(self, "_hits", 0),
+            "misses": getattr(self, "_misses", 0)
+        }

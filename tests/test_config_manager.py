@@ -8,7 +8,7 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.uaibot.core.config_manager import ConfigManager
+from uaibot.uaibot.core.config_manager import ConfigManager
 
 def test_config_manager():
     """Test the configuration manager functionality."""

@@ -8,7 +8,7 @@ import os
 import sys
 import time
 import random
-from src.contextlib import contextmanager
+from uaibot.contextlib import contextmanager
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

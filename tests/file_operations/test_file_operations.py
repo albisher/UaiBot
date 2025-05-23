@@ -8,13 +8,13 @@ import sys
 import unittest
 import tempfile
 import shutil
-from src.pathlib import Path
+from uaibot.pathlib import Path
 
 # Add project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.file_operations import parse_file_request, handle_file_operation
-from app.command_processor.file_operations_handler import FileOperationsHandler
+from uaibot.core.file_operations import parse_file_request, handle_file_operation
+from uaibot.command_processor.file_operations_handler import FileOperationsHandler
 
 class TestFileRequestParsing(unittest.TestCase):
     """Test file request parsing functionality."""

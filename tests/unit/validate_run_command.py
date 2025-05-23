@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the run_command utility
-from app.utils import run_command
+from uaibot.utils import run_command
 
 def main():
     """Run a series of tests to validate the run_command utility."""

@@ -6,8 +6,8 @@ Tests the functionality of parsing and handling file operations commands.
 import os
 import pytest
 import shutil
-from src.pathlib import Path
-from app.core.file_operations import parse_file_request, handle_file_operation, process_file_flag_request, FileOperations
+from uaibot.pathlib import Path
+from uaibot.core.file_operations import parse_file_request, handle_file_operation, process_file_flag_request, FileOperations
 
 class TestFileOperations:
     """Test suite for file operations."""

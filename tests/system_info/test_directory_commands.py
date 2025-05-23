@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.core.shell_handler import ShellHandler
-from app.command_processor.command_processor import CommandProcessor
+from uaibot.core.shell_handler import ShellHandler
+from uaibot.command_processor.command_processor import CommandProcessor
 
 class TestDirectoryCommands(unittest.TestCase):
     """Test directory-related command functionality."""

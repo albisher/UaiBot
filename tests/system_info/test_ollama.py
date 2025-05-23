@@ -3,7 +3,7 @@
 import sys
 import os
 import json
-from app.core.ai_handler import AIHandler
+from uaibot.core.ai_handler import AIHandler
 
 def main():
     print("Testing Ollama connection...")

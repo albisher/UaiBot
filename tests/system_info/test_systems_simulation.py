@@ -9,7 +9,7 @@ import platform
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the original function
-from app.core.ai_handler import get_system_info as original_get_system_info
+from uaibot.core.ai_handler import get_system_info as original_get_system_info
 
 def simulate_system(system_type):
     """

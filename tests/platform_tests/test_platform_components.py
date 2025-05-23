@@ -14,8 +14,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-from app.platform_uai.platform_manager import PlatformManager
-from app.utils import get_platform_name, load_config
+from uaibot.platform_uai.platform_manager import PlatformManager
+from uaibot.utils import get_platform_name, load_config
 
 def main():
     """Test platform-specific components"""
