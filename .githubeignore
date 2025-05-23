@@ -1,0 +1,4 @@
+# Ignore results and metrics output
+results/
+metrics/
+logs/ 
