@@ -376,8 +376,20 @@ class GoogleAIModel(BaseAIModel):
         """Generate response using Google AI."""
         try:
             response = self.client.generate_content(prompt)
+            # Extract the command from the response text
+            command = response.text.strip()
+            
+            # If the response is a JSON string, try to parse it
+            if command.startswith('{') and command.endswith('}'):
+                try:
+                    data = json.loads(command)
+                    if 'command' in data:
+                        command = data['command']
+                except json.JSONDecodeError:
+                    pass
+            
             return {
-                "command": response.text,
+                "command": command,
                 "confidence": 0.95,
                 "model": self.model_name,
                 "type": "shell",
@@ -439,8 +451,21 @@ class OllamaAIModel(BaseAIModel):
                 prompt=prompt,
                 options=self.model_params
             )
+            
+            # Extract the command from the response text
+            command = response.get("response", "").strip()
+            
+            # If the response is a JSON string, try to parse it
+            if command.startswith('{') and command.endswith('}'):
+                try:
+                    data = json.loads(command)
+                    if 'command' in data:
+                        command = data['command']
+                except json.JSONDecodeError:
+                    pass
+            
             return {
-                "command": response.get("response", "").strip(),
+                "command": command,
                 "confidence": 0.95,
                 "model": self.model_name,
                 "type": "shell",

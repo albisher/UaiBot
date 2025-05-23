@@ -5,7 +5,8 @@
 import os
 import sys
 import platform
-from uaibot.core.command_processor.command_processor_main import CommandProcessor
+from unittest.mock import Mock
+from uaibot.core.command_processor import CommandProcessor
 
 class MockAIHandler:
     """Simple mock AI handler for testing."""
@@ -27,7 +28,7 @@ class MockAIHandler:
 class MockShellHandler:
     """Simple mock shell handler for testing."""
     def execute_command(self, command):
-        return f"Mock execution of: {command}"
+        return (0, f"Mock execution of: {command}", "")
         
     # Add methods that the command processor expects to call
     def find_folders(self, *args, **kwargs):
@@ -45,12 +46,12 @@ def test_command_processor():
     print(f"System: {platform.system()} {platform.release()}")
     print("-" * 60)
     
-    # Create processor with our mocks
-    processor = CommandProcessor(
-        MockAIHandler(),
-        MockShellHandler(),
-        quiet_mode=False
-    )
+    # Create mock handlers
+    ai_handler = MockAIHandler()
+    shell_handler = MockShellHandler()
+    
+    # Create processor with mock handlers
+    processor = CommandProcessor(ai_handler, shell_handler)
     
     # Test cases to verify direct execution and intent mapping
     test_commands = [
@@ -76,10 +77,10 @@ def test_command_processor():
     for cmd in test_commands:
         print(f"\nTesting: \"{cmd}\"")
         try:
-            result = processor.process_command(cmd)
-            success = "✅" if result and not "❌" in result else "❌"
+            result = processor.execute_command(cmd)
+            success = "✅" if result["status"] == "success" else "❌"
             results.append((cmd, success, result))
-            print(f"  {success} Result: {result[:100]}{'...' if len(result) > 100 else ''}")
+            print(f"  {success} Result: {str(result)[:100]}{'...' if len(str(result)) > 100 else ''}")
         except Exception as e:
             results.append((cmd, "❌", f"Error: {str(e)}"))
             print(f"  ❌ Error: {str(e)}")
@@ -96,7 +97,7 @@ def test_command_processor():
     if failures:
         print("\nFailed commands:")
         for cmd, result in failures:
-            print(f"- \"{cmd}\": {result[:100]}{'...' if len(result) > 100 else ''}")
+            print(f"- \"{cmd}\": {str(result)[:100]}{'...' if len(str(result)) > 100 else ''}")
     
 if __name__ == "__main__":
     try:

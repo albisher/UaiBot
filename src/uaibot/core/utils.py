@@ -7,11 +7,11 @@ class Utils:
     def __init__(self):
         # Set up logging
         self.logger = logging.getLogger('UaiBot')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)  # Default to INFO
         
         # Create a custom handler to capture log records
         self.log_handler = logging.StreamHandler()
-        self.log_handler.setLevel(logging.DEBUG)
+        self.log_handler.setLevel(logging.INFO)  # Default to INFO
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.log_handler.setFormatter(formatter)
         self.logger.addHandler(self.log_handler)
@@ -113,6 +113,7 @@ class Utils:
         self.config["debug_mode"] = enabled
         self.config["log_level"] = "DEBUG" if enabled else "INFO"
         self.logger.setLevel(logging.DEBUG if enabled else logging.INFO)
+        self.log_handler.setLevel(logging.DEBUG if enabled else logging.INFO)
         
         return {
             "status": "success",

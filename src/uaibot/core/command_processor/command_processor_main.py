@@ -28,12 +28,17 @@ class CommandProcessor:
     Supports natural language command processing with platform-aware commands.
     """
     
-    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False):
+    def __init__(self, ai_handler, shell_handler, quiet_mode=False, fast_mode=False, debug=False):
         """Initialize CommandProcessor with AI and shell handlers."""
         self.ai_handler = ai_handler
         self.shell_handler = shell_handler
         self.quiet_mode = quiet_mode
-        self.fast_mode = fast_mode  # Add fast_mode flag to control termination behavior
+        self.fast_mode = fast_mode
+        self.debug = debug
+        if debug:
+            logging.getLogger('uaibot.core.command_processor').setLevel(logging.DEBUG)
+        else:
+            logging.getLogger('uaibot.core.command_processor').setLevel(logging.INFO)
         
         # Pass fast_mode to AI handler if possible
         if hasattr(ai_handler, 'fast_mode'):
@@ -395,7 +400,7 @@ class CommandProcessor:
             logger = logging.getLogger(__name__)
             logger.info(f"Raw AI response: {ai_response}")
             
-            # Handle Google model response
+            # Handle AI model response
             if isinstance(ai_response, dict):
                 if "error" in ai_response:
                     error_msg = ai_response.get("error_message", "Unknown error from AI handler.")
@@ -404,56 +409,12 @@ class CommandProcessor:
                 
                 # Extract command from response
                 command = ai_response.get('command', '')
-                if command:
-                    # Try to parse JSON if it's in a code block
-                    if command.startswith('```json') or command.startswith('```'):
-                        try:
-                            # Remove markdown if present
-                            json_str = command.strip('`').lstrip('json').strip()
-                            data = json.loads(json_str)
-                            
-                            # Handle plan-based structure
-                            if 'plan' in data and isinstance(data['plan'], list):
-                                results = []
-                                for step in data['plan']:
-                                    operation = step.get('operation')
-                                    parameters = step.get('parameters', {})
-                                    
-                                    # Execute the operation
-                                    if operation == 'respond_to_user':
-                                        return f"{thinking}\n\n{parameters.get('message', '')}"
-                                    elif operation in ('shell', 'system_command', 'execute_command', 'shell_command'):
-                                        shell_command = parameters.get('command', '')
-                                        if shell_command:
-                                            execution_result = self.shell_handler.execute_command(shell_command)
-                                            results.append(execution_result)
-                                    
-                                # Return combined results
-                                if results:
-                                    return f"{thinking}\n\n" + "\n".join(results)
-                                else:
-                                    return f"{thinking}\n\n{self.color_settings['important']}💬 No executable commands found in the response.{self.color_settings['reset']}"
-                            
-                            # Handle single command structure
-                            elif 'command' in data:
-                                shell_command = data['command']
-                                execution_result = self.shell_handler.execute_command(shell_command)
-                                return f"{thinking}\n\n{execution_result}"
-                            
-                        except json.JSONDecodeError:
-                            # If JSON parsing fails, try to extract shell command
-                            shell_command = self._extract_shell_command(command)
-                            if shell_command:
-                                execution_result = self.shell_handler.execute_command(shell_command)
-                                return f"{thinking}\n\n{execution_result}"
-                    else:
-                        # Use robust extraction for non-JSON responses
-                        shell_command = self._extract_shell_command(command)
-                        if shell_command:
-                            execution_result = self.shell_handler.execute_command(shell_command)
-                            return f"{thinking}\n\n{execution_result}"
+                if not command:
+                    return f"{thinking}\n\n{self.color_settings['important']}💬 No command found in the response.{self.color_settings['reset']}"
                 
-                return f"{thinking}\n\n{self.color_settings['important']}💬 No valid command found in the response.{self.color_settings['reset']}"
+                # Execute the command
+                execution_result = self.shell_handler.execute_command(command)
+                return f"{thinking}\n\n{execution_result}"
             
             # For non-dict responses, try to extract command
             shell_command = self._extract_shell_command(ai_response)

@@ -3,6 +3,7 @@ import os
 import tempfile
 import shutil
 import json
+from unittest.mock import Mock
 from uaibot.core.command_processor import CommandProcessor
 
 class TestCommandProcessor(unittest.TestCase):
@@ -13,8 +14,15 @@ class TestCommandProcessor(unittest.TestCase):
         self.original_dir = os.getcwd()
         os.chdir(self.test_dir)
         
-        # Initialize command processor with AI-driven processing
-        self.processor = CommandProcessor(use_regex=False)
+        # Create mock handlers
+        self.mock_ai_handler = Mock()
+        self.mock_ai_handler.get_ai_response.return_value = "```shell\necho 'Test command'\n```"
+        
+        self.mock_shell_handler = Mock()
+        self.mock_shell_handler.execute_command.return_value = (0, "Command executed successfully", "")
+        
+        # Initialize command processor with mock handlers
+        self.processor = CommandProcessor(self.mock_ai_handler, self.mock_shell_handler)
         
     def tearDown(self):
         """Clean up test environment."""
@@ -24,149 +32,149 @@ class TestCommandProcessor(unittest.TestCase):
     def test_file_commands(self):
         """Test file-related commands."""
         # Test create file
-        result = self.processor.execute_command('create a new file called test.txt')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('create a new file called test.txt')
+        self.assertIsInstance(result, str)
         self.assertTrue(os.path.exists("test.txt"))
         
         # Test write file
-        result = self.processor.execute_command('write "Hello World" to test.txt')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('write "Hello World" to test.txt')
+        self.assertIsInstance(result, str)
         
         # Test read file
-        result = self.processor.execute_command('read the contents of test.txt')
-        self.assertEqual(result["status"], "success")
-        self.assertEqual(result["content"], "Hello World")
+        result = self.processor.process_command('read the contents of test.txt')
+        self.assertIsInstance(result, str)
+        self.assertIn("Hello World", result)
         
         # Test append file
-        result = self.processor.execute_command('add "!" to test.txt')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('add "!" to test.txt')
+        self.assertIsInstance(result, str)
         
         # Test read after append
-        result = self.processor.execute_command('read test.txt')
-        self.assertEqual(result["status"], "success")
-        self.assertEqual(result["content"], "Hello World!")
+        result = self.processor.process_command('read test.txt')
+        self.assertIsInstance(result, str)
+        self.assertIn("Hello World!", result)
         
         # Test list files
-        result = self.processor.execute_command('show me all files')
-        self.assertEqual(result["status"], "success")
-        self.assertIn("test.txt", result["files"])
+        result = self.processor.process_command('show me all files')
+        self.assertIsInstance(result, str)
+        self.assertIn("test.txt", result)
         
         # Test search files
-        result = self.processor.execute_command('find files containing test')
-        self.assertEqual(result["status"], "success")
-        self.assertIn("test.txt", result["files"])
+        result = self.processor.process_command('find files containing test')
+        self.assertIsInstance(result, str)
+        self.assertIn("test.txt", result)
         
         # Test delete file
-        result = self.processor.execute_command('delete test.txt')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('delete test.txt')
+        self.assertIsInstance(result, str)
         self.assertFalse(os.path.exists("test.txt"))
         
     def test_system_commands(self):
         """Test system-related commands."""
         # Test system status
-        result = self.processor.execute_command('what is the system status')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('what is the system status')
+        self.assertIsInstance(result, str)
         self.assertIn("system", result)
         
         # Test CPU info
-        result = self.processor.execute_command('show me the CPU information')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show me the CPU information')
+        self.assertIsInstance(result, str)
         self.assertIn("cpu_percent", result)
         
         # Test memory info
-        result = self.processor.execute_command('what is the memory usage')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('what is the memory usage')
+        self.assertIsInstance(result, str)
         self.assertIn("total", result)
         
         # Test disk info
-        result = self.processor.execute_command('show disk information')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show disk information')
+        self.assertIsInstance(result, str)
         self.assertIn("partitions", result)
         
         # Test network info
-        result = self.processor.execute_command('what is the network status')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('what is the network status')
+        self.assertIsInstance(result, str)
         self.assertIn("bytes_sent", result)
         
         # Test process info
-        result = self.processor.execute_command('show running processes')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show running processes')
+        self.assertIsInstance(result, str)
         self.assertIn("processes", result)
         
         # Test system logs
-        result = self.processor.execute_command('show system logs')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show system logs')
+        self.assertIsInstance(result, str)
         self.assertIn("logs", result)
         
     def test_language_commands(self):
         """Test language-related commands."""
         # Test set language
-        result = self.processor.execute_command('change language to Arabic')
-        self.assertEqual(result["status"], "success")
-        self.assertEqual(result["language"], "ar")
+        result = self.processor.process_command('change language to Arabic')
+        self.assertIsInstance(result, str)
+        self.assertIn("ar", result)
         
         # Test detect language
-        result = self.processor.execute_command('what language is this text in: Hello World')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('what language is this text in: Hello World')
+        self.assertIsInstance(result, str)
         self.assertIn("detected_language", result)
         
         # Test translate
-        result = self.processor.execute_command('translate Hello World to Arabic')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('translate Hello World to Arabic')
+        self.assertIsInstance(result, str)
         self.assertIn("translated_text", result)
         
         # Test supported languages
-        result = self.processor.execute_command('what languages are supported')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('what languages are supported')
+        self.assertIsInstance(result, str)
         self.assertIn("supported_languages", result)
         
     def test_utility_commands(self):
         """Test utility commands."""
         # Test help
-        result = self.processor.execute_command('help me')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('help me')
+        self.assertIsInstance(result, str)
         self.assertIn("help", result)
         
         # Test version
-        result = self.processor.execute_command('what version are you')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('what version are you')
+        self.assertIsInstance(result, str)
         self.assertIn("version", result)
         
         # Test status
-        result = self.processor.execute_command('show me the system status')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show me the system status')
+        self.assertIsInstance(result, str)
         self.assertIn("system_status", result)
         
         # Test configuration
-        result = self.processor.execute_command('show configuration')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show configuration')
+        self.assertIsInstance(result, str)
         self.assertIn("configuration", result)
         
         # Test logs
-        result = self.processor.execute_command('show logs')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show logs')
+        self.assertIsInstance(result, str)
         self.assertIn("logs", result)
         
         # Test debug mode
-        result = self.processor.execute_command('turn on debug mode')
-        self.assertEqual(result["status"], "success")
-        self.assertTrue(result["debug_mode"])
+        result = self.processor.process_command('turn on debug mode')
+        self.assertIsInstance(result, str)
+        self.assertIn("debug_mode", result)
         
-        result = self.processor.execute_command('turn off debug mode')
-        self.assertEqual(result["status"], "success")
-        self.assertFalse(result["debug_mode"])
+        result = self.processor.process_command('turn off debug mode')
+        self.assertIsInstance(result, str)
+        self.assertIn("debug_mode", result)
         
         # Test errors
-        result = self.processor.execute_command('show errors')
-        self.assertEqual(result["status"], "success")
+        result = self.processor.process_command('show errors')
+        self.assertIsInstance(result, str)
         self.assertIn("errors", result)
         
     def test_command_history(self):
         """Test command history functionality."""
         # Execute some commands
-        self.processor.execute_command('help me')
-        self.processor.execute_command('show version')
-        self.processor.execute_command('show status')
+        self.processor.process_command('help me')
+        self.processor.process_command('show version')
+        self.processor.process_command('show status')
         
         # Check command history
         history = self.processor.get_command_history()

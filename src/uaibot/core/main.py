@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 class UaiBot:
     """Main class for UaiBot."""
     
-    def __init__(self):
+    def __init__(self, debug=False):
         self.processor = CommandProcessor()
+        self.debug = debug
     
     def initialize(self):
         """Initialize UaiBot."""
@@ -67,7 +68,7 @@ def main():
 
     try:
         # Initialize UaiBot
-        uaibot = UaiBot()
+        uaibot = UaiBot(debug=args.debug)
         uaibot.initialize()
 
         # If a command is provided as an argument, process it and exit

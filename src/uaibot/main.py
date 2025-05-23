@@ -60,6 +60,7 @@ class UaiBot:
         try:
             self.mode = mode
             self.fast_mode = fast_mode
+            self.debug = debug
             # Initialize platform manager with mode awareness if needed
             self.platform_manager = PlatformManager(mode=mode, fast_mode=fast_mode) if 'mode' in PlatformManager.__init__.__code__.co_varnames else PlatformManager()
             if not self.platform_manager.platform_supported:
@@ -127,7 +128,7 @@ class UaiBot:
             if model_type == 'ollama':
                 setattr(self.ai_handler, 'ollama_model_name', selected_model)
             
-            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler, fast_mode=fast_mode)
+            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler, fast_mode=fast_mode, debug=debug)
             
             # Welcome message with platform info
             platform_info = self.platform_manager.get_platform_info()
