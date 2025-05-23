@@ -72,8 +72,8 @@ def validate_command(command: str) -> ValidationResult:
                 error="Command too long"
             )
             
-        # Check command structure
-        if not re.match(r"^[a-zA-Z0-9\s\.,\?!]+$", command):
+        # Check command structure - allow any Unicode letter/number/whitespace and common punctuation
+        if not re.match(r'^[\w\s\.,!\?\-–—\'’"“"‘؛،\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+$', command, re.UNICODE):
             return ValidationResult(
                 is_valid=False,
                 error="Invalid command structure"

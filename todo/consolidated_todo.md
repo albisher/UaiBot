@@ -1,87 +1,76 @@
 # Consolidated Todo List
 
-## AI-Driven Command Interpretation
-- [x] Create AICommandInterpreter class
-- [x] Add necessary AI dependencies
-- [x] Create documentation
-- [x] Create test structure
-- [ ] Implement AI model integration in interpret_command method
-- [ ] Add more comprehensive Arabic command patterns
-- [ ] Test with various AI models (Ollama, OpenAI, Google AI)
+## High Priority Tasks
 
-## System Information Gathering
-- [ ] Create unified system information gathering module
-- [ ] Consolidate existing system info collection methods
-- [ ] Add support for different operating systems
-- [ ] Implement caching mechanism
-- [ ] Add real-time monitoring capabilities
-- [ ] Create comprehensive system info tests
+### 1. Import Path Standardization
+- [x] Create import path update script
+- [ ] Run script on all test files
+- [ ] Update core module imports
+- [ ] Update utility module imports
+- [ ] Verify all imports work correctly
+- [ ] Update CI/CD configurations
 
-## Test Organization
-- [x] Move test files to correct directories
-- [x] Create test directory structure
-- [ ] Update test imports
-- [ ] Verify all tests are running
-- [ ] Add missing test cases
-- [ ] Improve test coverage
+### 2. Test Suite Organization
+- [ ] Consolidate test files into appropriate directories
+- [ ] Update test configuration files
+- [ ] Verify test dependencies
+- [ ] Add missing test coverage
 
-## Human Instructions
-- [x] All human instructions and todos are now consolidated in the todo/ folder as per main_prompt.txt
-- [x] output_fixes.txt and other relevant todos have been moved to todo/
-- [ ] Continue updating and refining todos as new findings are revealed during development and testing
+### 3. File Operations and Command Processing
+- [ ] Refactor file operation APIs
+- [ ] Update command processor interfaces
+- [ ] Implement proper error handling
+- [ ] Add comprehensive logging
 
-## Documentation
-- [x] Create AI command interpreter documentation
-- [ ] Update main README
-- [ ] Add contribution guidelines
-- [ ] Document testing procedures
-- [ ] Add API documentation
-- [ ] Create user guides
+### 4. Multilingual Support
+- [ ] Update language detection
+- [ ] Improve translation handling
+- [ ] Add multilingual tests
+- [ ] Document language support
 
-## Dependencies
-- [x] Update requirements.txt
-- [ ] Verify all dependencies are working
-- [ ] Add version constraints
-- [ ] Document dependency purposes
-- [ ] Add development dependencies
+### 5. Browser Automation
+- [ ] Standardize browser controller
+- [ ] Improve cross-platform support
+- [ ] Add error recovery
+- [ ] Update documentation
 
-## Testing
-- [ ] Create test runner
-- [ ] Add CI/CD pipeline
-- [ ] Implement automated testing
+## Medium Priority Tasks
+
+### 1. Documentation
+- [ ] Update API documentation
+- [ ] Add usage examples
+- [ ] Create troubleshooting guide
+- [ ] Update README
+
+### 2. Performance Optimization
+- [ ] Profile critical paths
+- [ ] Optimize file operations
+- [ ] Improve response times
 - [ ] Add performance tests
-- [ ] Add stress tests
-- [ ] Add security tests
 
-## Code Quality
-- [ ] Run linters
-- [ ] Fix code style issues
+### 3. Security
+- [ ] Review authentication
+- [ ] Update key management
+- [ ] Add security tests
+- [ ] Document security features
+
+## Low Priority Tasks
+
+### 1. UI/UX Improvements
+- [ ] Update GUI components
+- [ ] Improve error messages
+- [ ] Add progress indicators
+- [ ] Enhance user feedback
+
+### 2. Code Quality
+- [ ] Run code quality tools
+- [ ] Fix linting issues
 - [ ] Add type hints
-- [ ] Improve error handling
-- [ ] Add logging
-- [ ] Optimize performance
+- [ ] Improve code organization
 
-## Security
-- [ ] Review and update security practices
-- [ ] Add security tests
-- [ ] Document security considerations
-
-## Output Formatting
-- [x] output_fixes.txt is now in todo/
-- [ ] Revalidate output formatting in all modules and integration tests
-- [ ] Consider adding color formatting for better readability
-
-## Performance
-- [ ] Profile code
-- [ ] Optimize bottlenecks
-- [ ] Add caching where appropriate
-- [ ] Implement async operations
-- [ ] Add performance monitoring
-
-## Next Steps Priority
-1. Complete AI model integration
-2. Implement system information gathering
-3. Create human instructions structure
-4. Update documentation
-5. Improve test coverage
-6. Optimize performance 
+## Notes
+- Focus on import path standardization first
+- Test suite organization is critical for maintainability
+- File operations and command processing need immediate attention
+- Multilingual support and browser automation are key features
+- Documentation and security are ongoing concerns 

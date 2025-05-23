@@ -10,7 +10,7 @@ import json
 import shlex
 import base64
 import logging
-from typing import Dict, Any, Union, Optional, List, TypeVar, Generic, Literal
+from typing import Dict, Any, Union, Optional, List, TypeVar, Generic, Literal, TYPE_CHECKING
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -23,10 +23,12 @@ from uaibot.core.parallel_utils import ParallelTaskManager, run_in_parallel
 from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
 from uaibot.utils.ai_json_tools import build_ai_prompt
 from uaibot.core.controller import ExecutionController
-from ..ai_handler import AIHandler
 from .command_processor_types import Command, CommandResult, CommandConfig, CommandContext
 from .command_processor_utils import validate_command, check_command_safety, format_command_result
 from .command_processor_exceptions import CommandValidationError, CommandSafetyError, CommandProcessingError, AIError
+
+if TYPE_CHECKING:
+    from uaibot.core.ai_handler import AIHandler
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -49,7 +51,7 @@ class CommandProcessor:
     
     def __init__(
         self,
-        ai_handler: AIHandler,
+        ai_handler: "AIHandler",
         config: Optional[CommandConfig] = None,
         context: Optional[CommandContext] = None
     ):
@@ -74,10 +76,10 @@ class CommandProcessor:
         Returns:
             CommandResult containing the processing result
         """
+        start_time = datetime.now()
         try:
             # Update stats
             self.stats.total_commands += 1
-            start_time = datetime.now()
             
             # Validate command
             validation = validate_command(command)
@@ -90,21 +92,17 @@ class CommandProcessor:
                 raise CommandSafetyError(safety.error)
                 
             # Process command with AI
-            try:
-                response = self.ai_handler.process_prompt(command)
-                result = CommandResult(
-                    success=True,
-                    output=response.text,
-                    metadata={
-                        "model": response.metadata.get("model"),
-                        "tokens": response.metadata.get("tokens"),
-                        "processing_time": (datetime.now() - start_time).total_seconds()
-                    }
-                )
-                
-            except Exception as e:
-                raise AIError(f"AI processing error: {str(e)}")
-                
+            response = self.ai_handler.process_prompt(command)
+            result = CommandResult(
+                success=True,
+                output=response.text,
+                metadata={
+                    "model": response.metadata.get("model"),
+                    "tokens": response.metadata.get("tokens"),
+                    "processing_time": (datetime.now() - start_time).total_seconds()
+                }
+            )
+            
             # Update stats
             self.stats.successful_commands += 1
             self._update_stats(start_time)
@@ -153,26 +151,23 @@ class CommandProcessor:
         try:
             # Calculate processing time
             processing_time = (datetime.now() - start_time).total_seconds()
-            
             # Update average processing time
             if self.stats.total_commands > 0:
                 self.stats.average_processing_time = (
                     (self.stats.average_processing_time * (self.stats.total_commands - 1) +
                      processing_time) / self.stats.total_commands
                 )
-                
             # Update metadata
             self.stats.metadata.update({
                 "last_processing_time": processing_time,
                 "last_update": datetime.now().isoformat()
             })
-            
         except Exception as e:
             logger.error(f"Error updating stats: {e}")
             
     def get_stats(self) -> Dict[str, Any]:
         """Get processing statistics.
-        
+            
         Returns:
             Dict containing processing statistics
         """

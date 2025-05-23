@@ -4,38 +4,25 @@ Provides centralized logging setup and utilities.
 """
 import logging
 import os
-import sys
 from pathlib import Path
 
-def setup_logging(log_level=logging.INFO):
-    """
-    Set up logging configuration for the application.
-    
-    Args:
-        log_level: The logging level to use (default: INFO)
-    """
+def setup_logging(log_level: str = "INFO", log_dir: str = "logs", quiet_mode: bool = False) -> None:
+    """Set up the basic logging configuration."""
     # Create logs directory if it doesn't exist
-    log_dir = Path(__file__).parent.parent.parent / "logs"
-    log_dir.mkdir(exist_ok=True)
+    log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
     
-    # Configure logging
+    # Configure root logger
     logging.basicConfig(
-        level=log_level,
+        level=getattr(logging, log_level.upper(), logging.INFO),
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
         handlers=[
-            logging.FileHandler(log_dir / "app.log"),
-            logging.StreamHandler(sys.stdout)
+            logging.FileHandler(str(log_dir / "uaibot.log")),
+            logging.StreamHandler() if not quiet_mode else logging.NullHandler()
         ]
     )
 
-def get_logger(name):
-    """
-    Get a logger instance with the specified name.
-    
-    Args:
-        name: The name for the logger
-        
-    Returns:
-        logging.Logger: Configured logger instance
-    """
+def get_logger(name: str) -> logging.Logger:
+    """Get a logger instance for a specific module."""
     return logging.getLogger(name) 

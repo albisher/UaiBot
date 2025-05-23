@@ -35,6 +35,7 @@ webdriver-manager>=4.0.1
 playwright>=1.52.0
 selenium>=4.32.0
 cryptography>=42.0.0
+openai-whisper
 
 # Testing dependencies
 pytest>=7.4.3

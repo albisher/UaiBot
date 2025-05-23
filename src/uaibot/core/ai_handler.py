@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from .model_manager import ModelManager
 from .system_info_gatherer import SystemInfoGatherer
-from .logging_manager import LoggingManager
 from .config_manager import ConfigManager
 from uaibot.core.logging_config import get_logger
 logger = get_logger(__name__)
@@ -21,6 +20,7 @@ from uaibot.core.model_config_manager import ModelConfigManager
 from uaibot.core.key_manager import KeyManager
 import psutil
 from uaibot.typing import SystemInfo
+from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
 
 @dataclass
 class PromptConfig:
@@ -43,16 +43,26 @@ class AIHandler:
     def __init__(self, model_manager: ModelManager) -> None:
         self.model_manager = model_manager
         self.prompt_config = PromptConfig()
+        self.command_extractor = AICommandExtractor()
 
     def process_prompt(self, prompt: str) -> ResponseInfo:
         try:
-            formatted_prompt = self._format_prompt(prompt)
+            # Gather system info for prompt
+            system_info = get_system_info()['platform']
+            # Build advanced prompt with explicit JSON instructions
+            formatted_prompt = self.command_extractor.format_ai_prompt(prompt, system_info)
+            logger.debug(f"Formatted AI prompt: {formatted_prompt}")
             response = self._get_model_response(formatted_prompt)
-            processed_response = self._process_response(response)
+            logger.debug(f"Raw model response: {response}")
+            # Extract and validate command from model response
+            success, plan, extraction_metadata = self.command_extractor.extract_command(response.get('response', ''))
+            logger.debug(f"Extraction success: {success}, plan: {plan}, metadata: {extraction_metadata}")
+            if not success or not plan:
+                raise AIError(f"Failed to extract valid command from model response: {extraction_metadata.get('error_message')}")
             return ResponseInfo(
-                text=processed_response["text"],
+                text=json.dumps(plan, indent=2),
                 raw_response=response,
-                metadata=processed_response.get("metadata", {})
+                metadata=extraction_metadata
             )
         except Exception as e:
             logger.error(f"Error processing prompt: {str(e)}")

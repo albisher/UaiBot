@@ -11,14 +11,18 @@ import json
 import platform
 from datetime import datetime
 import argparse
+from pathlib import Path
 
 # Add project root to path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-sys.path.append(project_root)
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parent.parent  # Ensure this points to the repo root
+sys.path.append(str(project_root))
 
 # Import utility functions
 from uaibot.utils import get_platform_name, load_config, get_project_root
+
+# Path to main.py
+main_py_path = project_root / "main.py"
 
 # Define test cases for both English and Arabic
 ENGLISH_TEST_CASES = [
@@ -39,7 +43,7 @@ ARABIC_TEST_CASES = [
     {"name": "Delete file (AR)", "command": "احذف الملف test_output_ar.txt"}
 ]
 
-def run_uaibot_command(command, no_safe_mode=False, debug=False):
+def run_uaibot_command(command: str, no_safe_mode: bool = False, debug: bool = False) -> tuple[str, str, int]:
     """
     Run a UaiBot command and return its output.
     
@@ -51,7 +55,7 @@ def run_uaibot_command(command, no_safe_mode=False, debug=False):
     Returns:
         tuple: (stdout, stderr, returncode)
     """
-    cmd = [sys.executable, os.path.join(project_root, "main.py")]
+    cmd = [sys.executable, str(main_py_path)]
     
     # Add flags
     if no_safe_mode:

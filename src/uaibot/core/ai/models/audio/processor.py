@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 import whisper
 import ffmpeg
-from uaibot.core.logging import get_logger
+from uaibot.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 

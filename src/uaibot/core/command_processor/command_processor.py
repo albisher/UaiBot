@@ -68,6 +68,8 @@ class CommandProcessor:
         """
         self.ai_handler = ai_handler
         self.config = CommandConfig()
+        # Initialize stats to avoid attribute errors
+        self.stats = type('Stats', (), {'total_commands': 0})()
     
     def process_command(self, command: str) -> CommandResult:
         """
@@ -82,42 +84,65 @@ class CommandProcessor:
         Raises:
             Exception: If there's an error processing the command
         """
+        start_time = datetime.now()
         try:
+            # Update stats
+            self.stats.total_commands += 1
             # Validate command
             if not self._validate_command(command):
-                return CommandResult(
-                    success=False,
-                    output="",
-                    error="Invalid command format"
-                )
-            
+                print("[DEBUG] Invalid command format.")
+                return CommandResult(success=False, output="", error="Invalid command format")
             # Check command safety
             if not self._check_command_safety(command):
-                return CommandResult(
-                    success=False,
-                    output="",
-                    error="Command failed safety check"
-                )
-            
+                print("[DEBUG] Command failed safety check.")
+                return CommandResult(success=False, output="", error="Command failed safety check")
             # Process command with AI
             response = self.ai_handler.process_prompt(command)
-            
+            # Try to interpret the plan from the AI response (JSON)
+            import json, subprocess
+            user_message = None
+            try:
+                plan_obj = json.loads(response.text)
+                print("\n[AI PLAN JSON]\n", json.dumps(plan_obj, indent=2))
+                if "plan" in plan_obj and isinstance(plan_obj["plan"], list):
+                    step = plan_obj["plan"][0] if plan_obj["plan"] else None
+                    if step:
+                        print("[AI PLAN STEP]", json.dumps(step, indent=2))
+                        # Show the description as the user-friendly message
+                        user_message = step.get("description")
+                        # If it's a system command, try to execute it
+                        if step.get("operation") == "system_command":
+                            cmd = step.get("parameters", {}).get("command")
+                            if cmd:
+                                print(f"[EXECUTING SYSTEM COMMAND]: {cmd}")
+                                try:
+                                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                                    if result.returncode == 0:
+                                        print("[SYSTEM OUTPUT]:\n", result.stdout.strip())
+                                        user_message += f"\n[System Output]:\n{result.stdout.strip()}"
+                                    else:
+                                        print("[SYSTEM ERROR]:\n", result.stderr.strip())
+                                        user_message += f"\n[System Error]:\n{result.stderr.strip()}"
+                                except Exception as e:
+                                    print(f"[EXECUTION ERROR]: {str(e)}")
+                                    user_message += f"\n[Execution Error]: {str(e)}"
+                else:
+                    print("[DEBUG] No valid plan found in AI response.")
+                    user_message = response.text
+            except Exception as e:
+                print(f"[DEBUG] Failed to parse or execute plan: {e}")
+                user_message = response.text
             # Save result
             self._save_command_result(command, response)
-            
             return CommandResult(
                 success=True,
-                output=response.text,
+                output=user_message,
                 metadata=response.metadata
             )
-            
         except Exception as e:
             logger.error(f"Error processing command: {str(e)}")
-            return CommandResult(
-                success=False,
-                output="",
-                error=str(e)
-            )
+            print(f"[ERROR] {str(e)}")
+            return CommandResult(success=False, output="", error=str(e))
     
     def _validate_command(self, command: str) -> bool:
         """
