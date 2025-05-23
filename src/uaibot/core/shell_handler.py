@@ -191,7 +191,7 @@ class ShellHandler:
     
     def assess_command_safety(self, command_string):
         """
-        Enhanced command safety assessment that handles JSON plans and provides detailed risk analysis.
+        Assesses the safety level of a command string.
         Returns:
             tuple: (CommandSafetyLevel, dict) - Safety level and additional assessment info
         """
@@ -206,24 +206,6 @@ class ShellHandler:
         if not command_string.strip():
             return CommandSafetyLevel.EMPTY, assessment_info
 
-        # Check if it's a JSON plan
-        if command_string.strip().startswith('{') or command_string.strip().startswith('```json'):
-            try:
-                # Clean up the command string if it's a markdown code block
-                if command_string.strip().startswith('```'):
-                    command_string = command_string.strip('`').lstrip('json').strip()
-                
-                # Parse the JSON
-                plan_data = json.loads(command_string)
-                
-                # If it's a plan, assess each step
-                if isinstance(plan_data, dict) and 'plan' in plan_data:
-                    assessment_info["confidence"] = plan_data.get('confidence', 0.5)
-                    assessment_info["recommendation"] = "Process as structured plan"
-                    return CommandSafetyLevel.JSON_PLAN, assessment_info
-            except json.JSONDecodeError:
-                pass  # Not valid JSON, continue with normal assessment
-
         try:
             command_parts = shlex.split(command_string)
             if not command_parts:
@@ -231,45 +213,23 @@ class ShellHandler:
         except ValueError:
             return CommandSafetyLevel.REQUIRES_SHELL_TRUE, assessment_info
 
-        # Check for dangerous commands
-        if self.enable_dangerous_command_check:
-            if self._is_potentially_dangerous(command_parts):
-                assessment_info.update({
-                    "risk_level": "high",
-                    "requires_admin": True,
-                    "potential_impact": ["System modification", "Data loss", "Security risk"],
-                    "recommendation": "Requires admin confirmation"
-                })
-                return CommandSafetyLevel.POTENTIALLY_DANGEROUS, assessment_info
-
-        # Check for semi-dangerous commands
-        semi_dangerous_patterns = [
-            (r'rm\s+.*\*', "Deleting multiple files"),
-            (r'chmod\s+.*777', "Setting wide permissions"),
-            (r'chown\s+.*root', "Changing ownership to root"),
-            (r'mv\s+.*\/', "Moving files to system directories"),
-            (r'cp\s+.*\/', "Copying files to system directories")
-        ]
-
-        for pattern, impact in semi_dangerous_patterns:
-            if re.search(pattern, command_string):
-                assessment_info.update({
-                    "risk_level": "medium",
-                    "requires_admin": False,
-                    "potential_impact": [impact],
-                    "recommendation": "Verify command intent"
-                })
-                return CommandSafetyLevel.SEMI_DANGEROUS, assessment_info
-
-        # Check whitelist in safe mode
+        if self.enable_dangerous_command_check and self._is_potentially_dangerous(command_parts):
+            assessment_info.update({
+                "risk_level": "high",
+                "requires_admin": True,
+                "potential_impact": ["System modification", "Data loss", "Security risk"],
+                "recommendation": "Requires admin confirmation"
+            })
+            return CommandSafetyLevel.POTENTIALLY_DANGEROUS, assessment_info
+        
         if self.safe_mode and not self._is_command_safe(command_parts):
             assessment_info.update({
                 "risk_level": "medium",
                 "recommendation": "Command not in whitelist"
             })
             return CommandSafetyLevel.NOT_IN_WHITELIST, assessment_info
-
-        # Check for shell operators
+        
+        # Check for shell operators which indicate a complex command
         shell_operators = ['|', '>', '<', '>>', '<<', '&&', '||', ';']
         if any(operator in command_string for operator in shell_operators):
             assessment_info.update({
@@ -277,7 +237,7 @@ class ShellHandler:
                 "recommendation": "Use shell=True for execution"
             })
             return CommandSafetyLevel.REQUIRES_SHELL_TRUE, assessment_info
-
+        
         return CommandSafetyLevel.SAFE, assessment_info
 
     def execute_command(self, command, force_shell=False, timeout=None):

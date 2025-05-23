@@ -136,8 +136,6 @@ def load_config():
                     "default_ai_provider": "ollama",
                     "ollama_base_url": "http://localhost:11434",
                     "default_ollama_model": "gemma:7b",
-                    "google_api_key": "YOUR_GOOGLE_API_KEY",
-                    "default_google_model": "gemini-1.0-pro",
                     "shell_safe_mode": True,
                     "interactive_mode": True,
                     "shell_dangerous_check": True

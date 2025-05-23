@@ -14,7 +14,6 @@ freezegun>=1.0.0
 responses>=0.23.0
 
 # AI Testing
-google-generativeai>=0.3.0
 
 # Multilingual Support
 langdetect>=1.0.9

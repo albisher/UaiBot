@@ -6,12 +6,91 @@ alwaysApply: true
 # File Organization Rules
 
 ## Directory Structure
-- All source code must be in the `app` directory
-- All tests must be in the `tests` directory
-- All scripts must be in the `scripts` directory
-- All configuration files must be in the `config` directory
-- All documentation must be in the `docs` directory
-- All reports must be in the `reports` directory
+```
+src/
+├── uaibot/
+│   ├── core/
+│   │   ├── ai/
+│   │   │   ├── models/
+│   │   │   ├── prompts/
+│   │   │   └── registry.py
+│   │   ├── commands/
+│   │   │   ├── processors/
+│   │   │   ├── validators/
+│   │   │   └── executors/
+│   │   ├── shell/
+│   │   │   ├── handlers/
+│   │   │   └── safety/
+│   │   └── events/
+│   ├── ui/
+│   │   ├── cli/
+│   │   ├── gui/
+│   │   └── web/
+│   ├── utils/
+│   │   ├── config/
+│   │   ├── logging/
+│   │   └── security/
+│   └── plugins/
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── fixtures/
+├── docs/
+│   ├── api/
+│   ├── user/
+│   └── dev/
+└── examples/
+```
+
+## Module Organization
+1. Core Modules
+   - Abstract base classes
+   - Interfaces
+   - Core functionality
+   - Type definitions
+   - Event system
+
+2. Feature Modules
+   - Command processing
+   - AI integration
+   - Shell handling
+   - UI components
+   - Plugin system
+
+3. Utility Modules
+   - Configuration
+   - Logging
+   - Security
+   - Helpers
+   - Common types
+
+4. Test Modules
+   - Unit tests
+   - Integration tests
+   - Test fixtures
+   - Mock objects
+   - Test utilities
+
+## File Naming
+- Use snake_case for files
+- Use PascalCase for classes
+- Use descriptive names
+- Follow Python conventions
+- Include type hints
+
+## Import Structure
+- Absolute imports
+- Clear dependencies
+- No circular imports
+- Minimal imports
+- Type imports
+
+## Best Practices
+- One class per file
+- Clear module boundaries
+- Proper package structure
+- Version control friendly
+- Documentation ready
 
 ## File Creation Rules
 1. Files must be created in their correct directory immediately

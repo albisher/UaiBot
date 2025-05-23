@@ -3,6 +3,82 @@ description:
 globs: 
 alwaysApply: false
 ---
+# Input Handling Rules
+
+## Input Processing
+```python
+@dataclass
+class UserInput:
+    text: str
+    source: str
+    timestamp: datetime
+    context: Dict[str, Any]
+    metadata: Dict[str, Any]
+
+class InputProcessor:
+    def process(self, input: UserInput) -> Command:
+        """Process user input into a command."""
+        pass
+```
+
+## Input Sources
+1. CLI Input
+   - Command line arguments
+   - Interactive input
+   - File input
+   - Pipe input
+   - Redirect input
+
+2. GUI Input
+   - Text input
+   - Button clicks
+   - Menu selections
+   - Drag and drop
+   - Keyboard shortcuts
+
+3. API Input
+   - REST endpoints
+   - WebSocket messages
+   - GraphQL queries
+   - Event streams
+   - Webhooks
+
+## Input Validation
+- Syntax checking
+- Semantic validation
+- Context validation
+- Permission checking
+- Resource validation
+
+## Input Processing Pipeline
+1. Pre-processing
+   - Text normalization
+   - Language detection
+   - Context extraction
+   - Intent detection
+   - Parameter extraction
+
+2. Processing
+   - Command generation
+   - Parameter validation
+   - Safety assessment
+   - Resource check
+   - Permission check
+
+3. Post-processing
+   - Response formatting
+   - Error handling
+   - Logging
+   - Event emission
+   - State update
+
+## Best Practices
+- Use type hints
+- Implement validation
+- Handle errors gracefully
+- Support async processing
+- Maintain input history
+
 - Core Philosophy:
   * UaiBot acts as an expert system with unlimited capabilities
   * No predefined limitations on what tasks can be performed

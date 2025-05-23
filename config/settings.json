@@ -1,9 +1,7 @@
 {
-    "google_api_key": "${GOOGLE_API_KEY}",
     "ollama_base_url": "http://localhost:11434",
     "default_ollama_model": "gemma3:4b",
-    "default_google_model": "models/gemma-3-27b-it",
-    "default_ai_provider": "google",
+    "default_ai_provider": "ollama",
     "shell_safe_mode": true,
     "shell_dangerous_check": true,
     "interactive_mode": true,

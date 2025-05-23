@@ -1,53 +1,75 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-- AI Model Configuration:
-  * Support multiple AI providers (Ollama, Google, ..etc)
-  * Allow easy model switching via environment variables
-  * Keep model-specific settings isolated in settings.json
-  * Support model-specific parameters through environment variables
-  * Allow runtime model selection via AI_PROVIDER
-  * Document model configuration options in settings.json
+# Configuration Rules
 
-- Global Configuration:
-  * Use settings.json for global settings
-  * Support environment variable overrides with ${VAR:-default} syntax
-  * Follow the configuration structure in settings.json
-  * Document all configuration options in settings.json
-  * Implement proper validation for all settings
-  * Keep sensitive information secure (API keys via environment variables)
+## Configuration Structure
+1. Core Settings
+   - Use dataclasses for config objects
+   - Type-safe configuration
+   - Environment variable support
+   - Default values
+   - Validation rules
 
-- Model Settings:
-  * Default: Ollama with gemma3:4b
-  * Support Google models (gemini-pro)
-  * Configure via OLLAMA_MODEL and GOOGLE_MODEL
-  * Allow easy model switching via environment variables
-  * Keep model settings isolated in settings.json
-  * Document model requirements and configuration
+2. Model Settings
+   - Model registry configuration
+   - Provider-specific settings
+   - API keys and endpoints
+   - Model parameters
+   - Fallback options
 
-- Environment Variables:
-  * GOOGLE_API_KEY: Required for Google AI services
-  * OLLAMA_BASE_URL: Ollama server URL (default: http://localhost:11434)
-  * OLLAMA_MODEL: Model name for Ollama (default: gemma3:4b)
-  * GOOGLE_MODEL: Model name for Google (default: gemini-pro)
-  * AI_PROVIDER: Service provider selection (default: ollama)
-  * LOG_LEVEL: Logging verbosity (default: INFO)
-  * LOG_FILE: Log file location (default: log/uaibot.log)
+3. User Settings
+   - User preferences
+   - Custom directories
+   - UI preferences
+   - Command history
+   - Safety settings
 
-- Configuration Loading:
-  * Load defaults first
-  * Override with file settings
-  * Override with environment variables
-  * Validate final configuration
-  * Log configuration changes
-  * Handle missing values gracefully
+4. System Settings
+   - Logging configuration
+   - Performance settings
+   - Security parameters
+   - Plugin settings
+   - Feature flags
 
-- Security Rules:
-  * Never store sensitive data in files
-  * Use environment variables for secrets
-  * Validate all configuration values
-  * Log configuration changes
-  * Implement access controls
-  * Follow security best practices
+## Configuration Objects
+```python
+@dataclass
+class ModelConfig:
+    provider: str
+    model_name: str
+    api_key: Optional[str]
+    parameters: Dict[str, Any]
+    fallback: Optional[str]
+
+@dataclass
+class UserConfig:
+    preferences: Dict[str, Any]
+    directories: Dict[str, Path]
+    safety_level: SafetyLevel
+    theme: str
+    language: str
+```
+
+## Configuration Management
+- Use YAML/JSON for storage
+- Support hot reloading
+- Validate on load
+- Provide migration tools
+- Version configuration files
+
+## Environment Support
+- Load from environment variables
+- Support different environments
+- Allow overrides
+- Secure sensitive data
+- Document all options
+
+## Best Practices
+- Use type hints for config
+- Implement validation
+- Support inheritance
+- Enable dynamic updates
+- Provide clear defaults

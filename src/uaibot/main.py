@@ -91,8 +91,6 @@ class UaiBot:
             # Initialize AI handler with caching
             model_type = self.config.get('default_ai_provider', 'ollama')
             ollama_base_url = self.config.get('ollama_base_url', 'http://localhost:11434')
-            google_api_key = self.config.get('google_api_key')
-            google_model_name = self.config.get('default_google_model', 'gemini-pro')
             
             # --- Automated Ollama model selection ---
             default_model = self.config.get('default_ollama_model', 'gemma:2b')
@@ -112,11 +110,9 @@ class UaiBot:
                         print("[UaiBot] No available Ollama model found. Exiting.")
                         raise RuntimeError("No available Ollama model found.")
             else:
-                selected_model = google_model_name
+                selected_model = default_model
             self.ai_handler = AIHandler(
                 model_type=model_type,
-                api_key=google_api_key,
-                google_model_name=google_model_name,
                 ollama_base_url=ollama_base_url,
                 cache_ttl=self.config.get('cache_ttl', 3600),
                 cache_size_mb=self.config.get('cache_size_mb', 100),
@@ -328,44 +324,8 @@ You can also:
 
     def switch_model(self):
         """Interactively switch the AI model at runtime."""
-        # Check if Google API key is available
-        google_api_key = self.config.get('google_api_key')
-        has_google_key = bool(google_api_key)
-        
-        # Show available providers
-        print("\nAvailable AI providers:")
-        print("1. Ollama (Local)")
-        if has_google_key:
-            print("2. Google AI")
-        else:
-            print("2. Google AI (requires API key)")
-            
-        provider_choice = input("Select provider (1 or 2, or press Enter to abort): ").strip()
-        
-        if not provider_choice:
-            output.info("Provider switch aborted.")
-            return
-            
-        if provider_choice not in ['1', '2']:
-            output.error("Invalid provider selection.")
-            return
-            
-        # Handle Google API key if needed
-        if provider_choice == '2' and not has_google_key:
-            print("\nGoogle AI requires an API key.")
-            print("You can get one from: https://ai.google.dev/")
-            api_key = input("Enter your Google API key (or press Enter to abort): ").strip()
-            if not api_key:
-                output.info("Google AI setup aborted.")
-                return
-            self.config['google_api_key'] = api_key
-            # Save the API key to config
-            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'settings.json')
-            with open(config_path, 'w') as f:
-                json.dump(self.config, f, indent=2)
-            
         # Get available models for the selected provider
-        if provider_choice == '1':  # Ollama
+        if self.config['default_ai_provider'] == 'ollama':
             from uaibot.health_check.ollama_health_check import check_ollama_server
             ok, tags_json = check_ollama_server()
             if not ok:
@@ -380,14 +340,9 @@ You can also:
                 available_models = [m.get('name', '') for m in tags_json if m.get('name')]
             else:
                 available_models = []
-        else:  # Google
-            try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.config['google_api_key'])
-                available_models = [m.name for m in genai.list_models()]
-            except Exception as e:
-                output.error(f"Could not fetch Google models: {e}")
-                return
+        else:
+            output.error("Invalid provider selected.")
+            return
                 
         if not available_models:
             output.error("No models available for the selected provider.")
@@ -406,11 +361,8 @@ You can also:
         if 0 <= idx < len(available_models):
             selected_model = available_models[idx]
             # Update provider and model in config
-            self.config['default_ai_provider'] = 'ollama' if provider_choice == '1' else 'google'
-            if provider_choice == '1':
-                self.config['default_ollama_model'] = selected_model
-            else:
-                self.config['default_google_model'] = selected_model
+            self.config['default_ai_provider'] = 'ollama'
+            self.config['default_ollama_model'] = selected_model
                 
             # Save config to file
             config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'settings.json')
@@ -419,16 +371,14 @@ You can also:
                 
             # Re-initialize AI handler
             self.ai_handler = AIHandler(
-                model_type=self.config['default_ai_provider'],
-                api_key=self.config.get('google_api_key'),
-                google_model_name=self.config.get('default_google_model', 'gemini-pro'),
+                model_type='ollama',
                 ollama_base_url=self.config.get('ollama_base_url', 'http://localhost:11434'),
                 cache_ttl=self.config.get('cache_ttl', 3600),
                 cache_size_mb=self.config.get('cache_size_mb', 100),
                 fast_mode=self.fast_mode,
                 debug=False
             )
-            output.success(f"Switched to {self.config['default_ai_provider']} model: {selected_model}")
+            output.success(f"Switched to Ollama model: {selected_model}")
         else:
             output.error("Invalid model selection.")
 

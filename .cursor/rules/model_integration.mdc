@@ -3,3 +3,61 @@ description:
 globs:
 alwaysApply: false
 ---
+# Model Integration Rules
+
+## Base Model Interface
+```python
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional
+
+class BaseAIModel(ABC):
+    @abstractmethod
+    async def generate(self, prompt: str) -> Dict[str, Any]:
+        """Generate a response from the model."""
+        pass
+
+    @abstractmethod
+    async def validate_response(self, response: Dict[str, Any]) -> bool:
+        """Validate the model's response format."""
+        pass
+
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """Get the model's name."""
+        pass
+```
+
+## Model Registry
+- Dynamic model loading
+- Provider-specific implementations
+- Fallback mechanisms
+- Model parameter validation
+- Async support
+
+## Response Format
+```python
+@dataclass
+class ModelResponse:
+    command: str
+    confidence: float
+    model: str
+    type: str
+    parameters: Dict[str, Any]
+    raw_response: str
+    metadata: Dict[str, Any]
+```
+
+## Model Providers
+- Google AI (Gemini)
+- Ollama
+- OpenAI
+- Local models
+- Custom providers
+
+## Best Practices
+- Use type hints
+- Implement error handling
+- Support async operations
+- Cache responses
+- Monitor performance

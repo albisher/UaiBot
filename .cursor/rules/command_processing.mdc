@@ -41,3 +41,73 @@ alwaysApply: true
   * Consistent error handling and reporting
   * Proper validation of response format
   * Support for model-specific metadata
+
+# Command Processing Rules
+
+## Command Pipeline
+1. Interpretation Stage
+   - Natural language processing
+   - Intent extraction
+   - Command structure validation
+   - Use dataclasses for command objects
+   - Type-safe command representation
+
+2. Validation Stage
+   - Safety level assessment
+   - Permission checks
+   - Context validation
+   - Resource availability
+   - Use enums for safety levels
+
+3. Execution Stage
+   - Command routing
+   - Shell/system interaction
+   - Output capture
+   - Error handling
+   - Event emission
+
+4. Post-processing Stage
+   - Output formatting
+   - Result storage
+   - Logging
+   - Event handling
+   - Response generation
+
+## Command Objects
+```python
+@dataclass
+class Command:
+    text: str
+    intent: str
+    safety_level: SafetyLevel
+    parameters: Dict[str, Any]
+    metadata: Dict[str, Any]
+
+@dataclass
+class CommandResult:
+    success: bool
+    output: str
+    error: Optional[str]
+    metadata: Dict[str, Any]
+```
+
+## Event System
+- Use observer pattern for command events
+- Emit events for each pipeline stage
+- Allow event handlers to modify behavior
+- Support async event processing
+- Maintain event history
+
+## Error Handling
+- Use custom exception hierarchy
+- Provide detailed error information
+- Support error recovery
+- Log all errors
+- Return structured error responses
+
+## Best Practices
+- Use type hints for all methods
+- Implement command validation
+- Support command chaining
+- Enable command cancellation
+- Provide command progress updates

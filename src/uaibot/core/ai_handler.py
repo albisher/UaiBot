@@ -19,6 +19,7 @@ from uaibot.core.ai_performance_tracker import AIPerformanceTracker
 from uaibot.core.model_config_manager import ModelConfigManager
 from uaibot.core.key_manager import KeyManager
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 try:
     import google.generativeai as genai
@@ -499,254 +500,152 @@ class OllamaAIModel(BaseAIModel):
             return []
 
 class AIHandler:
-    """Handles AI model interactions with caching and error handling."""
+    """
+    A class to handle AI model interactions.
     
-    def __init__(
-        self,
-        model_type: str,
-        api_key: Optional[str] = None,
-        google_model_name: str = "gemini-pro",
-        ollama_base_url: str = "http://localhost:11434",
-        cache_ttl: int = 3600,
-        cache_size_mb: int = 100,
-        fast_mode: bool = False,
-        debug: bool = False
-    ):
-        """Initialize the AI handler."""
-        self.model_type = model_type.lower()
-        self.fast_mode = fast_mode
-        self.debug = debug
-        
-        # Initialize components
-        self.cache = CacheManager(ttl_seconds=cache_ttl, max_size_mb=cache_size_mb)
-        self.performance_tracker = AIPerformanceTracker()
-        self.model_config = ModelConfigManager()
-        self.key_manager = KeyManager()
-        self.config_manager = ConfigManager()
-        
-        # Load configuration
-        self._load_config()
-        
-        # Initialize model
-        self.model = self._create_model(
-            model_type=model_type,
-            api_key=api_key,
-            google_model_name=google_model_name,
-            ollama_base_url=ollama_base_url
-        )
-        
-        # Initialize with fallback
-        self._initialize_with_fallback()
+    This class provides a unified interface for processing prompts and handling
+    responses from AI models. It includes safety checks, error handling, and
+    response formatting.
     
-    def _create_model(self, **kwargs) -> BaseAIModel:
-        """Create appropriate model instance."""
-        model_type = kwargs.get("model_type", "").lower()
-        if model_type == "google":
-            return GoogleAIModel(
-                api_key=kwargs.get("api_key"),
-                model_name=kwargs.get("google_model_name", "gemini-pro")
-            )
-        elif model_type == "ollama":
-            return OllamaAIModel(
-                base_url=kwargs.get("ollama_base_url", "http://localhost:11434"),
-                model_name=kwargs.get("ollama_model_name", "gemma3:4b")
-            )
-        else:
-            raise ConfigurationError(f"Unsupported model type: {model_type}")
+    Attributes:
+        model_manager (ModelManager): Model manager instance
+        prompt_config (PromptConfig): Configuration for prompt processing
+    """
     
-    def _load_config(self):
-        """Load configuration from settings.json"""
+    def __init__(self, model_manager: ModelManager) -> None:
+        """
+        Initialize the AIHandler.
+        
+        Args:
+            model_manager (ModelManager): Model manager instance
+        """
+        self.model_manager = model_manager
+        self.prompt_config = PromptConfig()
+    
+    def process_prompt(self, prompt: str) -> ResponseInfo:
+        """
+        Process a prompt and get a response from the AI model.
+        
+        Args:
+            prompt (str): The prompt to process
+            
+        Returns:
+            ResponseInfo: The processed response information
+            
+        Raises:
+            Exception: If there's an error processing the prompt
+        """
         try:
-            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'config', 'settings.json')
-            with open(config_path, 'r') as f:
-                config = json.load(f)
+            # Format the prompt
+            formatted_prompt = self._format_prompt(prompt)
             
-            # Update model parameters from config
-            model_params = {
-                "temperature": config.get('temperature', 0.7),
-                "top_p": config.get('top_p', 0.95),
-                "top_k": config.get('top_k', 40),
-                "max_output_tokens": config.get('max_output_tokens', 1024)
-            }
+            # Get response from model
+            response = self._get_model_response(formatted_prompt)
             
-            if hasattr(self, 'model'):
-                self.model.model_params.update(model_params)
-                
+            # Process and validate response
+            processed_response = self._process_response(response)
+            
+            return ResponseInfo(
+                text=processed_response["text"],
+                raw_response=response,
+                metadata=processed_response.get("metadata", {})
+            )
+            
         except Exception as e:
-            logger.warning(f"Failed to load configuration: {e}")
+            logger.error(f"Error processing prompt: {str(e)}")
+            raise
     
-    def _initialize_with_fallback(self):
-        """Initialize the AI model with fallback options."""
-        max_attempts = 3
-        attempt = 0
+    def _format_prompt(self, prompt: str) -> str:
+        """
+        Format the prompt for the AI model.
         
-        while attempt < max_attempts:
-            try:
-                if not self.model.validate_config():
-                    raise ConfigurationError("Model configuration validation failed")
-                
-                self.model.initialize(model_params=self.model.model_params)
-                return
-                
-            except Exception as e:
-                attempt += 1
-                error_msg = str(e)
-                logger.error(f"Attempt {attempt}/{max_attempts} failed: {error_msg}")
-                
-                if attempt < max_attempts:
-                    available_models = self.model.get_available_models()
-                    if available_models:
-                        print(f"\nAvailable models for {self.model_type}:")
-                        for i, model in enumerate(available_models, 1):
-                            print(f"{i}. {model}")
-                        
-                        choice = input("\nSelect a model number (or press Enter to switch provider): ").strip()
-                        if choice and choice.isdigit() and 1 <= int(choice) <= len(available_models):
-                            if isinstance(self.model, GoogleAIModel):
-                                self.model.model_name = available_models[int(choice)-1]
-                            else:
-                                self.model.model_name = available_models[int(choice)-1]
-                        else:
-                            # Switch provider
-                            new_type = "ollama" if self.model_type == "google" else "google"
-                            self.model_type = new_type
-                            self.model = self._create_model(
-                                model_type=new_type,
-                                api_key=self.key_manager.get_key("google"),
-                                google_model_name="gemini-pro",
-                                ollama_base_url="http://localhost:11434"
-                            )
-                    else:
-                        # Switch provider if no models available
-                        new_type = "ollama" if self.model_type == "google" else "google"
-                        self.model_type = new_type
-                        self.model = self._create_model(
-                            model_type=new_type,
-                            api_key=self.key_manager.get_key("google"),
-                            google_model_name="gemini-pro",
-                            ollama_base_url="http://localhost:11434"
-                        )
-                else:
-                    raise AIError(f"Failed to initialize any AI model after {max_attempts} attempts")
-    
-    def process_command(self, command: str) -> Dict[str, Any]:
-        """Process a command using the AI model."""
-        cached_response = self.cache.get(command)
-        if cached_response:
-            logger.info("Using cached response for command")
-            return cached_response
-        
-        start_time = time.time()
-        try:
-            response = self.model.generate(command)
+        Args:
+            prompt (str): The original prompt
             
-            # Track successful request
-            self.performance_tracker.track_request(
-                model_name=self.model.model_name,
-                start_time=start_time,
-                success=True
+        Returns:
+            str: The formatted prompt
+        """
+        # Add any necessary formatting or context
+        return f"User: {prompt}\nAssistant:"
+    
+    def _get_model_response(self, prompt: str) -> Dict[str, Any]:
+        """
+        Get a response from the AI model.
+        
+        Args:
+            prompt (str): The formatted prompt
+            
+        Returns:
+            Dict[str, Any]: The raw model response
+            
+        Raises:
+            Exception: If there's an error getting the response
+        """
+        try:
+            import ollama
+            
+            response = ollama.generate(
+                model=self.model_manager.model_info.name,
+                prompt=prompt,
+                temperature=self.prompt_config.temperature,
+                top_p=self.prompt_config.top_p,
+                top_k=self.prompt_config.top_k,
+                max_tokens=self.prompt_config.max_tokens
             )
             
-            # Cache the response
-            self.cache.set(command, response)
             return response
             
         except Exception as e:
-            # Track failed request
-            self.performance_tracker.track_request(
-                model_name=self.model.model_name,
-                start_time=start_time,
-                success=False,
-                error_type=type(e).__name__
-            )
-            
-            logger.error(f"Error processing command: {str(e)}")
-            raise AIError(f"Failed to process command: {str(e)}")
+            logger.error(f"Error getting model response: {str(e)}")
+            raise
     
-    def clear_cache(self) -> None:
-        """Clear the response cache."""
-        self.cache.clear()
-        logger.info("AI response cache cleared")
-
-    def get_performance_metrics(self, model_name: Optional[str] = None) -> Dict[str, Any]:
+    def _process_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Get performance metrics for the AI handler.
+        Process and validate the model response.
         
         Args:
-            model_name: Optional name of the model to get metrics for
+            response (Dict[str, Any]): The raw model response
             
         Returns:
-            Dictionary containing performance metrics
-        """
-        if model_name:
-            return self.performance_tracker.get_model_metrics(model_name)
-        return self.performance_tracker.get_all_metrics()
-
-    def export_performance_metrics(self, filepath: str) -> None:
-        """
-        Export performance metrics to a file.
-        
-        Args:
-            filepath: Path to save the metrics
-        """
-        self.performance_tracker.export_metrics(filepath)
-
-    def get_model_config(self, model_name: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Get configuration for a specific model or all models.
-        
-        Args:
-            model_name: Optional name of the model to get configuration for
+            Dict[str, Any]: The processed response
             
-        Returns:
-            Dictionary containing model configuration(s)
+        Raises:
+            ValueError: If the response is invalid
         """
-        if model_name:
-            config = self.model_config.get_config(model_name)
-            return config.__dict__ if config else {}
-        return {
-            name: config.__dict__
-            for name, config in self.model_config.get_active_models().items()
-        }
-
-    def update_model_config(
-        self,
-        model_name: str,
-        parameters: Optional[Dict[str, Any]] = None,
-        optimization_settings: Optional[Dict[str, Any]] = None
-    ) -> None:
-        """
-        Update configuration for a model.
-        
-        Args:
-            model_name: Name of the model
-            parameters: Optional new parameters to set
-            optimization_settings: Optional new optimization settings
-        """
-        if parameters:
-            self.model_config.update_parameters(model_name, parameters)
-        if optimization_settings:
-            self.model_config.update_optimization_settings(model_name, optimization_settings)
-
-    def _clean_and_validate_ai_response(self, response_text: str) -> dict:
-        """
-        Clean and validate the AI's response:
-        - Strip markdown/triple backticks
-        - Parse JSON
-        - Ensure 'plan' is a list of steps, each with a valid 'operation' value
-        - If invalid, return a clear error dict
-        """
-        import re
-        allowed_ops = {"system_command", "execute_command", "file_system_search", "file_operation", "info_query", "print_formatted_output", "sort", "regex_extraction", "prompt_user", "send_confirmation", "error"}
-        # Remove markdown/triple backticks
-        cleaned = re.sub(r"^```[a-zA-Z]*\\n|```$", "", response_text.strip())
         try:
-            data = json.loads(cleaned)
-            if not isinstance(data, dict) or "plan" not in data or not isinstance(data["plan"], list):
-                return {"error": True, "error_message": "AI response missing 'plan' list."}
-            for step in data["plan"]:
-                if step.get("operation") not in allowed_ops:
-                    return {"error": True, "error_message": f"Invalid or missing operation: {step.get('operation')}"}
-            return data
+            # Extract the response text
+            text = response.get("response", "")
+            if not text:
+                raise ValueError("Empty response from model")
+            
+            # Create metadata
+            metadata = {
+                "model": self.model_manager.model_info.name,
+                "tokens": response.get("total_tokens", 0),
+                "prompt_tokens": response.get("prompt_tokens", 0),
+                "completion_tokens": response.get("completion_tokens", 0)
+            }
+            
+            return {
+                "text": text,
+                "metadata": metadata
+            }
+            
         except Exception as e:
-            return {"error": True, "error_message": f"Failed to parse AI response as JSON: {str(e)}"}
+            logger.error(f"Error processing response: {str(e)}")
+            raise
+
+@dataclass
+class PromptConfig:
+    """Configuration for prompt processing."""
+    max_tokens: int = 1024
+    temperature: float = 0.1
+    top_p: float = 0.95
+    top_k: int = 40
+
+@dataclass
+class ResponseInfo:
+    """Information about the model response."""
+    text: str
+    raw_response: Dict[str, Any]
+    metadata: Dict[str, Any] = field(default_factory=dict)

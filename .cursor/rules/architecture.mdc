@@ -1,8 +1,67 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
+# Architecture Rules
+
+## Core Principles
+- Use modern OOP with composition over inheritance
+- Implement strict layer separation
+- Follow SOLID principles
+- Use dependency injection
+- Leverage Python's modern features
+
+## Layer Structure
+1. Core Logic Layer
+   - Command parsing and validation
+   - Command execution pipeline
+   - Event handling and state management
+   - Use dataclasses for data structures
+   - Implement ABCs for interfaces
+
+2. AI Integration Layer
+   - BaseAIModel abstract base class
+   - Model registry for dynamic loading
+   - Model-specific implementations
+   - Type hints for all interfaces
+   - Async support for API calls
+
+3. Shell/System Interface Layer
+   - OS abstraction
+   - Command execution
+   - Safety checks
+   - Sandboxing
+   - Event-driven command monitoring
+
+4. UI/API Layer
+   - CLI interface
+   - GUI components
+   - Web API
+   - Event bus for UI updates
+   - Response formatting
+
+## Design Patterns
+- Factory for object creation
+- Observer for event handling
+- Strategy for interchangeable algorithms
+- Command for operation encapsulation
+- Decorator for cross-cutting concerns
+
+## Code Organization
+- Feature-based directory structure
+- Clear separation of concerns
+- Plugin system architecture
+- Modular component design
+- Type-safe interfaces
+
+## Best Practices
+- Use dataclasses for data containers
+- Implement ABCs for interfaces
+- Use type hints throughout
+- Follow PEP 8 and modern Python conventions
+- Document all public interfaces
+
 - Core Architecture:
   * Design for model-agnostic system using BaseAIModel interface
   * Support multiple AI providers through standardized interfaces

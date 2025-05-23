@@ -1,11 +1,58 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
-- Optimize AI model interactions for performance
-- Implement proper caching mechanisms
-- Monitor and optimize resource usage
-- Follow performance guidelines in architecture.md
-- Document performance considerations
-- Implement proper cleanup procedures
+# Performance Rules
+
+## Performance Structure
+```python
+@dataclass
+class PerformanceConfig:
+    cache_enabled: bool
+    async_enabled: bool
+    max_workers: int
+    timeout: float
+    retry_count: int
+
+class PerformanceMonitor:
+    def track_operation(self, operation: str, duration: float) -> None:
+        """Track operation performance."""
+        pass
+```
+
+## Performance Features
+1. Caching
+   - Response cache
+   - Command cache
+   - Model cache
+   - Config cache
+   - Resource cache
+
+2. Async Operations
+   - Async commands
+   - Async AI calls
+   - Async file ops
+   - Async network
+   - Async UI updates
+
+3. Resource Management
+   - Memory usage
+   - CPU usage
+   - Disk usage
+   - Network usage
+   - Thread pool
+
+## Optimization
+- Command batching
+- Response streaming
+- Resource pooling
+- Lazy loading
+- Background tasks
+
+## Best Practices
+- Use type hints
+- Monitor performance
+- Profile regularly
+- Optimize bottlenecks
+- Document metrics

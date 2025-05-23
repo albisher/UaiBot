@@ -1,8 +1,84 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Deployment Rules
+
+## Deployment Structure
+```python
+@dataclass
+class DeploymentConfig:
+    environment: str
+    version: str
+    config_path: Path
+    log_path: Path
+    data_path: Path
+
+class DeploymentManager:
+    def deploy(self, config: DeploymentConfig) -> bool:
+        """Deploy the application."""
+        pass
+```
+
+## Environment Setup
+1. Development
+   - Local development
+   - Testing environment
+   - Debug mode
+   - Hot reloading
+   - Development tools
+
+2. Staging
+   - Pre-production
+   - Integration testing
+   - Performance testing
+   - Security testing
+   - User acceptance
+
+3. Production
+   - Live environment
+   - Monitoring
+   - Logging
+   - Backup
+   - Security
+
+## Deployment Process
+1. Preparation
+   - Version check
+   - Dependency check
+   - Configuration check
+   - Resource check
+   - Permission check
+
+2. Deployment
+   - Code deployment
+   - Configuration update
+   - Database migration
+   - Service restart
+   - Health check
+
+3. Verification
+   - Functionality test
+   - Performance test
+   - Security check
+   - Log verification
+   - User notification
+
+## Container Support
+- Docker support
+- Docker Compose
+- Kubernetes
+- Container health
+- Resource limits
+
+## Best Practices
+- Use type hints
+- Implement validation
+- Support rollback
+- Monitor deployment
+- Document process
+
 - Platform-Specific Deployment:
   * macOS:
     - Install required dependencies via Homebrew

@@ -1,11 +1,58 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
-- Implement proper access control for all operations
-- Follow security guidelines in architecture.md
-- Protect sensitive information and API keys
-- Implement proper authentication mechanisms
-- Document security considerations
-- Regular security audits and updates
+# Security Rules
+
+## Security Structure
+```python
+@dataclass
+class SecurityConfig:
+    safe_mode: bool
+    dangerous_command_check: bool
+    sandbox_enabled: bool
+    audit_logging: bool
+    permissions: Dict[str, List[str]]
+
+class SecurityManager:
+    def check_command(self, command: Command) -> SecurityResult:
+        """Check command security."""
+        pass
+```
+
+## Security Levels
+1. Command Safety
+   - Safe commands
+   - Potentially dangerous
+   - Dangerous commands
+   - System commands
+   - Custom commands
+
+2. Permission Levels
+   - User permissions
+   - System permissions
+   - Resource permissions
+   - Network permissions
+   - File permissions
+
+3. Access Control
+   - User authentication
+   - Role-based access
+   - Resource access
+   - API access
+   - File access
+
+## Security Features
+- Command validation
+- Permission checking
+- Resource isolation
+- Audit logging
+- Error handling
+
+## Best Practices
+- Use type hints
+- Implement validation
+- Follow security standards
+- Regular audits
+- Update security rules

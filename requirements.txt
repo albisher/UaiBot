@@ -22,7 +22,6 @@ google-api-python-client>=2.0.0
 # AI and API dependencies
 openai                # OpenAI API for AI integration
 urllib3>=2.0.0        # HTTP client library
-google-generativeai   # Google's Generative AI API
 httpx>=0.27.0,<0.29.0  # HTTP client library with specific version
 langchain>=0.0.200    # Framework for AI applications
 chromadb>=0.4.0       # Vector database for embeddings

@@ -1,11 +1,58 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
-- Implement comprehensive error handling for all operations
-- Use proper logging levels for different types of messages
-- Follow the logging structure defined in the core components
-- Document all error scenarios and handling procedures
-- Maintain consistent error messages across the application
-- Include proper error recovery mechanisms
+# Error Handling Rules
+
+## Error Structure
+```python
+@dataclass
+class ErrorInfo:
+    code: str
+    message: str
+    details: Dict[str, Any]
+    timestamp: datetime
+    context: Dict[str, Any]
+
+class ErrorHandler:
+    def handle_error(self, error: Exception) -> ErrorInfo:
+        """Handle an error and return error info."""
+        pass
+```
+
+## Error Types
+1. Command Errors
+   - Invalid command
+   - Permission denied
+   - Resource not found
+   - Execution failed
+   - Timeout
+
+2. AI Errors
+   - Model error
+   - API error
+   - Response error
+   - Validation error
+   - Timeout
+
+3. System Errors
+   - Resource error
+   - Network error
+   - File error
+   - Config error
+   - Security error
+
+## Error Handling
+- Custom exceptions
+- Error recovery
+- Error logging
+- User feedback
+- Error tracking
+
+## Best Practices
+- Use type hints
+- Implement recovery
+- Log errors
+- Provide context
+- Document errors
