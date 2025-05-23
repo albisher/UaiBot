@@ -8,6 +8,7 @@ import os
 import platform
 import json
 import enum
+import re
 from uaibot.utils import get_platform_name, run_command
 from uaibot.core.device_manager.usb_detector import USBDetector
 from uaibot.core.browser_handler import BrowserHandler
@@ -22,6 +23,8 @@ class CommandSafetyLevel(enum.Enum):
     REQUIRES_SHELL_TRUE = "REQUIRES_SHELL_TRUE"
     EMPTY = "EMPTY"
     UNKNOWN = "UNKNOWN"
+    JSON_PLAN = "JSON_PLAN"  # New type for JSON plans
+    SEMI_DANGEROUS = "SEMI_DANGEROUS"  # New type for commands that need extra verification
 
 # Basic list of commands that are generally safe.
 SAFE_COMMAND_WHITELIST = [
@@ -186,106 +189,196 @@ class ShellHandler:
         # Simple pass-through for now, can be extended in the future
         return command_string
     
-    def execute_command(self, command, force_shell=False, timeout=None):
-        """Execute a shell command safely and return the output."""
-        # Use a shorter timeout in fast mode to avoid hanging
-        if self.fast_mode and timeout is None:
-            timeout = 5  # 5 seconds timeout in fast mode to ensure quicker response
-            
-        if self.safe_mode and not force_shell:
-            # In safe mode, apply more stringent checks
-            if not self.is_command_safe(command):
-                return f"Error: Command '{command}' is potentially unsafe. Run with --no-safe-mode to override."
-        
-        # Special handling for common file search patterns
-        if command.startswith("cat ") and ".txt" in command:
-            # If trying to cat a non-existent file like "cat .txt", convert to a file search
-            if command == "cat .txt" or command.endswith("cat *.txt"):
-                # Convert to proper file search
-                if self.system_platform in ["linux", "darwin"]:
-                    command = "find ~ -type f -name '*.txt' -not -path '*/\\.*' 2>/dev/null | head -n 15"
-                else:  # Windows
-                    command = 'dir /s /b "%USERPROFILE%\\*.txt"'
-                    
-        # Handle problematic wildcard patterns that can cause excessive recursion
-        if "find" in command and "'**'" in command:
-            # Replace '**' wildcard with '*' which is safer
-            command = command.replace("'**'", "'*'")
-            if not self.quiet_mode:
-                print(f"Modified search command for safety: {command}")
-        
+    def assess_command_safety(self, command_string):
+        """
+        Enhanced command safety assessment that handles JSON plans and provides detailed risk analysis.
+        Returns:
+            tuple: (CommandSafetyLevel, dict) - Safety level and additional assessment info
+        """
+        assessment_info = {
+            "confidence": 1.0,
+            "risk_level": "low",
+            "requires_admin": False,
+            "potential_impact": [],
+            "recommendation": ""
+        }
+
+        if not command_string.strip():
+            return CommandSafetyLevel.EMPTY, assessment_info
+
+        # Check if it's a JSON plan
+        if command_string.strip().startswith('{') or command_string.strip().startswith('```json'):
+            try:
+                # Clean up the command string if it's a markdown code block
+                if command_string.strip().startswith('```'):
+                    command_string = command_string.strip('`').lstrip('json').strip()
+                
+                # Parse the JSON
+                plan_data = json.loads(command_string)
+                
+                # If it's a plan, assess each step
+                if isinstance(plan_data, dict) and 'plan' in plan_data:
+                    assessment_info["confidence"] = plan_data.get('confidence', 0.5)
+                    assessment_info["recommendation"] = "Process as structured plan"
+                    return CommandSafetyLevel.JSON_PLAN, assessment_info
+            except json.JSONDecodeError:
+                pass  # Not valid JSON, continue with normal assessment
+
         try:
-            # Prefer using shlex.split for secure command execution without shell=True
+            command_parts = shlex.split(command_string)
+            if not command_parts:
+                return CommandSafetyLevel.EMPTY, assessment_info
+        except ValueError:
+            return CommandSafetyLevel.REQUIRES_SHELL_TRUE, assessment_info
+
+        # Check for dangerous commands
+        if self.enable_dangerous_command_check:
+            if self._is_potentially_dangerous(command_parts):
+                assessment_info.update({
+                    "risk_level": "high",
+                    "requires_admin": True,
+                    "potential_impact": ["System modification", "Data loss", "Security risk"],
+                    "recommendation": "Requires admin confirmation"
+                })
+                return CommandSafetyLevel.POTENTIALLY_DANGEROUS, assessment_info
+
+        # Check for semi-dangerous commands
+        semi_dangerous_patterns = [
+            (r'rm\s+.*\*', "Deleting multiple files"),
+            (r'chmod\s+.*777', "Setting wide permissions"),
+            (r'chown\s+.*root', "Changing ownership to root"),
+            (r'mv\s+.*\/', "Moving files to system directories"),
+            (r'cp\s+.*\/', "Copying files to system directories")
+        ]
+
+        for pattern, impact in semi_dangerous_patterns:
+            if re.search(pattern, command_string):
+                assessment_info.update({
+                    "risk_level": "medium",
+                    "requires_admin": False,
+                    "potential_impact": [impact],
+                    "recommendation": "Verify command intent"
+                })
+                return CommandSafetyLevel.SEMI_DANGEROUS, assessment_info
+
+        # Check whitelist in safe mode
+        if self.safe_mode and not self._is_command_safe(command_parts):
+            assessment_info.update({
+                "risk_level": "medium",
+                "recommendation": "Command not in whitelist"
+            })
+            return CommandSafetyLevel.NOT_IN_WHITELIST, assessment_info
+
+        # Check for shell operators
+        shell_operators = ['|', '>', '<', '>>', '<<', '&&', '||', ';']
+        if any(operator in command_string for operator in shell_operators):
+            assessment_info.update({
+                "risk_level": "low",
+                "recommendation": "Use shell=True for execution"
+            })
+            return CommandSafetyLevel.REQUIRES_SHELL_TRUE, assessment_info
+
+        return CommandSafetyLevel.SAFE, assessment_info
+
+    def execute_command(self, command, force_shell=False, timeout=None):
+        """Execute a shell command with enhanced safety checks."""
+        # Use a shorter timeout in fast mode
+        if self.fast_mode and timeout is None:
+            timeout = 5
+
+        # Assess command safety
+        safety_level, assessment = self.assess_command_safety(command)
+        
+        # Handle JSON plans
+        if safety_level == CommandSafetyLevel.JSON_PLAN:
+            try:
+                # Clean up the command string if it's a markdown code block
+                if command.strip().startswith('```'):
+                    command = command.strip('`').lstrip('json').strip()
+                
+                # Parse the JSON plan
+                plan_data = json.loads(command)
+                
+                # Process the plan
+                if isinstance(plan_data, dict) and 'plan' in plan_data:
+                    results = []
+                    for step in plan_data['plan']:
+                        operation = step.get('operation')
+                        parameters = step.get('parameters', {})
+                        
+                        # Execute the step
+                        if operation == 'shell' and 'command' in parameters:
+                            step_result = self.execute_command(parameters['command'])
+                            results.append(f"Step '{step.get('description', '')}': {step_result}")
+                        else:
+                            results.append(f"Step '{step.get('description', '')}': Operation '{operation}' not supported")
+                    
+                    return "\n".join(results)
+            except json.JSONDecodeError:
+                return f"Error: Invalid JSON plan format"
+
+        # Handle dangerous commands
+        if safety_level == CommandSafetyLevel.POTENTIALLY_DANGEROUS:
+            if not self.suppress_prompt:
+                print(f"\n⚠️ Warning: This command is potentially dangerous:")
+                print(f"Command: {command}")
+                print(f"Risk Level: {assessment['risk_level']}")
+                print(f"Potential Impact: {', '.join(assessment['potential_impact'])}")
+                if assessment['requires_admin']:
+                    print("\nThis command requires admin privileges.")
+                    admin_pass = input("Enter admin password to continue (or press Enter to cancel): ")
+                    if not admin_pass:
+                        return "Command execution cancelled by user."
+                else:
+                    confirm = input("\nAre you sure you want to proceed? (y/N): ")
+                    if confirm.lower() != 'y':
+                        return "Command execution cancelled by user."
+
+        # Handle semi-dangerous commands
+        if safety_level == CommandSafetyLevel.SEMI_DANGEROUS:
+            if not self.suppress_prompt:
+                print(f"\n⚠️ Note: This command may have significant effects:")
+                print(f"Command: {command}")
+                print(f"Potential Impact: {', '.join(assessment['potential_impact'])}")
+                confirm = input("\nDo you want to proceed? (y/N): ")
+                if confirm.lower() != 'y':
+                    return "Command execution cancelled by user."
+
+        # Execute the command
+        try:
             if not force_shell and "|" not in command and ">" not in command and "<" not in command and "*" not in command:
-                # Can use more secure execution
                 args = shlex.split(command)
-                
-                if not self.quiet_mode:
-                    print(f"Executing with shlex: {args}")
-                
                 process = subprocess.run(
                     args,
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    check=False  # Don't raise exception on non-zero return code
+                    check=False
                 )
             else:
-                # Need to use shell=True for commands with special shell syntax
-                if not self.quiet_mode:
-                    print(f"Using shell=True for command with special syntax: {command}")
-                
-                if not self.quiet_mode:
-                    print(f"Executing with shell=True: {command}")
-                
                 process = subprocess.run(
                     command,
                     shell=True,
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    check=False  # Don't raise exception on non-zero return code
+                    check=False
                 )
-                
-            # Handle the command output
+
             if process.returncode != 0:
-                # Command failed
-                if not self.quiet_mode:
-                    print(f"Error executing command: {command}")
-                    print(f"Return Code: {process.returncode}")
-                    print(f"Stderr:\n{process.stderr}")
-                
-                # For certain search-related commands, provide better alternatives on failure
-                if "find" in command and "file" in command.lower():
-                    # If a file search failed, provide a more targeted search
-                    # This helps when the user asks for txt files but the command fails
-                    if ".txt" in command.lower() or "text" in command.lower():
-                        if self.system_platform in ["linux", "darwin"]:
-                            fallback_cmd = "find ~ -type f -name '*.txt' 2>/dev/null | head -n 10"
-                            fallback_process = subprocess.run(fallback_cmd, shell=True, capture_output=True, text=True)
-                            if fallback_process.returncode == 0 and fallback_process.stdout.strip():
-                                return f"Found text files:\n{fallback_process.stdout}"
-                
-                # Standard error handling
                 if process.stderr:
                     return process.stderr
-                else:
-                    return f"Command failed with return code {process.returncode}"
-            else:
-                # Command succeeded
-                return process.stdout
-                
+                return f"Command failed with return code {process.returncode}"
+            return process.stdout
+
         except FileNotFoundError:
             return f"Command not found: {command}"
         except PermissionError:
             return f"Permission denied when running: {command}"
         except subprocess.TimeoutExpired:
             if self.fast_mode:
-                # In fast mode, return immediately without retrying
                 return f"Command timed out after {timeout} seconds. Fast mode enabled, not retrying."
-            else:
-                # In normal mode, give more info
-                return f"Command timed out after {timeout} seconds: {command}"
+            return f"Command timed out after {timeout} seconds: {command}"
         except Exception as e:
             return f"Error executing command: {command}\n{str(e)}"
     

@@ -380,57 +380,76 @@ class CommandProcessor:
         # Not a shell command
         return None
 
-    def _handle_with_ai(self, user_input, thinking=""):
-        """Process user input with AI to generate an executable command."""
-        # If thinking wasn't provided, generate it
-        if not thinking:
-            thinking = self._format_thinking(
-                f"🤖 Processing your request: '{user_input}'\n\n"
-                f"I'm thinking about how to best handle this...\n"
-                f"Using AI to interpret your request and generate an appropriate response..."
-            )
-        
-        # Use the unified AI prompt template
-        prompt_for_ai = build_ai_prompt(user_input)
-        
-        # Get response from AI with timeout handling in fast mode
+    def _handle_with_ai(self, user_input):
+        """Process user input with AI to generate executable commands."""
         try:
-            # In fast mode, we'll use a shorter internal timeout
-            ai_response = self.ai_handler.process_command(prompt_for_ai)
-            logger = logging.getLogger(__name__)
-            logger.info(f"Raw AI response: {ai_response}")
+            # Generate AI response
+            ai_response = self.ai_handler.process_command(user_input)
             
-            # Handle AI model response
-            if isinstance(ai_response, dict):
-                if "error" in ai_response:
-                    error_msg = ai_response.get("error_message", "Unknown error from AI handler.")
-                    logger.error(f"AI handler error: {error_msg}")
-                    return f"{thinking}\n\n❌ AI Error: {error_msg}"
+            if not ai_response:
+                return "Error: No response from AI handler"
                 
-                # Extract command from response
-                command = ai_response.get('command', '')
-                if not command:
-                    return f"{thinking}\n\n{self.color_settings['important']}💬 No command found in the response.{self.color_settings['reset']}"
+            # Log the AI response for debugging
+            self.logger.debug(f"AI Response: {ai_response}")
+            
+            # Check if the response is a JSON plan
+            if isinstance(ai_response, dict) and 'plan' in ai_response:
+                # Process the structured plan
+                results = []
+                for step in ai_response['plan']:
+                    operation = step.get('operation')
+                    parameters = step.get('parameters', {})
+                    
+                    if operation == 'shell' and 'command' in parameters:
+                        # Execute the shell command with safety checks
+                        result = self.shell_handler.execute_command(parameters['command'])
+                        results.append(f"Step '{step.get('description', '')}': {result}")
+                    else:
+                        results.append(f"Step '{step.get('description', '')}': Operation '{operation}' not supported")
                 
-                # Execute the command
-                execution_result = self.shell_handler.execute_command(command)
-                return f"{thinking}\n\n{execution_result}"
+                return "\n".join(results)
             
-            # For non-dict responses, try to extract command
-            shell_command = self._extract_shell_command(ai_response)
-            if shell_command:
-                execution_result = self.shell_handler.execute_command(shell_command)
-                return f"{thinking}\n\n{execution_result}"
+            # Handle direct command in response
+            if isinstance(ai_response, dict) and 'command' in ai_response:
+                command = ai_response['command']
+                # Execute the command with safety checks
+                return self.shell_handler.execute_command(command)
+                
+            # Handle string response
+            if isinstance(ai_response, str):
+                # Try to parse as JSON if it looks like JSON
+                if ai_response.strip().startswith('{') or ai_response.strip().startswith('```json'):
+                    try:
+                        # Clean up if it's a markdown code block
+                        if ai_response.strip().startswith('```'):
+                            ai_response = ai_response.strip('`').lstrip('json').strip()
+                        
+                        # Parse and process as JSON
+                        plan_data = json.loads(ai_response)
+                        if isinstance(plan_data, dict) and 'plan' in plan_data:
+                            results = []
+                            for step in plan_data['plan']:
+                                operation = step.get('operation')
+                                parameters = step.get('parameters', {})
+                                
+                                if operation == 'shell' and 'command' in parameters:
+                                    result = self.shell_handler.execute_command(parameters['command'])
+                                    results.append(f"Step '{step.get('description', '')}': {result}")
+                                else:
+                                    results.append(f"Step '{step.get('description', '')}': Operation '{operation}' not supported")
+                            
+                            return "\n".join(results)
+                    except json.JSONDecodeError:
+                        pass  # Not valid JSON, continue with normal processing
+                
+                # Execute as direct command
+                return self.shell_handler.execute_command(ai_response)
             
-            return f"{thinking}\n\n{self.color_settings['important']}💬 No valid command found in the response.{self.color_settings['reset']}"
+            return "Error: Invalid response format from AI"
             
         except Exception as e:
-            if self.fast_mode:
-                # In fast mode, provide a simple error and let the program continue to exit
-                return f"{thinking}\n\nError: Failed to get AI response: {str(e)}"
-            else:
-                # In normal mode, re-raise the exception
-                raise
+            self.logger.error(f"Error in _handle_with_ai: {str(e)}")
+            return f"Error processing command: {str(e)}"
     
     def _format_thinking(self, thinking_text):
         """Format the thinking process as a folded/collapsible section."""
@@ -1611,20 +1630,29 @@ class CommandProcessor:
         """Map high-level operations to shell commands."""
         if operation == 'open_application':
             app = parameters.get('application', '').lower()
-            if app == 'chrome':
-                return 'open -a "Google Chrome"'
-            elif app == 'firefox':
-                return 'open -a Firefox'
-            elif app == 'safari':
-                return 'open -a Safari'
-            elif app == 'notes':
-                return 'open -a Notes'
-            elif app == 'default_browser':
-                return 'open -a "Google Chrome"'  # Default to Chrome
-            else:
-                return f'open -a "{app}"'
+            # Map common application names to their commands
+            app_commands = {
+                'chrome': 'open -a "Google Chrome"',
+                'firefox': 'open -a Firefox',
+                'safari': 'open -a Safari',
+                'calculator': 'open -a Calculator',
+                'calc': 'open -a Calculator',
+                'notes': 'open -a Notes',
+                'terminal': 'open -a Terminal',
+                'finder': 'open -a Finder',
+                'mail': 'open -a Mail',
+                'calendar': 'open -a Calendar',
+                'photos': 'open -a Photos',
+                'music': 'open -a Music',
+                'default_browser': 'open -a "Google Chrome"',  # Default to Chrome
+                'google': 'open -a "Google Chrome"',  # Alias for Chrome
+                'browser': 'open -a "Google Chrome"'  # Alias for Chrome
+            }
+            return app_commands.get(app, f'open -a "{app}"')
         elif operation == 'browser_navigate':
             url = parameters.get('url', '')
             if url:
                 return f'open -a "Google Chrome" "{url}"'
+        elif operation == 'shell':
+            return parameters.get('command', '')
         return None
