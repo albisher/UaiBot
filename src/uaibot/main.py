@@ -32,6 +32,8 @@ from uaibot.core.ai_handler import AIHandler
 from uaibot.utils.output_facade import output
 from uaibot.core.file_operations import process_file_flag_request
 from uaibot.health_check.ollama_health_check import check_ollama_server, check_model_available
+from uaibot.core.model_manager import ModelManager
+from uaibot.core.config_manager import ConfigManager
 
 # Set up logging
 logger = get_logger(__name__)
@@ -63,7 +65,7 @@ class UaiBot:
             self.debug = debug
             # Initialize platform manager with mode awareness if needed
             self.platform_manager = PlatformManager(mode=mode, fast_mode=fast_mode) if 'mode' in PlatformManager.__init__.__code__.co_varnames else PlatformManager()
-            if not self.platform_manager.platform_supported:
+            if not self.platform_manager.is_platform_supported():
                 raise ConfigurationError(f"Unsupported platform: {self.platform_manager.platform_name}")
             
             # Initialize platform components
@@ -111,27 +113,26 @@ class UaiBot:
                         raise RuntimeError("No available Ollama model found.")
             else:
                 selected_model = default_model
+            # Initialize AIHandler with only supported arguments
+            config_manager = ConfigManager()
+            config_manager.set("default_ollama_model", selected_model)
+            config_manager.set("ollama_base_url", ollama_base_url)
             self.ai_handler = AIHandler(
-                model_type=model_type,
-                ollama_base_url=ollama_base_url,
-                cache_ttl=self.config.get('cache_ttl', 3600),
-                cache_size_mb=self.config.get('cache_size_mb', 100),
-                fast_mode=fast_mode,
-                debug=debug
+                model_manager=ModelManager(config_manager)
             )
             
             # Patch the model name for Ollama if needed
             if model_type == 'ollama':
                 setattr(self.ai_handler, 'ollama_model_name', selected_model)
             
-            self.command_processor = CommandProcessor(self.ai_handler, self.shell_handler, fast_mode=fast_mode, debug=debug)
+            self.command_processor = CommandProcessor(self.ai_handler)
             
             # Welcome message with platform info
             platform_info = self.platform_manager.get_platform_info()
             self.welcome_message = f"""
 🤖 Welcome to UaiBot!
 I'm your AI assistant, ready to help you with your tasks.
-Running on: {platform_info['name']}
+Running on: {platform_info['system']}
 Type 'help' for available commands or just ask me anything!
 """
             logger.info("UaiBot initialized successfully")
@@ -371,12 +372,7 @@ You can also:
                 
             # Re-initialize AI handler
             self.ai_handler = AIHandler(
-                model_type='ollama',
-                ollama_base_url=self.config.get('ollama_base_url', 'http://localhost:11434'),
-                cache_ttl=self.config.get('cache_ttl', 3600),
-                cache_size_mb=self.config.get('cache_size_mb', 100),
-                fast_mode=self.fast_mode,
-                debug=False
+                model_manager=ModelManager(config_manager=ConfigManager())
             )
             output.success(f"Switched to Ollama model: {selected_model}")
         else:

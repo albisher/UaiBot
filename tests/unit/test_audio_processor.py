@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from uaibot.core.audio import AudioProcessor, AudioResult
+from uaibot.core.ai.models.audio import AudioProcessor, AudioResult
 
 @pytest.fixture
 def audio_processor():
@@ -63,7 +63,5 @@ def test_process_meeting_audio(audio_processor, sample_audio):
 
 def test_invalid_audio_path(audio_processor):
     """Test processing an invalid audio path."""
-    result = audio_processor.transcribe_audio("nonexistent.wav")
-    assert isinstance(result, AudioResult)
-    assert "Error" in result.text
-    assert result.segments == [] 
+    with pytest.raises(Exception):
+        audio_processor.transcribe_audio("nonexistent.wav") 

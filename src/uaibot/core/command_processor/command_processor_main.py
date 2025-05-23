@@ -94,7 +94,7 @@ class CommandProcessor:
                 response = self.ai_handler.process_prompt(command)
                 result = CommandResult(
                     success=True,
-                    output=response.output,
+                    output=response.text,
                     metadata={
                         "model": response.metadata.get("model"),
                         "tokens": response.metadata.get("tokens"),

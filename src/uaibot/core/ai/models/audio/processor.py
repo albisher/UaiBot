@@ -3,12 +3,12 @@ Audio processor module for UaiBot.
 
 This module provides audio processing capabilities using Whisper Tiny.
 """
-import whisper
-import ffmpeg
-from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
-from ..logging_manager import get_logger
+from pathlib import Path
+import whisper
+import ffmpeg
+from uaibot.core.logging import get_logger
 
 logger = get_logger(__name__)
 

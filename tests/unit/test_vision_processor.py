@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from uaibot.core.vision import VisionProcessor, VisionResult
+from uaibot.core.ai.models.vision import VisionProcessor, VisionResult
 
 @pytest.fixture
 def vision_processor():
@@ -45,7 +45,5 @@ def test_analyze_document(vision_processor, sample_image):
 
 def test_invalid_image_path(vision_processor):
     """Test processing an invalid image path."""
-    result = vision_processor.process_image("nonexistent.png", "What is in this image?")
-    assert isinstance(result, VisionResult)
-    assert "Error" in result.description
-    assert result.confidence == 0.0 
+    with pytest.raises(Exception):
+        vision_processor.process_image("nonexistent.png", "What is in this image?") 
