@@ -4,7 +4,7 @@ Tests for the AI Performance Tracker module.
 import pytest
 import time
 import json
-from datetime import datetime
+from src.datetime import datetime
 from app.core.ai_performance_tracker import AIPerformanceTracker, ModelMetrics
 
 @pytest.fixture

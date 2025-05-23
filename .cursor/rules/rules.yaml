@@ -1,0 +1,61 @@
+# System Files (Required for Core Functionality)
+system_files:
+  - src/uaibot/main.py
+  - src/uaibot/core/*.py
+  - src/uaibot/utils/*.py
+  - src/uaibot/config/*.py
+  - src/uaibot/health_check/*.py
+  - src/uaibot/platform_uai/*.py
+  - src/uaibot/command_processor/*.py
+  - src/uaibot/terminal_commands/*.py
+  - src/uaibot/screen_handler/*.py
+  - src/uaibot/input_control/*.py
+  - src/uaibot/device_manager/*.py
+  - src/uaibot/data/*.py
+  - src/uaibot/cache/*.py
+  - src/uaibot/documentation/*.py
+
+# Setup Files (Run Once or During Health Check)
+setup_files:
+  - src/uaibot/setup/initial_config.py
+  - src/uaibot/setup/environment_check.py
+  - src/uaibot/setup/dependencies_check.py
+  - src/uaibot/setup/platform_setup.py
+  - src/uaibot/setup/security_setup.py
+  - src/uaibot/setup/database_setup.py
+  - src/uaibot/setup/cache_setup.py
+  - src/uaibot/setup/logging_setup.py
+  - src/uaibot/setup/ai_model_setup.py
+  - src/uaibot/setup/user_setup.py
+
+# Test Files (Development and CI Only)
+test_files:
+  - tests/*.py
+  - tests/conftest.py
+  - tests/data/*.py
+  - tests/results/*.py
+  - tests/coverage/*.py
+  - tests/logs/*.py
+  - tests/outputs/*.py
+  - tests/test_utils/*.py
+  - tests/fixtures/*.py
+  - tests/mocks/*.py
+  - tests/integration/*.py
+  - tests/unit/*.py
+  - tests/e2e/*.py
+  - tests/performance/*.py
+  - tests/security/*.py
+  - tests/compatibility/*.py
+
+# Documentation Files
+documentation_files:
+  - docs/*.md
+  - docs/api/*.md
+  - docs/guides/*.md
+  - docs/examples/*.md
+  - docs/architecture/*.md
+  - docs/development/*.md
+  - docs/deployment/*.md
+  - docs/troubleshooting/*.md
+  - docs/security/*.md
+  - docs/performance/*.md 

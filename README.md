@@ -1,168 +1,60 @@
 # UaiBot
 
-UaiBot is an AI-powered assistant that can process various types of input (text, voice, image) and execute tasks based on AI analysis.
-
-## Project Structure
-
-```
-UaiBot/
-├── config/           # Configuration files
-├── data/            # Persistent application data
-├── demo/            # Demonstration code
-├── documentation/   # Project documentation
-│   └── human_instructions/  # Human instruction files
-├── tests/           # Test files and test-related assets
-├── fix/             # Code related to specific bug fixes
-├── update/          # Code related to updates or upgrades
-├── log/             # Application and process logs
-├── backup/          # Code and data backups
-├── archive/         # Archived code or data
-├── temp/            # Temporary, disposable files
-├── cache/           # Cached data
-├── todo/            # TODO lists and actionable items
-└── uaibot/          # Main application code
-```
-
-## Setup
-
-1. Create and activate a virtual environment:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Unix/macOS
-# or
-.venv\Scripts\activate  # On Windows
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Configure settings:
-- Copy `config/license_key.json.template` to `config/license_key.json`
-- Update settings in `config/settings.json`
-
-## Development
-
-- All code should be developed within the virtual environment (.venv)
-- Follow the project structure guidelines
-- Write tests for new features
-- Update documentation as needed
-
-## Testing
-
-Run tests using:
-```bash
-pytest
-```
-
-## License
-
-See LICENSE and COMMERCIAL_LICENSE files for details.
-
-## Key Features
-
-- Multi-modal input processing (text, voice, image)
-- Natural language command interpretation
-- Cross-platform compatibility
-- Comprehensive testing suite
-- Multilingual support (Arabic and English)
+An AI-powered command processor with a modern GUI interface.
 
 ## Features
 
-- File Operations
-  - Create, read, write, append, delete files
-  - List and search files
-- System Commands
-  - System status
-  - CPU, memory, disk information
-  - Network statistics
-  - Process information
-  - System logs
-- Language Processing
-  - Language detection
-  - Translation
-  - Multi-language support
-- Utility Functions
-  - Help system
-  - Version information
-  - System status
-  - Configuration management
-  - Logging
-  - Debug mode
+- AI-driven command processing
+- Modern GUI with emoji avatar
+- Cross-platform support (macOS, Linux, Windows)
+- Voice and text input support
+- Browser and VS Code integration
+- Safe command execution
 
 ## Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/uaibot.git
+# Clone the repository
+git clone https://github.com/uaibot/uaibot.git
 cd uaibot
-```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install in development mode
+pip install -e .
 ```
 
 ## Usage
 
-### Basic Usage
-
-Run UaiBot in interactive mode:
 ```bash
-python src/main.py
+# Start in GUI mode
+uaibot --gui
+
+# Start in command-line mode
+uaibot
+
+# Run with debug output
+uaibot --debug
+
+# Run in fast mode
+uaibot --fast
 ```
 
-### Command Line Options
+## Development
 
-- `--no-regex`: Disable regex-based command processing and use AI-driven interpretation
-- `--debug`: Enable debug mode
-
-Example:
 ```bash
-python src/main.py --no-regex --debug
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run linting
+flake8
 ```
 
-### Example Commands
+## License
 
-File Operations:
-```
-create file "test.txt"
-write file "test.txt" with content "Hello World"
-read file "test.txt"
-append to file "test.txt" with content "!"
-delete file "test.txt"
-list files
-search files for "test"
-```
-
-System Commands:
-```
-show system status
-show cpu info
-show memory info
-show disk info
-show network info
-show process info
-show system logs
-```
-
-Language Commands:
-```
-set language to "ar"
-detect language of "Hello World"
-translate "Hello World" to "ar"
-show supported languages
-```
-
-Utility Commands:
-```
-show help
-show version
-show status
-show configuration
-show logs
-enable debug
-disable debug
-show errors
-```
+MIT License - See LICENSE file for details.

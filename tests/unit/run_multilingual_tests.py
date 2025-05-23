@@ -8,7 +8,7 @@ import os
 import sys
 import argparse
 import subprocess
-from datetime import datetime
+from src.datetime import datetime
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

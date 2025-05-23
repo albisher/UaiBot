@@ -1,0 +1,37 @@
+# Test requests for UaiBot agentic implementation
+
+# Simple file operations
+Create a file named hello.txt with the content "Hello, World!" and then read it back to me.
+
+# Multi-step operations with state
+Create a directory called test_data, then create a file inside it called config.json with some settings, and finally list the contents of the directory.
+
+# Operations with conditions
+If the file test.txt exists, read its contents. If it doesn't exist, create it with "This is a test file" and then read it.
+
+# Error handling and recovery
+Try to read a non-existent file called missing.txt, and if that fails, create it with "This file was missing" and then read it.
+
+# Complex multi-step operation
+Create a directory called project, then create a README.md file inside it with a project description, then create a src directory and add a main.py file with a simple Python program, and finally list the entire project structure.
+
+# State variable usage
+Create a file called data.txt with "Initial data" and store its path in a variable. Then use that path to read the file and append "Updated data" to it.
+
+# Mixed operations
+Create a file called script.sh with a shell script that prints "Hello from shell", then make it executable and run it, and finally read its output.
+
+# Error recovery with alternatives
+Try to create a file in a non-existent directory. If that fails, create the directory first and then create the file.
+
+# Complex file manipulation
+Create a file called input.txt with some text, then create a backup of it called input.txt.bak, modify the original file, and finally compare the two files.
+
+# System information gathering
+Get the current directory, list its contents, and then create a file called system_info.txt with the output of the 'pwd' and 'ls' commands.
+
+What's the current time and date?
+Can you help me create a simple Python script that prints "Hello, World!"?
+What's the weather like today?
+Can you explain what is machine learning in simple terms?
+Please help me write a function to calculate the factorial of a number. 

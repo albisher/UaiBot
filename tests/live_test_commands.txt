@@ -1,0 +1,13 @@
+show me the current directory
+list all python files in the app directory
+what's the system memory usage?
+find all configuration files
+show me the git status
+what processes are using python?
+create a test file with some content
+delete that test file
+show me the contents of requirements.txt
+what's in the app/core directory?
+list all markdown files
+show me the first 5 lines of pyproject.toml
+what's the current directory structure? 

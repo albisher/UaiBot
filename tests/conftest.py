@@ -5,7 +5,7 @@ import tempfile
 import shutil
 from pathlib import Path
 from datetime import datetime
-from app.config.output_paths import (
+from uaibot.config.output_paths import (
     TEST_OUTPUTS_DIR,
     TEST_COVERAGE_DIR,
     TEST_LOGS_DIR,
@@ -13,9 +13,13 @@ from app.config.output_paths import (
     get_coverage_file_path
 )
 
-# Add project root to Python path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
+# Add src directory to Python path
+src_path = str(Path(__file__).parent.parent / "src")
+sys.path.insert(0, src_path)
+
+# Import test utilities
+from .test_utils import setup_test_environment, teardown_test_environment
+from uaibot.core.test_fixtures import mock_ai_handler, mock_command_processor
 
 @pytest.fixture(scope="session")
 def test_data_dir():
@@ -176,4 +180,21 @@ def pytest_runtest_makereport(item, call):
                 f.write(f"Test: {item.name}\n")
                 f.write(f"Outcome: {report.outcome}\n")
                 if report.outcome == "failed":
-                    f.write(f"Error: {report.longrepr}\n") 
+                    f.write(f"Error: {report.longrepr}\n")
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_session():
+    """Set up the test session."""
+    setup_test_environment()
+    yield
+    teardown_test_environment()
+
+@pytest.fixture
+def ai_handler():
+    """Provide a mock AI handler for tests."""
+    return mock_ai_handler()
+
+@pytest.fixture
+def command_processor():
+    """Provide a mock command processor for tests."""
+    return mock_command_processor() 

@@ -1,30 +1,46 @@
 {
-  "google_api_key": "fffff-dhpk",
-  "ollama_base_url": "http://localhost:11434",
-  "default_ollama_model": "gemma3:4b",
-  "default_google_model": "gemini-pro",
-  "default_ai_provider": "ollama",
-  "shell_safe_mode": true,
-  "shell_dangerous_check": true,
-  "interactive_mode": true,
-  "use_gui": false,
-  "use_structured_ai_responses": true,
-  "prefer_json_format": true,
-  "output_verbosity": "normal",
-  "language_support": {
-    "english": true,
-    "arabic": true
-  },
-  "file_operation_settings": {
-    "max_results": 20,
-    "max_content_length": 1000,
-    "default_directory": "data",
-    "test_directory": "tests"
-  },
-  "logging": {
-    "log_level": "INFO",
-    "log_file": "log/uaibot.log",
-    "log_errors": true,
-    "log_commands": true
-  }
+    "google_api_key": "${GOOGLE_API_KEY}",
+    "ollama_base_url": "http://localhost:11434",
+    "default_ollama_model": "gemma3:4b",
+    "default_google_model": "models/gemma-3-27b-it",
+    "default_ai_provider": "google",
+    "shell_safe_mode": true,
+    "shell_dangerous_check": true,
+    "interactive_mode": true,
+    "use_gui": false,
+    "use_structured_ai_responses": true,
+    "prefer_json_format": true,
+    "output_verbosity": "normal",
+    "language_support": {
+        "english": true,
+        "arabic": true
+    },
+    "file_operation_settings": {
+        "max_results": 20,
+        "max_content_length": 1000,
+        "default_directory": "data",
+        "test_directory": "tests"
+    },
+    "logging": {
+        "log_level": "${LOG_LEVEL:-INFO}",
+        "log_file": "log/uaibot.log",
+        "log_errors": true,
+        "log_commands": true
+    },
+    "test_setting": "${TEST_VAR:-default}",
+    "nested_setting": {
+        "level1": {
+            "level2": "${NESTED_VAR:-default}"
+        }
+    },
+    "test_persistence": "test_value",
+    "username": "",
+    "full_name": "",
+    "preferred_name": "",
+    "home_directory": "",
+    "preferred_locations": {
+        "desktop": "",
+        "documents": "",
+        "downloads": ""
+    }
 }

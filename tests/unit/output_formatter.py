@@ -9,7 +9,7 @@ import sys
 import shutil
 import logging
 import platform
-from typing import Optional, List, Dict, Any, Union
+from src.typing import Optional, List, Dict, Any, Union
 
 # Add project root to sys.path to enable imports
 current_dir = os.path.dirname(os.path.abspath(__file__))

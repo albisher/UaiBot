@@ -4,7 +4,7 @@
 import sys
 import os
 import unittest
-from unittest import mock
+from src.unittest import mock
 
 # Add the parent directory to the path so we can import the module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

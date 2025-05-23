@@ -1,0 +1,236 @@
+2025-05-22 17:38:14,871 - __main__ - INFO - Initializing platform components...
+2025-05-22 17:38:14,888 - UaiBot.PlatformManager - WARNING - Audio handler not initialized for macOS Sequoia (15.5)
+2025-05-22 17:38:14,891 - UaiBot.PlatformManager - WARNING - USB handler not initialized for macOS Sequoia (15.5)
+2025-05-22 17:38:14,891 - UaiBot.PlatformManager - WARNING - Input handler not initialized for macOS Sequoia (15.5)
+2025-05-22 17:38:14,900 - __main__ - INFO - Updated configuration with model: gemma3:4b
+2025-05-22 17:38:14,902 - app.core.cache_manager - INFO - Cleaned up 67 expired cache entries
+2025-05-22 17:38:14,906 - app.core.ai_handler - INFO - Initialized Ollama client with base URL: http://localhost:11434
+2025-05-22 17:38:14,906 - __main__ - INFO - UaiBot initialized successfully
+2025-05-22 17:38:19,837 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "display_current_directory",\n  "plan": [\n    {\n      "description": "Display the current working directory.",\n      "operation": "execute_shell_command",\n      "command": "pwd",\n      "parameters": {},\n      "confidence": 0.95,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the system does not have a \'pwd\' command, attempt to use \'echo $PWD\' instead.",\n    "If shell commands are not available, display a message indicating that the current directory cannot be determined."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:19,838 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:19,838 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:24,486 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "list_python_files",\n  "plan": [\n    {\n      "step": 1,\n      "description": "Identify the directory containing Python files.",\n      "operation": "file_system_navigation",\n      "parameters": {\n        "directory": "app"\n      },\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "step": 2,\n      "description": "List all files in the specified directory.",\n      "operation": "file_listing",\n      "parameters": {\n        "directory": "app",\n        "file_types": ["*.py"]\n      },\n      "confidence": 0.98,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the \'app\' directory does not exist, check for a directory named \'src\' or \'project\' and adjust the search accordingly.",\n    "If the user wants to search recursively, add a \'recursive\' parameter (true/false)."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:24,486 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:24,486 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:27,650 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "get_system_memory_usage",\n  "steps": [\n    {\n      "description": "Retrieve system memory usage.",\n      "operation": "execute_command",\n      "parameters": {\n        "command": "free -m",\n        "timeout": 10,\n        "user": "root"\n      },\n      "confidence": 0.95,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the command fails, try \'top -b -n 1 | grep Memory\'",\n    "If the command still fails, attempt to query system metrics through UaiBot\'s monitoring API."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:27,650 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:27,650 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:30,196 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "display_git_status",\n  "plan": [\n    {\n      "step": 1,\n      "description": "Execute git status command.",\n      "operation": "execute_shell_command",\n      "parameters": {\n        "command": "git status"\n      },\n      "confidence": 0.95,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If git is not installed, display a message indicating that git is not found."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:30,196 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:30,196 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:36,001 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "identify_processes_using_python",\n  "plan": [\n    {\n      "step": "detect_process_list",\n      "description": "Identify all running processes on the system.",\n      "operation": "system_process_listing",\n      "parameters": {},\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "step": "filter_processes_by_name",\n      "description": "Filter the process list to identify processes with \'python\' in their names or executable paths.",\n      "operation": "process_filtering",\n      "parameters": {\n        "keyword": "python",\n        "match_type": "partial"\n      },\n      "confidence": 0.9,\n      "conditions": null\n    },\n    {\n      "step": "present_results",\n      "description": "Display the list of processes identified as using Python.",\n      "operation": "display_results",\n      "parameters": {},\n      "confidence": 0.98,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the system cannot identify processes, return an error message indicating that the process list could not be retrieved.",\n    "Provide a more detailed list of processes, including their PID and CPU usage."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:36,002 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:36,002 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:43,636 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "file_creation",\n  "plan": [\n    {\n      "step": 1,\n      "description": "Prompt user for filename.",\n      "operation": "request_parameter",\n      "parameters": {\n        "parameter_name": "filename",\n        "parameter_type": "string",\n        "parameter_description": "The name of the file to create.",\n        "default_value": "test_file.txt"\n      },\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "step": 2,\n      "description": "Prompt user for file content.",\n      "operation": "request_parameter",\n      "parameters": {\n        "parameter_name": "file_content",\n        "parameter_type": "string",\n        "parameter_description": "The content to write into the file.",\n        "default_value": "This is a test file."\n      },\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "step": 3,\n      "description": "Create the file with the specified name and content.",\n      "operation": "shell_action",\n      "parameters": {\n        "command": "touch test_file.txt && echo \'This is a test file.\' > test_file.txt",\n        "shell": "bash"\n      },\n      "confidence": 0.9,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the user provides a full path to the file, use that path instead of creating it in the current directory.",\n    "Allow the user to specify the file extension (e.g., .txt, .csv, .json)."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:43,636 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:43,636 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:49,247 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "delete_file",\n  "steps": [\n    {\n      "description": "Identify the file to delete.",\n      "operation": "extract_filename",\n      "parameters": {\n        "filename": "that test file"\n      },\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "description": "Confirm deletion with the user.",\n      "operation": "prompt_confirmation",\n      "parameters": {\n        "filename": "that test file",\n        "confirmation_message": "Are you sure you want to delete \'that test file\'? (y/n)"\n      },\n      "confidence": 0.8,\n      "conditions": null\n    },\n    {\n      "description": "Execute deletion command.",\n      "operation": "execute_shell_command",\n      "parameters": {\n        "command": "rm \\"that test file\\""\n      },\n      "confidence": 0.9,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If \'that test file\' is in a specific directory, provide the directory path.",\n    "If the file name is ambiguous, prompt the user to clarify (e.g., \'Which test file?\')."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:49,248 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:49,248 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:51,748 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "file_listing",\n  "steps": [\n    {\n      "description": "List the contents of the requirements.txt file.",\n      "operation": "file_read",\n      "parameters": {\n        "file_path": "requirements.txt"\n      },\n      "confidence": 0.95,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If requirements.txt does not exist, display a message indicating the file does not exist."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:51,748 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:51,748 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:38:54,681 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "list_directory_contents",\n  "steps": [\n    {\n      "description": "Determine the operating system and execute the appropriate command to list the contents of the specified directory.",\n      "operation": "execute_shell_command",\n      "parameters": {\n        "command": "ls -l /app/core",\n        "directory": "/app/core"\n      },\n      "confidence": 0.95,\n      "conditions": [],\n      "alternatives": [\n        "If the operating system is Windows, use the \'dir\' command instead of \'ls\'."\n      ]\n    }\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:54,681 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:54,681 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+google-generativeai library not found. Please install it using: pip install google-generativeai
+Failed to instantiate AudioHandler: Can't instantiate abstract class AudioHandler with abstract method text_to_speech
+Failed to instantiate USBHandler: Can't instantiate abstract class USBHandler with abstract methods get_device_info, list_devices, monitor_devices
+Failed to load common MouseKeyboardHandler: cannot import name 'MouseKeyboardHandler' from 'platform_uai.common.input_control' (/Users/amac/Documents/code/UaiBot/app/platform_uai/common/input_control/__init__.py)
+✅ Ollama server is running.
+✅ Model 'gemma3:4b' is available.
+✅ Updated configuration with model: gemma3:4b
+[UaiBot] Using Ollama model: gemma3:4b
+Request
+-------
+🤖 Processing your request: 'show me the current directory'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'show me the current directory' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'list all python files in the app directory'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'list all python files in the app directory' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'what's the system memory usage?'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'what's the system memory usage?' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'find all configuration files'
+Executing with shlex: ['find', 'all', 'configuration', 'files']
+Error executing command: find all configuration files
+Return Code: 1
+Stderr:
+find: all: No such file or directory
+find: configuration: No such file or directory
+find: files: No such file or directory
+
+i find: all: No such file or directory
+find: configuration: No such file or directory
+find: files: No such file or directory
+
+Request
+-------
+🤖 Processing your request: 'show me the git status'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'show me the git status' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'what processes are using python?'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'what processes are using python?' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'create a test file with some content'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'create a test file with some content' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'delete that test file'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'delete that test file' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'show me the contents of requirements.txt'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'show me the contents of requirements.txt' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'what's in the app/core directory?'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'what's in the app/core directory?' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+2025-05-22 17:38:59,222 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "list markdown files",\n  "plan": [\n    {\n      "step": 1,\n      "description": "Identify all markdown files in the current directory.",\n      "operation": "file_listing",\n      "parameters": {\n        "directory": ".",\n        "file_types": [\n          "markdown"\n        ]\n      },\n      "confidence": 0.95,\n      "conditions": null,\n      "branching": null\n    },\n    {\n      "step": 2,\n      "description": "Present the list of markdown files to the user.",\n      "operation": "display_list",\n      "parameters": {\n        "files": []\n      },\n      "confidence": 0.98,\n      "conditions": null,\n      "branching": null\n    }\n  ],\n  "alternatives": [\n    "If the user specifies a directory instead of the current directory, the operation in step 1 should be modified to use the provided directory."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:38:59,223 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:38:59,223 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:39:03,740 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "display_file_lines",\n  "steps": [\n    {\n      "description": "Read the pyproject.toml file.",\n      "operation": "file_read",\n      "parameters": {\n        "file_path": "/path/to/pyproject.toml",\n        "count": 5\n      },\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "description": "Display the first 5 lines of the file content.",\n      "operation": "display_text",\n      "parameters": {\n        "text": "First 5 lines from pyproject.toml",\n        "format": "plain text"\n      },\n      "confidence": 0.98,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the file does not exist, display an error message: \'File not found\'.",\n    "If the file has fewer than 5 lines, display all lines."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:39:03,740 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:39:03,740 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:39:08,436 - app.core.command_processor.command_processor_main - INFO - Raw AI response: {'command': '```json\n{\n  "language": "en",\n  "intent": "get_directory_structure",\n  "steps": [\n    {\n      "description": "Determine the current operating system to execute the appropriate command.",\n      "operation": "detect_os",\n      "parameters": {},\n      "confidence": 0.95,\n      "conditions": null\n    },\n    {\n      "description": "Execute command to list the directory structure.",\n      "operation": "execute_shell_command",\n      "parameters": {\n        "command": "ls -l"\n      },\n      "confidence": 0.98,\n      "conditions": null\n    },\n    {\n      "description": "Parse the output of the command.",\n      "operation": "parse_output",\n      "parameters": {\n        "output": "ls -l output"\n      },\n      "confidence": 0.9,\n      "conditions": null\n    }\n  ],\n  "alternatives": [\n    "If the user is using a graphical environment, use the file explorer to display the directory structure."\n  ]\n}\n```', 'explanation': 'Direct response from AI', 'confidence': 0.95, 'model': 'gemma3:4b'}
+2025-05-22 17:39:08,437 - app.core.controller.execution_controller - ERROR - Invalid or missing operation: None
+2025-05-22 17:39:08,437 - app.core.controller.execution_controller - ERROR - Error executing step 1: Invalid or missing operation: None
+2025-05-22 17:39:08,438 - __main__ - INFO - Resources cleaned up successfully
+Request
+-------
+🤖 Processing your request: 'list all markdown files'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'list all markdown files' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'show me the first 5 lines of pyproject.toml'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'show me the first 5 lines of pyproject.toml' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 
+Request
+-------
+🤖 Processing your request: 'what's the current directory structure?'
+i [38;5;244m🤔 Thinking...
+┌───────────────────────────────────────────────┐
+│ 🤖 Processing your request: 'what's the current directory structure?' │
+│                                               │
+│ I'm thinking about how to handle this request... │
+│ Instead of using pattern matching, I'll ask the AI to interpret this request... │
+│ Getting the AI to provide a structured response... │
+└───────────────────────────────────────────────┘[0m
+
+Step 1: None - error
+Output: 

@@ -4,7 +4,7 @@ Tests for the Model Configuration Manager module.
 import pytest
 import json
 import os
-from datetime import datetime
+from src.datetime import datetime
 from app.core.model_config_manager import ModelConfigManager, ModelConfig
 
 @pytest.fixture

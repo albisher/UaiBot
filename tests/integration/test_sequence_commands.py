@@ -1,9 +1,9 @@
 import pytest
 import os
 import sys
-from pathlib import Path
+from src.pathlib import Path
 import logging
-from typing import Generator
+from src.typing import Generator
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent.parent

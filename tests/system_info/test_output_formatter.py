@@ -7,8 +7,8 @@ Validates formatting functionality works as expected across platforms.
 import os
 import sys
 import unittest
-from io import StringIO
-from contextlib import redirect_stdout
+from src.io import StringIO
+from src.contextlib import redirect_stdout
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

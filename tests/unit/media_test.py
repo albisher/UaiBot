@@ -5,7 +5,7 @@ import time
 import sys
 
 # Import our output formatter
-from output_formatter import format_header, format_status, format_command_output, format_box
+from src.output_formatter import format_header, format_status, format_command_output, format_box
 
 def main():
     """

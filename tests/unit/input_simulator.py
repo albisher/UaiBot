@@ -10,7 +10,7 @@ import time
 import random
 import platform
 import tempfile
-from typing import Dict, List, Optional, Tuple, Union, Any, Callable
+from src.typing import Dict, List, Optional, Tuple, Union, Any, Callable
 
 class InputSimulator:
     """Cross-platform input simulation for testing."""

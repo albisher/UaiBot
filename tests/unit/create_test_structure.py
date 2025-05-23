@@ -10,7 +10,7 @@ import os
 import sys
 import platform
 import shutil
-from pathlib import Path
+from src.pathlib import Path
 
 # Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

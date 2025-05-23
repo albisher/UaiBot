@@ -1,0 +1,10 @@
+{
+  "default_ai_provider": "ollama",
+  "ollama_base_url": "http://localhost:11434",
+  "default_ollama_model": "qwen3:1.7b",
+  "google_api_key": "YOUR_GOOGLE_API_KEY",
+  "default_google_model": "gemini-1.0-pro",
+  "shell_safe_mode": true,
+  "interactive_mode": true,
+  "shell_dangerous_check": true
+}

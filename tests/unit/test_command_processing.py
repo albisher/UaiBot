@@ -1,6 +1,6 @@
 import unittest
 import time
-from collections import deque
+from src.collections import deque
 import re
 
 class TestCommandProcessing(unittest.TestCase):

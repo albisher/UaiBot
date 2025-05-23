@@ -4,8 +4,8 @@ Tests for processing patch files and generating readable reports.
 import os
 import json
 import pytest
-from datetime import datetime
-from typing import Dict, List, Any
+from src.datetime import datetime
+from src.typing import Dict, List, Any
 from app.core.ai_handler import AIHandler
 from app.core.model_config_manager import ModelConfigManager
 

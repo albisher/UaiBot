@@ -4,7 +4,7 @@ Test suite for AI command interpreter.
 Tests the functionality of AI-driven command interpretation.
 """
 import pytest
-from pathlib import Path
+from src.pathlib import Path
 from app.core.ai_command_interpreter import AICommandInterpreter
 
 class TestAICommandInterpreter:

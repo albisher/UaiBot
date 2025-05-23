@@ -1,0 +1,6 @@
+{
+  "default_ollama_model": "qwen3:1.7b",
+  "google_api_key": "AIzaSyDSdKMEbSCRj0UNOTOIbfB45v0mvQEUZug",
+  "default_ai_provider": "google",
+  "default_google_model": "models/gemma-3-27b-it"
+}

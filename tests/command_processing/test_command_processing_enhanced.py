@@ -15,7 +15,7 @@ import os
 import json
 import time
 import shutil
-from pathlib import Path
+from src.pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 

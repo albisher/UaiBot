@@ -2,8 +2,8 @@
 import sys
 import re
 import os
-from datetime import datetime
-from typing import List, Dict, Any
+from src.datetime import datetime
+from src.typing import List, Dict, Any
 
 """
 OutputHandler for UaiBot

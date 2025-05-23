@@ -11,7 +11,7 @@ import pytest
 import time
 import webbrowser
 import pyautogui
-from pathlib import Path
+from src.pathlib import Path
 from app.command_processor.CommandProcessor import CommandProcessor
 from app.core.browser_handler import BrowserAutomationHandler
 

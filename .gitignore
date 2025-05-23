@@ -20,6 +20,48 @@ wheels/
 .installed.cfg
 *.egg
 
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+logs/
+.cache/
+data/
+temp/
+tests/results/
+*.log
+coverage.xml
+htmlcov/
+
+# Sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.env
+*.env.*
+!.env.example
+
+# Backup files
+*.bak
+*.backup
+*~
+
 # Test and output directories
 tests/results/
 logs/
@@ -34,13 +76,6 @@ htmlcov/
 *.swp
 *.swo
 .DS_Store
-
-# Virtual Environment
-.env
-.venv
-env/
-venv/
-ENV/
 
 # Logs and databases
 *.log

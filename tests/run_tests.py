@@ -9,7 +9,7 @@ import os
 import sys
 import pytest
 import logging
-from pathlib import Path
+from src.pathlib import Path
 
 # Configure logging
 logging.basicConfig(
