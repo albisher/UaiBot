@@ -4,9 +4,9 @@ globs:
 alwaysApply: false
 ---
 - Core Architecture:
-  * Design for model-agnostic system
-  * Support multiple AI providers
-  * Allow easy model switching
+  * Design for model-agnostic system using BaseAIModel interface
+  * Support multiple AI providers through standardized interfaces
+  * Allow easy model switching with fallback mechanisms
   * Maintain clear separation between components
   * Keep platform-specific code isolated
   * Design for future extensibility
@@ -20,9 +20,19 @@ alwaysApply: false
   * Document all architectural decisions
 
 - Model Integration:
-  * Design for flexible model integration
-  * Support multiple AI providers
-  * Allow easy model switching
-  * Keep model-specific code isolated
-  * Maintain consistent interfaces
-  * Document model integration patterns
+  * Use BaseAIModel abstract class for all model implementations
+  * Implement model-specific classes (GoogleAIModel, OllamaAIModel)
+  * Support multiple AI providers through standardized interfaces
+  * Allow easy model switching with validation
+  * Keep model-specific code isolated in dedicated classes
+  * Maintain consistent interfaces across all models
+  * Document model integration patterns and requirements
+
+- Model Interface Requirements:
+  * All models must implement BaseAIModel interface
+  * Required methods: initialize(), generate(), validate_config(), get_available_models()
+  * Consistent parameter handling through model_params
+  * Standardized response format
+  * Proper error handling and validation
+  * Support for model-specific optimizations
+  * Clear documentation of model capabilities and limitations

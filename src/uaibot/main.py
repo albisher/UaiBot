@@ -367,6 +367,14 @@ You can also:
         if provider_choice == '1':  # Ollama
             from uaibot.health_check.ollama_health_check import check_ollama_server
             ok, tags_json = check_ollama_server()
+            if not ok:
+                output.error("Could not connect to Ollama server. Please ensure it's running.")
+                return
+            
+            if not tags_json or not isinstance(tags_json, list):
+                output.error("No models available from Ollama server.")
+                return
+            
             if ok and tags_json and isinstance(tags_json, list):
                 available_models = [m.get('name', '') for m in tags_json if m.get('name')]
             else:

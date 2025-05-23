@@ -5,7 +5,7 @@ import platform
 import subprocess
 import re
 import time
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, List, Union
 from .model_manager import ModelManager
 from .query_processor import QueryProcessor
 from .system_info_gatherer import SystemInfoGatherer
@@ -17,6 +17,8 @@ from uaibot.core.cache_manager import CacheManager
 from uaibot.core.exceptions import AIError, ConfigurationError
 from uaibot.core.ai_performance_tracker import AIPerformanceTracker
 from uaibot.core.model_config_manager import ModelConfigManager
+from uaibot.core.key_manager import KeyManager
+from abc import ABC, abstractmethod
 
 try:
     import google.generativeai as genai
@@ -321,6 +323,156 @@ def get_system_info():
     
     return system_str
 
+class BaseAIModel(ABC):
+    """Base class for AI model implementations."""
+    
+    @abstractmethod
+    def initialize(self, **kwargs) -> None:
+        """Initialize the model with configuration."""
+        pass
+    
+    @abstractmethod
+    def generate(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate a response from the model."""
+        pass
+    
+    @abstractmethod
+    def validate_config(self) -> bool:
+        """Validate the model configuration."""
+        pass
+    
+    @abstractmethod
+    def get_available_models(self) -> List[str]:
+        """Get list of available models for this provider."""
+        pass
+
+class GoogleAIModel(BaseAIModel):
+    """Google AI model implementation."""
+    
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-pro"):
+        self.api_key = api_key
+        self.model_name = model_name
+        self.client = None
+        self.model_params = {
+            "temperature": 0.1,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 1024
+        }
+    
+    def initialize(self, **kwargs) -> None:
+        """Initialize Google AI client."""
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=self.api_key)
+            self.client = genai.GenerativeModel(self.model_name)
+            self.model_params.update(kwargs.get("model_params", {}))
+        except ImportError:
+            raise ImportError("Google Generative AI package not installed")
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize Google AI: {str(e)}")
+    
+    def generate(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate response using Google AI."""
+        try:
+            response = self.client.generate_content(prompt)
+            return {
+                "command": response.text,
+                "confidence": 0.95,
+                "model": self.model_name,
+                "type": "shell",
+                "parameters": {}
+            }
+        except Exception as e:
+            raise AIError(f"Google AI generation error: {str(e)}")
+    
+    def validate_config(self) -> bool:
+        """Validate Google AI configuration."""
+        if not self.api_key:
+            return False
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=self.api_key)
+            return self.model_name in [m.name for m in genai.list_models()]
+        except:
+            return False
+    
+    def get_available_models(self) -> List[str]:
+        """Get available Google AI models."""
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=self.api_key)
+            return [m.name for m in genai.list_models()]
+        except:
+            return []
+
+class OllamaAIModel(BaseAIModel):
+    """Ollama model implementation."""
+    
+    def __init__(self, base_url: str = "http://localhost:11434", model_name: str = "gemma3:4b"):
+        self.base_url = base_url
+        self.model_name = model_name
+        self.client = None
+        self.model_params = {
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 1024
+        }
+    
+    def initialize(self, **kwargs) -> None:
+        """Initialize Ollama client."""
+        try:
+            import ollama
+            self.client = ollama.Client(host=self.base_url)
+            self.model_params.update(kwargs.get("model_params", {}))
+        except ImportError:
+            raise ImportError("Ollama package not installed")
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize Ollama: {str(e)}")
+    
+    def generate(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate response using Ollama."""
+        try:
+            response = self.client.generate(
+                model=self.model_name,
+                prompt=prompt,
+                options=self.model_params
+            )
+            return {
+                "command": response.get("response", "").strip(),
+                "confidence": 0.95,
+                "model": self.model_name,
+                "type": "shell",
+                "parameters": {}
+            }
+        except Exception as e:
+            raise AIError(f"Ollama generation error: {str(e)}")
+    
+    def validate_config(self) -> bool:
+        """Validate Ollama configuration."""
+        try:
+            import requests
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if response.status_code != 200:
+                return False
+            models = response.json().get("models", [])
+            return self.model_name in [m.get("name", "") for m in models]
+        except:
+            return False
+    
+    def get_available_models(self) -> List[str]:
+        """Get available Ollama models."""
+        try:
+            import requests
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if response.status_code == 200:
+                models = response.json().get("models", [])
+                return [m.get("name", "") for m in models if m.get("name")]
+            return []
+        except:
+            return []
+
 class AIHandler:
     """Handles AI model interactions with caching and error handling."""
     
@@ -330,56 +482,53 @@ class AIHandler:
         api_key: Optional[str] = None,
         google_model_name: str = "gemini-pro",
         ollama_base_url: str = "http://localhost:11434",
-        cache_ttl: int = 3600,  # 1 hour default TTL
-        cache_size_mb: int = 100,  # 100MB default max size
-        fast_mode: bool = False,  # Accept fast_mode for compatibility
+        cache_ttl: int = 3600,
+        cache_size_mb: int = 100,
+        fast_mode: bool = False,
         debug: bool = False
     ):
-        """
-        Initialize the AI handler.
-        
-        Args:
-            model_type: Type of AI model to use ('ollama' or 'google')
-            api_key: API key for Google AI (required for Google model)
-            google_model_name: Name of the Google AI model to use
-            ollama_base_url: Base URL for Ollama API
-            cache_ttl: Cache TTL in seconds
-            cache_size_mb: Maximum cache size in megabytes
-            fast_mode: Enable fast mode (minimal prompts, quick exit)
-            debug: Enable debug mode for additional logging
-        """
+        """Initialize the AI handler."""
         self.model_type = model_type.lower()
-        self.google_model_name = google_model_name
-        self.ollama_base_url = ollama_base_url
         self.fast_mode = fast_mode
         self.debug = debug
         
-        # Initialize cache
+        # Initialize components
         self.cache = CacheManager(ttl_seconds=cache_ttl, max_size_mb=cache_size_mb)
-        
-        # Initialize performance tracker
         self.performance_tracker = AIPerformanceTracker()
-        
-        # Initialize model configuration manager
         self.model_config = ModelConfigManager()
+        self.key_manager = KeyManager()
+        self.config_manager = ConfigManager()
         
         # Load configuration
         self._load_config()
         
-        # Initialize model client
-        try:
-            if self.model_type == 'google':
-                if not api_key:
-                    raise ConfigurationError("API key is required for Google AI model")
-                self._init_google_client()
-            elif self.model_type == 'ollama':
-                self._init_ollama_client()
-            else:
-                raise ConfigurationError(f"Unsupported model type: {model_type}")
-        except Exception as e:
-            logger.error(f"Failed to initialize AI client: {str(e)}")
-            raise AIError(f"Failed to initialize AI client: {str(e)}")
-
+        # Initialize model
+        self.model = self._create_model(
+            model_type=model_type,
+            api_key=api_key,
+            google_model_name=google_model_name,
+            ollama_base_url=ollama_base_url
+        )
+        
+        # Initialize with fallback
+        self._initialize_with_fallback()
+    
+    def _create_model(self, **kwargs) -> BaseAIModel:
+        """Create appropriate model instance."""
+        model_type = kwargs.get("model_type", "").lower()
+        if model_type == "google":
+            return GoogleAIModel(
+                api_key=kwargs.get("api_key"),
+                model_name=kwargs.get("google_model_name", "gemini-pro")
+            )
+        elif model_type == "ollama":
+            return OllamaAIModel(
+                base_url=kwargs.get("ollama_base_url", "http://localhost:11434"),
+                model_name=kwargs.get("ollama_model_name", "gemma3:4b")
+            )
+        else:
+            raise ConfigurationError(f"Unsupported model type: {model_type}")
+    
     def _load_config(self):
         """Load configuration from settings.json"""
         try:
@@ -387,114 +536,76 @@ class AIHandler:
             with open(config_path, 'r') as f:
                 config = json.load(f)
             
-            # Update instance variables with config values
-            if self.model_type == 'ollama':
-                self.ollama_model_name = config.get('default_ollama_model', 'gemma3:4b')
-                self.ollama_base_url = config.get('ollama_base_url', 'http://localhost:11434')
-            elif self.model_type == 'google':
-                self.google_model_name = config.get('default_google_model', 'gemini-pro')
+            # Update model parameters from config
+            model_params = {
+                "temperature": config.get('temperature', 0.7),
+                "top_p": config.get('top_p', 0.95),
+                "top_k": config.get('top_k', 40),
+                "max_output_tokens": config.get('max_output_tokens', 1024)
+            }
+            
+            if hasattr(self, 'model'):
+                self.model.model_params.update(model_params)
+                
         except Exception as e:
             logger.warning(f"Failed to load configuration: {e}")
-            # Use default values if config loading fails
-            if self.model_type == 'ollama':
-                self.ollama_model_name = 'gemma3:4b'
-            elif self.model_type == 'google':
-                self.google_model_name = 'gemini-pro'
-
-    def _init_google_client(self):
-        """Initialize Google AI client with interactive model selection and API key handling."""
-        while True:
-            try:
-                api_key = self.key_manager.get_key('GOOGLE_API_KEY')
-                if not api_key:
-                    raise ValueError("Google API key not found. Please set it using the key management utility.")
-                
-                genai.configure(api_key=api_key)
-                self.google_model = genai.GenerativeModel(self.config_manager.get('default_google_model'))
-                self.google_initialized = True
-                logger.info("Google AI client initialized successfully")
-                break
-            except Exception as e:
-                error_msg = str(e)
-                logger.error(f"Failed to initialize Google AI client: {error_msg}")
-                if "not found" in error_msg or "is not supported" in error_msg:
-                    try:
-                        available_models = [m.name for m in genai.list_models()]
-                        if available_models:
-                            print("\nAvailable Google models:")
-                            for i, model in enumerate(available_models, 1):
-                                print(f"{i}. {model}")
-                            print("\nPlease choose a model by entering its number (or press Enter to abort):")
-                            choice = input("Enter model number: ").strip()
-                            if choice and choice.isdigit():
-                                idx = int(choice) - 1
-                                if 0 <= idx < len(available_models):
-                                    selected_model = available_models[idx]
-                                    print(f"Selected model: {selected_model}")
-                                    self.config_manager.set('default_google_model', selected_model)
-                                    self.config_manager.save()
-                                    print("✓ Configuration updated with the selected model.")
-                                    continue
-                            print("❌ No valid model selected. Aborting initialization.")
-                            self.google_initialized = False
-                            break
-                        else:
-                            print("No models found or unable to fetch models.")
-                    except Exception as model_err:
-                        print(f"Could not fetch available models: {model_err}")
-                elif "API key not valid" in error_msg or "API_KEY_INVALID" in error_msg:
-                    print("\nYour API key is invalid. Please re-enter a valid Google API key or press Enter to abort.")
-                    new_key = input("Enter your GOOGLE_API_KEY: ").strip()
-                    if not new_key:
-                        print("❌ No valid API key provided. Aborting initialization.")
-                        self.google_initialized = False
-                        break
-                    self.key_manager.set_key('GOOGLE_API_KEY', new_key)
-                    continue
-                else:
-                    self.google_initialized = False
-                    break
     
-    def _init_ollama_client(self) -> None:
-        """Initialize Ollama client."""
-        try:
-            import ollama
-            self.client = ollama.Client(host=self.ollama_base_url)
-            
-            # Get model configuration
-            model_name = getattr(self, 'ollama_model_name', 'gemma3:4b')
-            config = self.model_config.get_config(model_name)
-            if config:
-                # Store model-specific parameters for use in requests
-                self.model_params = config.parameters
-            else:
-                # Use default parameters
-                self.model_params = {
-                    "temperature": 0.7,
-                    "top_p": 0.95,
-                    "top_k": 40
-                }
-            
-            logger.info(f"Initialized Ollama client with base URL: {self.ollama_base_url}")
-        except ImportError:
-            raise ConfigurationError("Ollama package not installed")
-        except Exception as e:
-            raise AIError(f"Failed to initialize Ollama client: {str(e)}")
+    def _initialize_with_fallback(self):
+        """Initialize the AI model with fallback options."""
+        max_attempts = 3
+        attempt = 0
+        
+        while attempt < max_attempts:
+            try:
+                if not self.model.validate_config():
+                    raise ConfigurationError("Model configuration validation failed")
+                
+                self.model.initialize(model_params=self.model.model_params)
+                return
+                
+            except Exception as e:
+                attempt += 1
+                error_msg = str(e)
+                logger.error(f"Attempt {attempt}/{max_attempts} failed: {error_msg}")
+                
+                if attempt < max_attempts:
+                    available_models = self.model.get_available_models()
+                    if available_models:
+                        print(f"\nAvailable models for {self.model_type}:")
+                        for i, model in enumerate(available_models, 1):
+                            print(f"{i}. {model}")
+                        
+                        choice = input("\nSelect a model number (or press Enter to switch provider): ").strip()
+                        if choice and choice.isdigit() and 1 <= int(choice) <= len(available_models):
+                            if isinstance(self.model, GoogleAIModel):
+                                self.model.model_name = available_models[int(choice)-1]
+                            else:
+                                self.model.model_name = available_models[int(choice)-1]
+                        else:
+                            # Switch provider
+                            new_type = "ollama" if self.model_type == "google" else "google"
+                            self.model_type = new_type
+                            self.model = self._create_model(
+                                model_type=new_type,
+                                api_key=self.key_manager.get_key("google"),
+                                google_model_name="gemini-pro",
+                                ollama_base_url="http://localhost:11434"
+                            )
+                    else:
+                        # Switch provider if no models available
+                        new_type = "ollama" if self.model_type == "google" else "google"
+                        self.model_type = new_type
+                        self.model = self._create_model(
+                            model_type=new_type,
+                            api_key=self.key_manager.get_key("google"),
+                            google_model_name="gemini-pro",
+                            ollama_base_url="http://localhost:11434"
+                        )
+                else:
+                    raise AIError(f"Failed to initialize any AI model after {max_attempts} attempts")
     
     def process_command(self, command: str) -> Dict[str, Any]:
-        """
-        Process a command using the AI model.
-        
-        Args:
-            command: The command to process
-            
-        Returns:
-            Dictionary containing the processed command and metadata
-            
-        Raises:
-            AIError: If there's an error processing the command
-        """
-        # Check cache first
+        """Process a command using the AI model."""
         cached_response = self.cache.get(command)
         if cached_response:
             logger.info("Using cached response for command")
@@ -502,19 +613,13 @@ class AIHandler:
         
         start_time = time.time()
         try:
-            if self.model_type == 'google':
-                response = self._process_google_command(command)
-                model_name = self.google_model_name
-            else:
-                response = self._process_ollama_command(command)
-                model_name = getattr(self, 'ollama_model_name', 'gemma3:4b')
+            response = self.model.generate(command)
             
             # Track successful request
             self.performance_tracker.track_request(
-                model_name=model_name,
+                model_name=self.model.model_name,
                 start_time=start_time,
-                success=True,
-                token_count=response.get('token_count')
+                success=True
             )
             
             # Cache the response
@@ -523,9 +628,8 @@ class AIHandler:
             
         except Exception as e:
             # Track failed request
-            model_name = self.google_model_name if self.model_type == 'google' else getattr(self, 'ollama_model_name', 'gemma3:4b')
             self.performance_tracker.track_request(
-                model_name=model_name,
+                model_name=self.model.model_name,
                 start_time=start_time,
                 success=False,
                 error_type=type(e).__name__
@@ -533,90 +637,6 @@ class AIHandler:
             
             logger.error(f"Error processing command: {str(e)}")
             raise AIError(f"Failed to process command: {str(e)}")
-    
-    def _process_google_command(self, command: str) -> Dict[str, Any]:
-        """Process command using Google AI with improved error handling."""
-        try:
-            response = self.google_model.generate_content(command)
-            return {
-                "command": response.text,
-                "confidence": 0.95,  # Google AI doesn't provide confidence scores
-                "model": self.google_model_name
-            }
-        except Exception as e:
-            # Check for model not found or unsupported errors
-            error_msg = str(e)
-            if "not found" in error_msg or "is not supported" in error_msg:
-                try:
-                    available_models = [m.name for m in genai.list_models()]
-                except Exception:
-                    available_models = []
-                logger.error(f"Google AI model error: {error_msg}")
-                logger.error(f"Available models: {available_models}")
-                raise AIError(f"Google AI model error: {error_msg}. Available models: {available_models}")
-            raise AIError(f"Google AI processing error: {error_msg}")
-    
-    def _process_ollama_command(self, command: str) -> Dict[str, Any]:
-        """Process command using Ollama."""
-        try:
-            model_name = getattr(self, 'ollama_model_name', 'gemma3:4b')
-            
-            # Prepare debug output if enabled
-            if self.debug:
-                debug_prompt = f"[DEBUG] Prompt sent to Ollama:\n{command}"
-                print(debug_prompt)
-            
-            # Make the request with model parameters
-            response = self.client.generate(
-                model=model_name,
-                prompt=command,
-                options={
-                    "temperature": self.model_params.get("temperature", 0.7),
-                    "top_p": self.model_params.get("top_p", 0.95),
-                    "top_k": self.model_params.get("top_k", 40)
-                }
-            )
-            
-            # Process debug output
-            if self.debug:
-                debug_response = {
-                    "model": response.get("model", model_name),
-                    "response": response.get("response", "").strip(),
-                    "done": response.get("done", True)
-                }
-                print("[DEBUG] Ollama response:", json.dumps(debug_response, indent=2))
-            
-            # Extract the response content
-            response_text = response.get("response", "").strip()
-            
-            # Try to parse JSON response
-            try:
-                if response_text.startswith("{") and response_text.endswith("}"):
-                    json_response = json.loads(response_text)
-                    if isinstance(json_response, dict):
-                        return {
-                            "command": json_response.get("command", response_text),
-                            "explanation": json_response.get("explanation", ""),
-                            "confidence": json_response.get("confidence", 0.95),
-                            "model": model_name,
-                            "token_count": response.get("eval_count", 0)
-                        }
-            except json.JSONDecodeError:
-                pass
-            
-            # Return structured response for non-JSON content
-            return {
-                "command": response_text,
-                "explanation": "Direct response from AI",
-                "confidence": 0.95,
-                "model": model_name,
-                "token_count": response.get("eval_count", 0)
-            }
-            
-        except Exception as e:
-            if self.debug:
-                print(f"[DEBUG] Ollama exception: {str(e)}")
-            raise AIError(f"Ollama processing error: {str(e)}")
     
     def clear_cache(self) -> None:
         """Clear the response cache."""

@@ -341,9 +341,50 @@ class CommandProcessor:
             logger = logging.getLogger(__name__)
             logger.info(f"Raw AI response: {ai_response}")
             
-            # Extract the command string from the AI response dictionary
+            # Handle Google model response
             if isinstance(ai_response, dict):
-                ai_response = ai_response.get('command', '')
+                if "error" in ai_response:
+                    error_msg = ai_response.get("error_message", "Unknown error from AI handler.")
+                    logger.error(f"AI handler error: {error_msg}")
+                    return f"{thinking}\n\n❌ AI Error: {error_msg}"
+                
+                # Extract command from Google response
+                if self.ai_handler.model_type == 'google':
+                    # Google responses are already in the correct format with 'command' field
+                    command = ai_response.get('command', '')
+                    if command:
+                        # Check if command is a JSON string
+                        if isinstance(command, str) and command.strip().startswith('{'):
+                            try:
+                                command_json = json.loads(command)
+                                if isinstance(command_json, dict) and ('plan' in command_json or 'steps' in command_json):
+                                    # Execute the plan
+                                    exec_result = self.execution_controller.execute_plan(command_json)
+                                    summary = []
+                                    for step_result in exec_result.get('results', []):
+                                        status = step_result.get('status', 'unknown')
+                                        desc = step_result.get('operation', step_result.get('description', ''))
+                                        output = step_result.get('output', '')
+                                        summary.append(f"Step {step_result.get('step')}: {desc} - {status}\nOutput: {output}")
+                                    return f"{thinking}\n\n" + "\n".join(summary)
+                            except json.JSONDecodeError:
+                                pass
+                        
+                        # If not a plan or JSON parsing failed, execute as regular command
+                        execution_result = self.shell_handler.execute_command(command)
+                        result = f"{thinking}\n\n"
+                        command_display = self._format_command(command)
+                        if command_display:
+                            result += command_display + "\n\n"
+                        result_display = self._format_result(execution_result, command, {})
+                        if result_display:
+                            result += result_display
+                        return result
+                    else:
+                        return f"{thinking}\n\n{self.color_settings['important']}💬 No command found in the response.{self.color_settings['reset']}"
+                else:
+                    # For non-Google models, use the existing command extraction logic
+                    ai_response = ai_response.get('command', '')
         except Exception as e:
             if self.fast_mode:
                 # In fast mode, provide a simple error and let the program continue to exit
@@ -352,14 +393,7 @@ class CommandProcessor:
                 # In normal mode, re-raise the exception
                 raise
         
-        # --- NEW: Handle AI handler error dicts ---
-        if isinstance(ai_response, dict) and ai_response.get("error"):
-            error_msg = ai_response.get("error_message", "Unknown error from AI handler.")
-            logger.error(f"AI handler error: {error_msg}")
-            return f"{thinking}\n\n❌ AI Error: {error_msg}"
-        # --- END NEW ---
-        
-        # Extract command from AI response using the command extractor
+        # Extract command from AI response using the command extractor (for non-Google models)
         success, command, metadata = self.command_extractor.extract_command(ai_response)
 
         # If command is a JSON block, extract the 'command' field
@@ -373,83 +407,7 @@ class CommandProcessor:
                 pass
         
         result = f"{thinking}\n\n"
-
-        # --- AGENTIC PLAN HANDLING ---
-        import json as _json
-        import re as _re
-        code_fence_pattern = r'^```(?:json|bash|shell|zsh|sh|console|terminal)?\s*([\s\S]*?)\s*```$'
-        plan_command = None
-        if success and isinstance(command, dict) and ('plan' in command or 'steps' in command):
-            plan_command = command
-        elif success and isinstance(command, str):
-            # Strip code fences and language tags
-            match = _re.match(code_fence_pattern, command.strip())
-            if match:
-                command_stripped = match.group(1).strip()
-            else:
-                command_stripped = command.strip()
-            if command_stripped.startswith('{'):
-                try:
-                    parsed = _json.loads(command_stripped)
-                    if isinstance(parsed, dict) and ('plan' in parsed or 'steps' in parsed):
-                        plan_command = parsed
-                except Exception:
-                    pass
-        if plan_command:
-            exec_result = self.execution_controller.execute_plan(plan_command)
-            summary = []
-            for step_result in exec_result.get('results', []):
-                status = step_result.get('status', 'unknown')
-                desc = step_result.get('operation', step_result.get('description', ''))
-                output = step_result.get('output', '')
-                summary.append(f"Step {step_result.get('step')}: {desc} - {status}\nOutput: {output}")
-            result += "\n".join(summary)
-            return result
-        # --- END AGENTIC PLAN HANDLING ---
-
-        # --- FALLBACK: Try to parse agentic plan from command or ai_response if extractor failed ---
-        if not success:
-            # Try command string
-            plan_command = None
-            if isinstance(command, str):
-                match = _re.match(code_fence_pattern, command.strip())
-                if match:
-                    command_stripped = match.group(1).strip()
-                else:
-                    command_stripped = command.strip()
-                if command_stripped.startswith('{'):
-                    try:
-                        parsed = _json.loads(command_stripped)
-                        if isinstance(parsed, dict) and ('plan' in parsed or 'steps' in parsed):
-                            plan_command = parsed
-                    except Exception:
-                        pass
-            # Try ai_response string if not found
-            if not plan_command and isinstance(ai_response, str):
-                match = _re.match(code_fence_pattern, ai_response.strip())
-                if match:
-                    ai_stripped = match.group(1).strip()
-                else:
-                    ai_stripped = ai_response.strip()
-                if ai_stripped.startswith('{'):
-                    try:
-                        parsed = _json.loads(ai_stripped)
-                        if isinstance(parsed, dict) and ('plan' in parsed or 'steps' in parsed):
-                            plan_command = parsed
-                    except Exception:
-                        pass
-            if plan_command:
-                exec_result = self.execution_controller.execute_plan(plan_command)
-                summary = []
-                for step_result in exec_result.get('results', []):
-                    status = step_result.get('status', 'unknown')
-                    desc = step_result.get('operation', step_result.get('description', ''))
-                    output = step_result.get('output', '')
-                    summary.append(f"Step {step_result.get('step')}: {desc} - {status}\nOutput: {output}")
-                result += "\n".join(summary)
-                return result
-        # --- END FALLBACK ---
-
+        
         if success and command:
             # Format the command with duplicate prevention
             command_display = self._format_command(command)

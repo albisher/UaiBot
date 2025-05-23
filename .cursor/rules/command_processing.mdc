@@ -4,26 +4,40 @@ globs:
 alwaysApply: true
 ---
 - AI Model Architecture:
-  * Design for model-agnostic architecture
-  * Support multiple AI providers and models
-  * Allow easy switching between different models
-  * Maintain consistent interface regardless of model
+  * Use BaseAIModel interface for all model implementations
+  * Support multiple AI providers through standardized interfaces
+  * Allow easy switching between different models with validation
+  * Maintain consistent interface through BaseAIModel
   * Design for future model upgrades/changes
-  * Support model-specific optimizations
+  * Support model-specific optimizations through model_params
 
 - Current Implementation:
-  * Using Ollama with gemma3:latest as initial model
-  * This is a temporary implementation choice
-  * Architecture must support other models
-  * No hard dependencies on specific model features
-  * Keep model-specific code isolated
-  * Allow for easy model replacement
-  * Currently no regex code is allowed before the ai model reply
+  * Supports both Google AI and Ollama models
+  * Each model implements BaseAIModel interface
+  * Model-specific code isolated in dedicated classes
+  * Consistent parameter handling and response format
+  * Robust error handling and fallback mechanisms
+  * Easy addition of new models through interface implementation
+  * Currently no regex code is allowed before the AI model reply
 
 - Command Processing:
   * Follow the command processing pipeline
-  * Implement proper error handling
+  * Implement proper error handling at each stage
   * Maintain clear separation between interpretation and execution
   * Document all command patterns
   * Ensure proper validation of model responses
   * Support model-agnostic command patterns
+  * Use standardized response format across all models
+
+- Model Response Format:
+  * All models must return responses in the following format:
+    {
+      "command": str,  # The processed command
+      "confidence": float,  # Confidence score (0-1)
+      "model": str,  # Model name
+      "type": str,  # Response type (e.g., "shell")
+      "parameters": dict  # Additional parameters
+    }
+  * Consistent error handling and reporting
+  * Proper validation of response format
+  * Support for model-specific metadata
