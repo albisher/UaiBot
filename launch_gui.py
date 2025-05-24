@@ -155,12 +155,15 @@ class SettingsDialog(QDialog):
         else:
             self.text_model_dropdown.setCurrentIndex(0)
         layout.addRow(QLabel("Text Model:"), self.text_model_dropdown)
-        # Vision model (allow smolvlm)
+        # Vision model (only vision-capable models)
         self.vision_model_dropdown = QComboBox()
-        self.vision_model_dropdown.addItems(self.available_models)
+        vision_models = [m for m in self.available_models if 'vision' in m or 'smolvlm' in m]
+        self.vision_model_dropdown.addItems(vision_models)
         idx = self.vision_model_dropdown.findText(self.vision_model)
         if idx >= 0:
             self.vision_model_dropdown.setCurrentIndex(idx)
+        else:
+            self.vision_model_dropdown.setCurrentIndex(0)
         layout.addRow(QLabel("Vision Model:"), self.vision_model_dropdown)
         # STT model
         self.stt_model_dropdown = QComboBox()
@@ -627,6 +630,13 @@ class UaiBotGUI(QWidget):
             tts.append("coqui-tts")
         # Add more local TTS engines as needed
         return tts
+
+    def process_vision_task(self, image_path):
+        # Only use vision-capable models
+        if 'vision' not in self.vision_model and 'smolvlm' not in self.vision_model:
+            self.append_colored("🙁  ERROR>>> Selected vision model is not vision-capable. Please select a valid vision model in settings.", self.color_settings["error"])
+            return
+        # ... existing vision processing logic ...
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

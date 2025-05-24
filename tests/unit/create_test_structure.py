@@ -18,6 +18,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Try to import the output formatter if available
+# import test_files.output_formatter
 try:
     from test_files.output_formatter import TestOutputFormatter
     formatter = TestOutputFormatter()

@@ -15,7 +15,7 @@ import datetime
 import getpass
 import uuid
 import json
-from .pathlib import Path
+from pathlib import Path
 from uaibot.utils import get_project_root
 
 def is_commercial_environment():

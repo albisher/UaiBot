@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 # Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from uaibot.uaibot.core.key_management import KeyManagement
+from uaibot.core.key_management import KeyManagement
 
 class TestKeyManagement(unittest.TestCase):
     """Test suite for key management functionality."""

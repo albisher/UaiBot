@@ -16,9 +16,8 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 # Import from platform_uai
-from uaibot.platform_uai.platform_utils import get_input_handler
-from uaibot.platform_uai.common.input_control.base_handler import BaseInputHandler
-from uaibot.platform_uai.common.input_control.mouse_keyboard_handler import MouseKeyboardHandler as CommonMouseKeyboardHandler
+# from uaibot.platform_uai.common.input_control.base_handler import BaseInputHandler
+# from uaibot.platform_uai.common.input_control.mouse_keyboard_handler import MouseKeyboardHandler as CommonMouseKeyboardHandler
 
 # Platform-specific imports
 _system = platform.system().lower()
@@ -59,12 +58,12 @@ elif _system == 'linux':
             pass
 
 # For backward compatibility
-from input_control.mouse_keyboard_handler import MouseKeyboardHandler
+# from input_control.mouse_keyboard_handler import MouseKeyboardHandler
 
 __all__ = [
-    'BaseInputHandler',
-    'MouseKeyboardHandler',
-    'CommonMouseKeyboardHandler',
+    # 'BaseInputHandler',
+    # 'MouseKeyboardHandler',
+    # 'CommonMouseKeyboardHandler',
     'MacInputHandler',
     'WindowsInputHandler', 
     'UbuntuInputHandler',
@@ -80,3 +79,6 @@ def get_platform_handler() -> Optional[BaseInputHandler]:
         The platform-specific input handler instance, or None if not available.
     """
     return get_input_handler()
+
+# BaseInputHandler = None
+# get_input_handler = None

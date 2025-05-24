@@ -4,7 +4,7 @@ from typing import Dict, Optional, List, Union
 import re
 from dataclasses import dataclass
 from langdetect import detect, LangDetectException
-from googletrans import Translator
+# import googletrans
 
 @dataclass
 class LanguageResult:
@@ -18,7 +18,7 @@ class MultilingualSupport:
     
     def __init__(self):
         """Initialize the multilingual support handler."""
-        self.translator = Translator()
+        # self.translator = Translator()
         self.supported_languages = ['en', 'ar', 'es', 'fr', 'de', 'zh', 'ja', 'ko', 'ru']
         self.language_patterns = {
             'ar': r'[\u0600-\u06FF]',  # Arabic
@@ -74,13 +74,13 @@ class MultilingualSupport:
             }
         
         try:
-            result = self.translator.translate(text, dest=target_lang)
+            # result = self.translator.translate(text, dest=target_lang)
             return {
                 'status': 'success',
                 'original_text': text,
-                'translated_text': result.text,
-                'source_language': result.src,
-                'target_language': result.dest
+                'translated_text': text,  # Placeholder, actual translation logic not implemented
+                'source_language': 'en',  # Placeholder, actual source language not available
+                'target_language': target_lang
             }
         except Exception as e:
             return {

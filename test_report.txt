@@ -1,0 +1,46 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.10.17, pytest-8.3.5, pluggy-1.6.0 -- /Users/amac/Documents/code/UaiBot/.venv/bin/python3.10
+cachedir: .pytest_cache
+Using --randomly-seed=2568004879
+metadata: {'Python': '3.10.17', 'Platform': 'macOS-15.5-arm64-arm-64bit', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'randomly': '3.16.0', 'repeat': '0.9.4', 'anyio': '4.9.0', 'variables': '3.1.0', 'sugar': '1.0.0', 'html': '4.1.1', 'env': '1.1.5', 'json-report': '1.5.0', 'timeout': '2.4.0', 'metadata': '3.1.1', 'cov': '4.1.0', 'rerunfailures': '15.1', 'langsmith': '0.3.42', 'base-url': '2.1.0', 'mock': '3.14.0', 'xdist': '3.6.1', 'selenium': '4.1.0'}, 'Base URL': '', 'Driver': None, 'Capabilities': {}}
+sensitiveurl: .*
+rootdir: /Users/amac/Documents/code/UaiBot
+configfile: pyproject.toml
+testpaths: tests
+plugins: randomly-3.16.0, repeat-0.9.4, anyio-4.9.0, variables-3.1.0, sugar-1.0.0, html-4.1.1, env-1.1.5, json-report-1.5.0, timeout-2.4.0, metadata-3.1.1, cov-4.1.0, rerunfailures-15.1, langsmith-0.3.42, base-url-2.1.0, mock-3.14.0, xdist-3.6.1, selenium-4.1.0
+collecting ... collected 192 items / 3 errors
+
+==================================== ERRORS ====================================
+____________ ERROR collecting tests/system_info/test_edge_cases.py _____________
+ImportError while importing test module '/Users/amac/Documents/code/UaiBot/tests/system_info/test_edge_cases.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/homebrew/Cellar/python@3.10/3.10.17_1/Frameworks/Python.framework/Versions/3.10/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/system_info/test_edge_cases.py:7: in <module>
+    from uaibot.unittest import mock
+E   ModuleNotFoundError: No module named 'uaibot.unittest'
+______________ ERROR collecting tests/system_info/test_example.py ______________
+ImportError while importing test module '/Users/amac/Documents/code/UaiBot/tests/system_info/test_example.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/homebrew/Cellar/python@3.10/3.10.17_1/Frameworks/Python.framework/Versions/3.10/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/system_info/test_example.py:4: in <module>
+    from examples.example_command_processor import ExampleCommandProcessor
+E   ModuleNotFoundError: No module named 'examples'
+_________ ERROR collecting tests/system_info/test_output_formatter.py __________
+ImportError while importing test module '/Users/amac/Documents/code/UaiBot/tests/system_info/test_output_formatter.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/homebrew/Cellar/python@3.10/3.10.17_1/Frameworks/Python.framework/Versions/3.10/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/system_info/test_output_formatter.py:11: in <module>
+    from uaibot.contextlib import redirect_stdout
+E   ModuleNotFoundError: No module named 'uaibot.contextlib'
+=========================== short test summary info ============================
+ERROR tests/system_info/test_edge_cases.py
+ERROR tests/system_info/test_example.py
+ERROR tests/system_info/test_output_formatter.py
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 3 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 3 errors in 10.75s ==============================

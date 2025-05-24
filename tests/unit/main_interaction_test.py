@@ -22,7 +22,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Import our output formatter
-from test_files.output_formatter import TestOutputFormatter
+# import test_files.output_formatter
 
 # Setup directories
 TEST_DATA_DIR = os.path.join(project_root, "test_files", "test_data")
@@ -101,7 +101,7 @@ class InputSimulator:
         # Try cross-platform audio modules
         if not methods["sound"]:
             try:
-                import playsound
+                # import playsound
                 methods["sound"] = playsound.playsound
             except ImportError:
                 pass

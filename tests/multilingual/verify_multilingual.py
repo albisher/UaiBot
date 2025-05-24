@@ -16,7 +16,7 @@ sys.path.append(project_root)
 
 # Import utility functions
 from uaibot.utils import get_platform_name
-from tests.test_multilingual import run_uaibot_command
+# import tests.test_multilingual
 
 # Define verification test cases
 VERIFICATION_TESTS = {

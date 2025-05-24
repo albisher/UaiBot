@@ -12,6 +12,7 @@ import platform
 import time
 from pathlib import Path
 from typing import Tuple, List, Union, Any, Optional, Callable
+from PIL import Image
 
 from .base_handler import BaseInputHandler
 
@@ -558,7 +559,7 @@ class MouseKeyboardHandler(BaseInputHandler):
                 else:
                     # In simulation mode, try to create a simple blank image if PIL is available
                     try:
-                        from .PIL import Image
+                        # from PIL import Image
                         # Create a simple 16x16 black image as a placeholder
                         if region:
                             width, height = region[2], region[3]

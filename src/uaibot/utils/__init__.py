@@ -168,17 +168,17 @@ def is_interactive_session():
         return True
         
     # Check if running in a Jupyter notebook
-    try:
-        from .IPython import get_ipython
-        if get_ipython() is not None:
-            return True
-    except (ImportError, NameError):
-        pass
+    # try:
+    #     from .IPython import get_ipython
+    #     if get_ipython() is not None:
+    #         return True
+    # except (ImportError, NameError):
+    #     pass
         
     return False
 
-try:
-    from .IPython import get_ipython
-except ImportError:
-    def get_ipython():
-        return None
+# try:
+#     from .IPython import get_ipython
+# except ImportError:
+#     def get_ipython():
+#         return None

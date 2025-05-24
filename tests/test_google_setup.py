@@ -11,8 +11,8 @@ from getpass import getpass
 # Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from uaibot.uaibot.core.config_manager import ConfigManager
-from uaibot.uaibot.core.key_manager import KeyManager
+from uaibot.core.config_manager import ConfigManager
+from uaibot.core.key_manager import KeyManager
 
 def simulate_fresh_setup():
     """Simulate a fresh setup process."""

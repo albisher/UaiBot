@@ -8,7 +8,7 @@ import sys
 import platform
 import subprocess
 import traceback
-from .pathlib import Path
+from pathlib import Path
 
 # Add project root to sys.path to enable imports
 current_dir = os.path.dirname(os.path.abspath(__file__))

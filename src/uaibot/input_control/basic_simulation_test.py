@@ -1,50 +1,69 @@
 #!/usr/bin/env python3
 """
-Basic simulation mode test for mouse and keyboard handling.
-This ensures that the handler works even without a display.
+Basic test for mouse and keyboard handler in simulation mode.
+This script tests if the MouseKeyboardHandler class works correctly in simulation mode.
 """
 import os
 import sys
 import time
 import traceback
 
-# Force simulation mode
+# Set empty display to force simulation mode
 os.environ['DISPLAY'] = ''
 
-# Get project root directory
+# Add project root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, ".."))
+project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
 sys.path.insert(0, project_root)
 
-# Try importing the handler
+# Import the handler class
 try:
-    from input_control.mouse_keyboard_handler import MouseKeyboardHandler
+    from uaibot.input_control.mouse_keyboard_handler import MouseKeyboardHandler
     print("Successfully imported MouseKeyboardHandler")
-except Exception as e:
+except ImportError as e:
     print(f"Error importing MouseKeyboardHandler: {e}")
     traceback.print_exc()
     sys.exit(1)
 
 # Create handler instance
-try:
-    print("Creating MouseKeyboardHandler instance...")
-    handler = MouseKeyboardHandler()
-    print(f"Handler created. Simulation mode: {handler._simulate_only}")
-    
-    # Basic mouse operations
-    print("\nTesting basic mouse operations...")
-    handler.move_mouse(100, 100)
-    handler.click()
-    handler.right_click()
-    
-    # Basic keyboard operations
-    print("\nTesting basic keyboard operations...")
-    handler.type_text("Hello world")
-    handler.press_key('enter')
-    
-    print("\nTest completed successfully!")
-    
-except Exception as e:
-    print(f"Error during test: {e}")
-    traceback.print_exc()
-    sys.exit(1)
+handler = MouseKeyboardHandler()
+
+# Print initial status
+print("\n=== Mouse Keyboard Handler Test (Simulation Mode) ===")
+print(f"PyAutoGUI available: {handler.pyautogui_available}")
+print(f"Keyboard library available: {handler.keyboard_available}")
+print(f"Mouse library available: {handler.mouse_available}")
+print(f"Simulation mode: {handler._simulate_only}")
+print(f"Platform: {handler.platform}")
+
+# Get screen size
+width, height = handler.get_screen_size()
+print(f"Screen size: {width}x{height}")
+
+# Get mouse position
+x, y = handler.get_mouse_position()
+print(f"Mouse position: {x}, {y}")
+
+# Test mouse movement
+print("\n--- Testing Mouse Movement ---")
+handler.move_mouse(100, 100)
+print(f"New mouse position: {handler.get_mouse_position()}")
+
+# Test click
+print("\n--- Testing Mouse Clicks ---")
+handler.click()
+handler.click(200, 200, button='right')
+handler.double_click(300, 300)
+
+# Test keyboard input
+print("\n--- Testing Keyboard Input ---")
+handler.type_text("Hello from UaiBot!")
+handler.press_key('enter')
+handler.hotkey('ctrl', 'c')
+
+# Test key holding pattern
+print("\n--- Testing Key Hold Pattern ---")
+with handler.hold_key('shift'):
+    handler.press_keys(['left', 'left', 'left', 'left'])
+
+print("\nTest completed successfully!")

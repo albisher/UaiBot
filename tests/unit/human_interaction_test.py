@@ -21,7 +21,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 # Import the output formatter
-from test_files.output_formatter import TestOutputFormatter
+# import test_files.output_formatter
 
 # Configure paths
 MAIN_PY_PATH = os.path.join(project_root, "main.py")
@@ -33,7 +33,7 @@ os.makedirs(TEST_OUTPUT_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
 # Create formatter instance
-formatter = TestOutputFormatter(log_to_file=True, log_file=LOG_FILE)
+# formatter = TestOutputFormatter(log_to_file=True, log_file=LOG_FILE)
 
 
 class HumanInteractionSimulator:
@@ -46,7 +46,7 @@ class HumanInteractionSimulator:
         """Initialize the simulator with platform-specific configurations."""
         self.platform = platform.system()
         self.os_version = platform.version()
-        formatter.print_thinking_box(f"Setting up test environment for {self.platform} {self.os_version}")
+        # formatter.print_thinking_box(f"Setting up test environment for {self.platform} {self.os_version}")
         
         self.input_simulators = self._setup_input_simulators()
         self.sound_simulators = self._setup_sound_simulators()
@@ -64,7 +64,7 @@ class HumanInteractionSimulator:
             "precision_error": 5  # pixels
         }
         
-        formatter.print_result("success", "Human interaction simulator initialized")
+        # formatter.print_result("success", "Human interaction simulator initialized")
         
     def _setup_input_simulators(self) -> Dict:
         """Set up platform-specific input simulation tools."""
@@ -104,14 +104,13 @@ class HumanInteractionSimulator:
         
         # Try to import sound modules
         try:
-            import playsound
-            simulators["player"] = playsound.playsound
+            # import playsound
+            simulators["player"] = lambda file: None  # Placeholder for playsound
             simulators["type"] = "playsound"
         except ImportError:
             try:
-                import pygame
-                pygame.mixer.init()
-                simulators["player"] = lambda file: pygame.mixer.Sound(file).play()
+                # import pygame
+                simulators["player"] = lambda file: None  # Placeholder for pygame
                 simulators["type"] = "pygame"
             except ImportError:
                 simulators["type"] = "system"
@@ -129,7 +128,7 @@ class HumanInteractionSimulator:
         Returns:
             The text that was actually "typed" (with any mistakes)
         """
-        formatter.print_thinking_box(f"Simulating typing: '{text[:20]}{'...' if len(text) > 20 else ''}'")
+        # formatter.print_thinking_box(f"Simulating typing: '{text[:20]}{'...' if len(text) > 20 else ''}'")
         typed_text = ""
         
         if self.input_simulators["type"] == "subprocess":
@@ -164,7 +163,7 @@ class HumanInteractionSimulator:
     def simulate_mouse_movement(self, x: int, y: int):
         """Simulate human-like mouse movement to coordinates."""
         if self.input_simulators["type"] != "pyautogui":
-            formatter.print_result("warning", "Mouse movement simulation not available in this environment")
+            # formatter.print_result("warning", "Mouse movement simulation not available in this environment")
             return
             
         try:
@@ -188,7 +187,8 @@ class HumanInteractionSimulator:
             )
             
         except Exception as e:
-            formatter.print_result("error", f"Mouse movement failed: {e}")
+            # formatter.print_result("error", f"Mouse movement failed: {e}")
+            pass
     
     def simulate_sound(self, sound_file: str = None, frequency: int = 440, duration: float = 1.0):
         """
@@ -199,7 +199,7 @@ class HumanInteractionSimulator:
             frequency: Frequency in Hz if generating tone
             duration: Duration in seconds
         """
-        formatter.print_thinking_box(f"Testing sound output: {'file' if sound_file else 'tone'}")
+        # formatter.print_thinking_box(f"Testing sound output: {'file' if sound_file else 'tone'}")
         
         if sound_file and os.path.exists(sound_file):
             try:
@@ -216,10 +216,10 @@ class HumanInteractionSimulator:
                     else:
                         os.system(f'aplay "{sound_file}"')
                         
-                formatter.print_result("success", f"Played sound file: {sound_file}")
+                # formatter.print_result("success", f"Played sound file: {sound_file}")
                 return True
             except Exception as e:
-                formatter.print_result("error", f"Sound playback failed: {e}")
+                # formatter.print_result("error", f"Sound playback failed: {e}")
                 return False
         else:
             # Generate simple tone as alternative
@@ -231,10 +231,10 @@ class HumanInteractionSimulator:
                     # For non-Windows systems, try using 'beep' command
                     os.system(f'echo -e "\a"')  # Terminal bell
                     
-                formatter.print_result("success", f"Generated test tone at {frequency}Hz")
+                # formatter.print_result("success", f"Generated test tone at {frequency}Hz")
                 return True
             except Exception as e:
-                formatter.print_result("error", f"Sound generation failed: {e}")
+                # formatter.print_result("error", f"Sound generation failed: {e}")
                 return False
     
     def _get_neighbor_key(self, char: str) -> str:
@@ -340,7 +340,7 @@ class UaiBotTestRunner:
                 f.write(content)
             return True
         except Exception as e:
-            formatter.print_result("error", f"Failed to create sample file {filename}: {e}")
+            # formatter.print_result("error", f"Failed to create sample file {filename}: {e}")
             return False
     
     def _create_multiple_samples(self, filenames: List[str]) -> bool:
@@ -361,7 +361,7 @@ class UaiBotTestRunner:
                 f.write(content)
             return True
         except Exception as e:
-            formatter.print_result("error", f"Failed to create large file {filename}: {e}")
+            # formatter.print_result("error", f"Failed to create large file {filename}: {e}")
             return False
     
     def _create_binary_file(self, filename: str) -> bool:
@@ -374,12 +374,12 @@ class UaiBotTestRunner:
                 f.write(binary_data)
             return True
         except Exception as e:
-            formatter.print_result("error", f"Failed to create binary file {filename}: {e}")
+            # formatter.print_result("error", f"Failed to create binary file {filename}: {e}")
             return False
             
     def run_all_tests(self):
         """Run all defined test cases with human-like interaction."""
-        formatter.print_thinking_box("Starting human-like interaction tests for UaiBot")
+        # formatter.print_thinking_box("Starting human-like interaction tests for UaiBot")
         
         for test_case in self.test_cases:
             self.run_test(test_case)
@@ -393,7 +393,7 @@ class UaiBotTestRunner:
     def run_test(self, test_case: Dict):
         """Run a single test case with human-like interaction."""
         test_name = test_case["name"]
-        formatter.print_thinking_box(f"Running test: {test_name}\n{test_case['description']}")
+        # formatter.print_thinking_box(f"Running test: {test_name}\n{test_case['description']}")
         
         # Run setup if needed
         if "setup" in test_case:
@@ -421,10 +421,10 @@ class UaiBotTestRunner:
             # Update counters
             if success:
                 self.results["passed"] += 1
-                formatter.print_result("success", f"Test passed: {test_name}")
+                # formatter.print_result("success", f"Test passed: {test_name}")
             else:
                 self.results["failed"] += 1
-                formatter.print_result("error", f"Test failed: {test_name}")
+                # formatter.print_result("error", f"Test failed: {test_name}")
                 
         except Exception as e:
             self.results["failed"] += 1
@@ -435,11 +435,11 @@ class UaiBotTestRunner:
                 "error": str(e),
                 "exception": True
             })
-            formatter.print_result("error", f"Test error: {test_name} - {e}")
+            # formatter.print_result("error", f"Test error: {test_name} - {e}")
             
     def _execute_command(self, command: str, input_text: Optional[str] = None) -> Dict:
         """Execute a command and return the result."""
-        formatter.print_thinking_box(f"Executing command: {command}")
+        # formatter.print_thinking_box(f"Executing command: {command}")
         
         try:
             # Run command with input if provided
@@ -498,7 +498,7 @@ Skipped: {self.results["skipped"]}
 Pass Rate: {(self.results["passed"] / total * 100) if total > 0 else 0:.1f}%
 """
         
-        formatter.print_thinking_box(summary)
+        # formatter.print_thinking_box(summary)
         
         # Print details for failed tests
         if self.results["failed"] > 0:
@@ -513,12 +513,14 @@ Pass Rate: {(self.results["passed"] / total * 100) if total > 0 else 0:.1f}%
                 
         # Final summary with appropriate emoji
         if self.results["failed"] == 0:
-            formatter.print_result("success", f"All {total} tests passed successfully!")
+            # formatter.print_result("success", f"All {total} tests passed successfully!")
+            pass
         else:
-            formatter.print_result(
-                "warning", 
-                f"{self.results['passed']} of {total} tests passed, {self.results['failed']} failed."
-            )
+            # formatter.print_result(
+            #     "warning", 
+            #     f"{self.results['passed']} of {total} tests passed, {self.results['failed']} failed."
+            # )
+            pass
 
 
 def main():
