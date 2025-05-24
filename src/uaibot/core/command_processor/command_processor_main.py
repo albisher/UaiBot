@@ -26,6 +26,7 @@ from uaibot.core.controller import ExecutionController
 from .command_processor_types import Command, CommandResult, CommandConfig, CommandContext
 from .command_processor_utils import validate_command, check_command_safety, format_command_result
 from .command_processor_exceptions import CommandValidationError, CommandSafetyError, CommandProcessingError, AIError
+from uaibot.core.research.automation import ResearchManager, AwarenessIntegrator
 
 if TYPE_CHECKING:
     from uaibot.core.ai_handler import AIHandler
@@ -66,6 +67,8 @@ class CommandProcessor:
         self.config = config or CommandConfig()
         self.context = context or CommandContext()
         self.stats = ProcessingStats()
+        self.research_manager = ResearchManager()
+        self.awareness_integrator = AwarenessIntegrator(self.research_manager)
         
     def process_command(self, command: str) -> CommandResult:
         """Process a command.
@@ -90,6 +93,11 @@ class CommandProcessor:
             safety = check_command_safety(command, self.config.safety_level)
             if not safety.is_safe:
                 raise CommandSafetyError(safety.error)
+                
+            # Check for research command
+            research_result = self._handle_research_command(command)
+            if research_result is not None:
+                return research_result
                 
             # Process command with AI
             response = self.ai_handler.process_prompt(command)
@@ -182,6 +190,68 @@ class CommandProcessor:
     def reset_stats(self) -> None:
         """Reset processing statistics."""
         self.stats = ProcessingStats()
+
+    def _handle_research_command(self, command: str) -> Optional[CommandResult]:
+        """
+        Detect and handle research-related commands such as 'add new research', 'new research', etc.
+        Returns a CommandResult if handled, otherwise None.
+        """
+        # Patterns for research commands
+        research_patterns = [
+            r"^(add|new|create|submit)\s+research(\s|,|:|$)",
+            r"^(add|new|create|submit)\s+new\s+research(\s|,|:|$)",
+            r"^research\s+(add|new|create|submit)(\s|,|:|$)",
+            r"^add new research(\s|,|:|$)",
+            r"^new research(\s|,|:|$)",
+            r"^submit new research(\s|,|:|$)",
+            r"^add research(\s|,|:|$)",
+            r"^create research(\s|,|:|$)",
+        ]
+        for pat in research_patterns:
+            if re.match(pat, command.strip(), re.IGNORECASE):
+                # Try to extract topic and URL from the command
+                # Example: 'add new research , MITRE ATT&CK Framework , https://attack.mitre.org/'
+                parts = [p.strip() for p in re.split(r",|:", command, maxsplit=2)]
+                if len(parts) >= 3:
+                    _, topic, url = parts[:3]
+                else:
+                    # Prompt for topic and url if not provided
+                    return CommandResult(
+                        success=False,
+                        output="Please provide the topic and URL, e.g. 'add new research , MITRE ATT&CK Framework , https://attack.mitre.org/'",
+                        metadata={}
+                    )
+                # Add topic
+                added = self.research_manager.add_topic(topic, url)
+                if not added:
+                    return CommandResult(
+                        success=False,
+                        output=f"Failed to add research topic: {topic}",
+                        metadata={}
+                    )
+                # Process topic
+                processed = self.research_manager.process_topic(topic)
+                if not processed:
+                    return CommandResult(
+                        success=False,
+                        output=f"Failed to process research topic: {topic}",
+                        metadata={}
+                    )
+                # Integrate into awareness
+                integrated = self.awareness_integrator.integrate_topic(topic)
+                if not integrated:
+                    return CommandResult(
+                        success=False,
+                        output=f"Failed to integrate research topic: {topic}",
+                        metadata={}
+                    )
+                patterns = self.awareness_integrator.get_awareness_patterns(topic)
+                return CommandResult(
+                    success=True,
+                    output=f"Research topic '{topic}' added, processed, and integrated.\nAwareness patterns:\n" + "\n".join(patterns),
+                    metadata={"topic": topic, "url": url, "patterns": patterns}
+                )
+        return None
 
 if __name__ == "__main__":
     # Example usage
