@@ -1,4 +1,4 @@
-# Step 6: navlayers — mitreattack-python 2.0.0 documentation
+# Step 4: navlayers — mitreattack-python 2.0.0 documentation
 
 **URL:** [https://mitreattack-python.readthedocs.io/en/latest/additional_modules/navlayers.html](https://mitreattack-python.readthedocs.io/en/latest/additional_modules/navlayers.html)
 
@@ -55,59 +55,54 @@ Read the Docs
   "plan": [
     {
       "step": "1",
-      "description": "Analyze the provided content to understand the topic of 'MITRE ATT&CK Framework'.",
+      "description": "Analyze the provided content to understand the topic of 'python library'.",
       "operation": "read_content",
       "parameters": {},
       "confidence": 0.0
     },
     {
       "step": "2",
-      "description": "Identify key aspects of the content, such as the purpose of the MITRE ATT&CK framework, its applications, and the documentation provided.",
-      "operation": "read_content",
-      "parameters": {},
-      "confidence": 0.0
-    },
-    {
-      "step": "3",
-      "description": "Determine if the content is relevant, comprehensive, and actionable for the topic of 'MITRE ATT&CK Framework'.",
-      "operation": "assess_relevance",
+      "description": "Extract key information from the content, focusing on the library's purpose and documentation.",
+      "operation": "extract_key_info",
       "parameters": {
-        "relevance": true
+        "library_name": "navlayers"
       },
       "confidence": 0.7
     },
     {
+      "step": "3",
+      "description": "Determine if the content is relevant and comprehensive for the topic of 'python library'.",
+      "operation": "assess_relevance",
+      "parameters": {
+        "relevance_score": 0.8
+      },
+      "confidence": 0.8
+    },
+    {
       "step": "4",
       "description": "Identify missing information and potential next actions based on the content.",
-      "operation": "analyze_content",
+      "operation": "identify_missing_info",
       "parameters": {
-        "missing_info": [
+        "missing_information": [
           "documentation structure",
-          "specific ATT&CK techniques",
-          "practical use cases"
-        ],
-        "next_actions": [
-          "extract_documentation",
-          "search_for_specific_techniques",
-          "create_example_scenario"
+          "installation process",
+          "usage examples",
+          "potential extensions",
+          "dependencies"
         ]
       },
       "confidence": 0.6
     },
     {
       "step": "5",
-      "description": "Generate a concise summary of the content's key takeaways.",
-      "operation": "summarize_content",
-      "parameters": {},
-      "confidence": 0.8
-    },
-    {
-      "step": "6",
-      "description": "Based on the summary, determine the next actions to take.",
-      "operation": "determine_next_actions",
+      "description": "Generate a list of potential next actions based on the identified missing information.",
+      "operation": "generate_actions",
       "parameters": {
-        "next_actions": [
-          "create_a_basic_attck_map"
+        "actions": [
+          "read_installation.html",
+          "read_examples.html",
+          "read_docs.rst",
+          "create_example_file"
         ]
       },
       "confidence": 0.9

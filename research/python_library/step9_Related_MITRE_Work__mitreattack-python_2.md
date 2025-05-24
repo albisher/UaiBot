@@ -74,38 +74,45 @@ Read the Docs
   "plan": [
     {
       "step": "1",
-      "description": "Analyze the provided content to understand the topic of 'MITRE ATT&CK Framework'.",
-      "operation": "read_content",
+      "description": "Analyze the provided MITRE ATT&CK Data Library documentation to understand the key concepts and examples.",
+      "operation": "read_documentation",
       "parameters": {},
       "confidence": 0.0
     },
     {
       "step": "2",
-      "description": "Extract key information from the content, focusing on the ATT&CK framework and its related resources.",
-      "operation": "extract_key_information",
-      "parameters": {
-        "key_information": "ATT&CK framework overview, related MITRE Work, STIX, and examples"
-      },
-      "confidence": 0.7
+      "description": "Identify the core functionalities of the `mitreattack-python` library, focusing on its role in the ATT&CK framework.",
+      "operation": "read_documentation",
+      "parameters": {},
+      "confidence": 0.0
     },
     {
       "step": "3",
-      "description": "Summarize the key takeaways from the extracted information.",
-      "operation": "summarize_key_takeaways",
-      "parameters": {
-        "summary_length": "short"
-      },
-      "confidence": 0.8
+      "description": "Determine if the library provides examples of custom objects and modules.",
+      "operation": "read_documentation",
+      "parameters": {},
+      "confidence": 0.0
     },
     {
       "step": "4",
-      "description": "Identify potential next actions based on the content.",
-      "operation": "identify_next_actions",
-      "parameters": {
-        "action_type": "research_further",
-        "focus": "explore related MITRE Work and STIX"
-      },
-      "confidence": 0.9
+      "description": "Assess the library's integration with other MITRE Work items (CTI, ATT&CK, STIX).",
+      "operation": "read_documentation",
+      "parameters": {},
+      "confidence": 0.0
+    },
+    {
+      "step": "5",
+      "description": "Evaluate the library's documentation and examples for potential use cases.",
+      "operation": "read_documentation",
+      "parameters": {},
+      "confidence": 0.0
+    },
+    {
+      "step": "6",
+      "description": "If the library offers a clear and concise explanation of its usage, proceed to provide a basic example.",
+      "operation": "create_example",
+      "parameters": {},
+      "confidence": 0.5
     }
   ]
 }

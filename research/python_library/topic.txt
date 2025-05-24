@@ -1,2 +1,2 @@
-MITRE ATT&CK Framework
+python library
 https://mitreattack-python.readthedocs.io/en/latest/index.html

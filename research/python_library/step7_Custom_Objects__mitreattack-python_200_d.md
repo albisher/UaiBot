@@ -1,4 +1,4 @@
-# Step 8: Custom Objects — mitreattack-python 2.0.0 documentation
+# Step 7: Custom Objects — mitreattack-python 2.0.0 documentation
 
 **URL:** [https://mitreattack-python.readthedocs.io/en/latest/mitre_attack_data/custom_objects.html](https://mitreattack-python.readthedocs.io/en/latest/mitre_attack_data/custom_objects.html)
 
@@ -117,51 +117,5 @@ which convert
 
 **AI Analysis:**
 
-{
-  "plan": [
-    {
-      "step": "1",
-      "description": "Analyze the provided content for relevant information about MITRE ATT&CK and the Custom Objects library.",
-      "operation": "read_and_understand_content",
-      "parameters": {},
-      "confidence": 0.0,
-      "conditions": null
-    },
-    {
-      "step": "2",
-      "description": "Identify the key Custom Objects types mentioned in the content (Matrix, Tactic, DataSource, DataComponent, STIX Object Factory).",
-      "operation": "extract_custom_objects",
-      "parameters": {},
-      "confidence": 0.8,
-      "conditions": [
-        "content_contains_keywords:MITRE ATT&CK",
-        "content_contains_references:Custom Objects"
-      ]
-    },
-    {
-      "step": "3",
-      "description": "Determine the purpose of the MitreAttackData library and its role within the ATT&CK framework.",
-      "operation": "understand_library_functionality",
-      "parameters": {},
-      "confidence": 0.9,
-      "conditions": null
-    },
-    {
-      "step": "4",
-      "description": "Assess the relevance of the provided content to the topic of 'MITRE ATT&CK Framework'.",
-      "operation": "assess_content_relevance",
-      "parameters": {},
-      "confidence": 0.7,
-      "conditions": null
-    },
-    {
-      "step": "5",
-      "description": "Based on the content, suggest potential next actions to explore further.  This could include examining the library's documentation or exploring related ATT&CK concepts.",
-      "operation": "suggest_next_actions",
-      "parameters": {},
-      "confidence": 0.6,
-      "conditions": null
-    }
-  ]
-}
+AI analysis failed.
 

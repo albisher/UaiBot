@@ -1,4 +1,4 @@
-# Step 4: MitreAttackData — mitreattack-python 2.0.0 documentation
+# Step 12: MitreAttackData — mitreattack-python 2.0.0 documentation
 
 **URL:** [https://mitreattack-python.readthedocs.io/en/latest/mitre_attack_data/mitre_attack_data.html](https://mitreattack-python.readthedocs.io/en/latest/mitre_attack_data/mitre_attack_data.html)
 
@@ -64,7 +64,7 @@ M
     },
     {
       "action": "extract_table",
-      "url": "https://www.sphinx-doc.org/docs/table_of_contents.html"
+      "url": "https://www.sphinx-doc.org/"
     },
     {
       "action": "search",

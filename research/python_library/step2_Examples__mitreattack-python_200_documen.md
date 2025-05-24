@@ -1,4 +1,4 @@
-# Step 5: Examples — mitreattack-python 2.0.0 documentation
+# Step 2: Examples — mitreattack-python 2.0.0 documentation
 
 **URL:** [https://mitreattack-python.readthedocs.io/en/latest/mitre_attack_data/examples.html](https://mitreattack-python.readthedocs.io/en/latest/mitre_attack_data/examples.html)
 
@@ -94,7 +94,7 @@ Technique:Su
   "plan": [
     {
       "step": "1",
-      "description": "Analyze the provided content for relevant information about MITRE ATT&CK Framework.",
+      "description": "Analyze the provided content to understand the topic of 'python library'.",
       "operation": "read_content",
       "parameters": {},
       "confidence": 0.0
@@ -102,35 +102,49 @@ Technique:Su
     {
       "step": "2",
       "description": "Identify key concepts and relationships within the content.",
-      "operation": "read_content",
+      "operation": "parse_text",
       "parameters": {},
       "confidence": 0.0
     },
     {
       "step": "3",
-      "description": "Determine the primary focus of the content \u2013 is it a tutorial, a reference, or something else?",
+      "description": "Determine the primary goal or purpose of the content.",
       "operation": "analyze_content",
       "parameters": {},
       "confidence": 0.0
     },
     {
       "step": "4",
-      "description": "Based on the content, determine the most relevant aspects to explore.",
-      "operation": "assess_content",
-      "parameters": {},
-      "confidence": 0.0
-    },
-    {
-      "step": "5",
-      "description": "Create a plan to address the identified key aspects.",
+      "description": "Based on the content, formulate a plan of action.  The plan should be focused on the content's purpose.",
       "operation": "plan_action",
       "parameters": {},
       "confidence": 0.0
     },
     {
-      "step": "6",
-      "description": "Execute the plan to achieve the desired outcome.",
+      "step": "5",
+      "description": "Execute the plan.  This will involve examining the links and content to understand the context.",
       "operation": "execute_plan",
+      "parameters": {},
+      "confidence": 0.0
+    },
+    {
+      "step": "6",
+      "description": "Assess the relevance and usefulness of the content for the topic.",
+      "operation": "evaluate_content",
+      "parameters": {},
+      "confidence": 0.0
+    },
+    {
+      "step": "7",
+      "description": "Provide a concise summary of the content's key takeaways.",
+      "operation": "generate_summary",
+      "parameters": {},
+      "confidence": 0.0
+    },
+    {
+      "step": "8",
+      "description": "Suggest potential next actions based on the content.",
+      "operation": "suggest_next_actions",
       "parameters": {},
       "confidence": 0.0
     }
