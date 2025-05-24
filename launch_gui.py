@@ -95,7 +95,7 @@ class AudioThread(QThread):
             self._running = False
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent, color_settings, result_mode, available_models, current_model, health_check_callback, selected_language, text_model, vision_model, stt_model, tts_model, use_fp32, available_stt, available_tts):
+    def __init__(self, parent, color_settings, result_mode, available_models, current_model, health_check_callback, selected_language, vision_model, stt_model, tts_model, use_fp32, available_stt, available_tts):
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.color_settings = color_settings.copy()
@@ -106,7 +106,6 @@ class SettingsDialog(QDialog):
         self.available_tts = available_tts
         self.health_check_callback = health_check_callback
         self.selected_language = selected_language
-        self.text_model = text_model
         self.vision_model = vision_model
         self.stt_model = stt_model
         self.tts_model = tts_model
@@ -141,30 +140,15 @@ class SettingsDialog(QDialog):
             row.addWidget(btn)
             row.addStretch()
             layout.addRow(row)
-        # Model selection
+        # AI Model selection
         self.model_dropdown = QComboBox()
         self.update_model_dropdown(self.available_models, self.selected_model)
         layout.addRow(QLabel("AI Model:"), self.model_dropdown)
-        # Text model (only Ollama/HF models, no smolvlm)
-        self.text_model_dropdown = QComboBox()
-        ollama_models = [m for m in self.available_models if m != "smolvlm" and m != "smolvlm-vision"]
-        self.text_model_dropdown.addItems(ollama_models)
-        idx = self.text_model_dropdown.findText(self.text_model)
-        if idx >= 0:
-            self.text_model_dropdown.setCurrentIndex(idx)
-        else:
-            self.text_model_dropdown.setCurrentIndex(0)
-        layout.addRow(QLabel("Text Model:"), self.text_model_dropdown)
-        # Vision model (only vision-capable models)
-        self.vision_model_dropdown = QComboBox()
-        vision_models = [m for m in self.available_models if 'vision' in m or 'smolvlm' in m]
-        self.vision_model_dropdown.addItems(vision_models)
-        idx = self.vision_model_dropdown.findText(self.vision_model)
-        if idx >= 0:
-            self.vision_model_dropdown.setCurrentIndex(idx)
-        else:
-            self.vision_model_dropdown.setCurrentIndex(0)
-        layout.addRow(QLabel("Vision Model:"), self.vision_model_dropdown)
+        # When the dropdown is about to show, refresh the model list
+        self.model_dropdown.popupAboutToBeShown = self.refresh_model_list
+        # Vision model (fixed, not selectable)
+        self.vision_model = "SmolVLM-256M"
+        layout.addRow(QLabel("Vision Model:"), QLabel(self.vision_model))
         # STT model
         self.stt_model_dropdown = QComboBox()
         self.stt_model_dropdown.addItems(self.available_stt)
@@ -256,6 +240,13 @@ class SettingsDialog(QDialog):
         if color.isValid():
             self.color_settings[key] = color.name()
             self.color_buttons[key].setStyleSheet(f"background-color: {color.name()}; border: 1px solid #888; border-radius: 6px;")
+
+    def refresh_model_list(self):
+        # Get the latest models from the parent (UaiBotGUI)
+        if hasattr(self.parent(), 'get_available_models'):
+            models = self.parent().get_available_models()
+            self.update_model_dropdown(models, self.model_dropdown.currentText())
+
     def get_settings(self):
         if self.result_full.isChecked():
             mode = "full"
@@ -264,12 +255,11 @@ class SettingsDialog(QDialog):
         else:
             mode = "only_results"
         lang = self.language_dropdown.currentText()
-        text_model = self.text_model_dropdown.currentText()
-        vision_model = self.vision_model_dropdown.currentText()
+        vision_model = self.vision_model  # Always 'SmolVLM-256M'
         stt_model = self.stt_model_dropdown.currentText()
         tts_model = self.tts_model_dropdown.currentText()
         use_fp32 = self.fp32_radio.isChecked()
-        return self.color_settings, mode, self.model_dropdown.currentText(), lang, text_model, vision_model, stt_model, tts_model, use_fp32
+        return self.color_settings, mode, self.model_dropdown.currentText(), lang, vision_model, stt_model, tts_model, use_fp32
 
 class UaiBotGUI(QWidget):
     def __init__(self):
@@ -365,34 +355,38 @@ class UaiBotGUI(QWidget):
         if not valid_text_models:
             self.text_model = ""
             self.append_colored("🙁  ERROR>>> No valid text model found. Please install an Ollama model and restart.", self.color_settings["error"])
-            # Still allow settings dialog to open
         elif self.text_model not in valid_text_models:
             self.text_model = valid_text_models[0]
             self.model_manager.config.set("text_model", self.text_model)
             self.model_manager.config.save()
-        dlg = SettingsDialog(self, self.color_settings, self.result_mode, available_models, self.model_manager.model_info.name, self.run_health_check, self.selected_language, self.text_model, self.vision_model, self.stt_model, self.tts_model, self.use_fp32, self.available_stt, self.available_tts)
+        dlg = SettingsDialog(self, self.color_settings, self.result_mode, available_models, self.model_manager.model_info.name, self.run_health_check, self.selected_language, self.vision_model, self.stt_model, self.tts_model, self.use_fp32, self.available_stt, self.available_tts)
         if dlg.exec_():
-            self.color_settings, self.result_mode, selected_model, lang, text_model, vision_model, stt_model, tts_model, use_fp32 = dlg.get_settings()
-            self.selected_language = lang
-            self.text_model = text_model
-            self.vision_model = vision_model
-            self.stt_model = stt_model
-            self.tts_model = tts_model
-            self.use_fp32 = use_fp32
-            # Save to config
-            self.model_manager.config.set("text_model", text_model)
-            self.model_manager.config.set("vision_model", vision_model)
-            self.model_manager.config.set("stt_model", stt_model)
-            self.model_manager.config.set("tts_model", tts_model)
-            self.model_manager.config.set("use_fp32", use_fp32)
+            # Only update the config values that changed
+            new_color_settings, new_mode, new_ai_model, new_lang, new_vision_model, new_stt_model, new_tts_model, new_use_fp32 = dlg.get_settings()
+            if new_color_settings != self.color_settings:
+                self.color_settings = new_color_settings
+            if new_mode != self.result_mode:
+                self.result_mode = new_mode
+            if new_ai_model != self.model_manager.model_info.name:
+                self.model_manager.set_ollama_model(new_ai_model)
+                self.selected_model = new_ai_model
+            if new_vision_model != self.vision_model:
+                self.vision_model = new_vision_model
+                self.model_manager.config.set("vision_model", new_vision_model)
+            if new_stt_model != self.stt_model:
+                self.stt_model = new_stt_model
+                self.model_manager.config.set("stt_model", new_stt_model)
+            if new_tts_model != self.tts_model:
+                self.tts_model = new_tts_model
+                self.model_manager.config.set("tts_model", new_tts_model)
+            if new_use_fp32 != self.use_fp32:
+                self.use_fp32 = new_use_fp32
+                self.model_manager.config.set("use_fp32", new_use_fp32)
             self.model_manager.config.save()
-            if selected_model != self.model_manager.model_info.name:
-                self.model_manager.set_ollama_model(selected_model)
-            self.selected_model = selected_model
             self.populate_models()  # Refresh model list but keep selected
             # Set dropdown to selected model
             if hasattr(self, 'settings_dialog'):
-                idx = self.settings_dialog.model_dropdown.findText(selected_model)
+                idx = self.settings_dialog.model_dropdown.findText(self.selected_model)
                 if idx >= 0:
                     self.settings_dialog.model_dropdown.setCurrentIndex(idx)
 
@@ -470,11 +464,13 @@ class UaiBotGUI(QWidget):
         # [Processing voice input...] will be shown after user command
 
     def process_voice_command(self, text):
-        if not text:
-            self.append_colored("💻 SYSTEM>>> [No speech detected]", self.color_settings["system"])
-            return
-        # Show user command in GUI immediately
+        # Always show what was captured
         self.append_colored(f"👤 USER>>> {text}", self.color_settings["user"])
+        if not text or not text.strip() or not any(c.isalnum() for c in text):
+            polite_msg = "Sorry, I didn't catch that. Could you please try speaking again?"
+            self.append_colored("💻 SYSTEM>>> [No speech detected]", self.color_settings["system"])
+            self.speak(polite_msg)
+            return
         self.append_colored("💻 SYSTEM>>> [Processing voice input...]", self.color_settings["system"])
         # Route to correct handler
         if self.model_manager.model_info.name == "smolvlm":
@@ -488,14 +484,37 @@ class UaiBotGUI(QWidget):
         if not text:
             return
         self.append_colored(f"👤 USER>>> {text}", self.color_settings["user"])
-        self.append_colored("💻 SYSTEM>>> [Processing voice input...]", self.color_settings["system"])
         self.input_line.clear()
-        if self.model_manager.model_info.name == "smolvlm":
-            # TODO: Call SmolVLM handler (stub for now)
-            result = self.processor.process_command(text)  # Replace with SmolVLM handler
-        else:
+        
+        try:
+            # Try to execute as a direct system command first
+            if self.is_real_shell_command(text):
+                result = subprocess.run(text, shell=True, capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    self.append_colored(f"💻 SYSTEM>>> {result.stdout.strip()}", self.color_settings["system"])
+                else:
+                    self.append_colored(f"🙁  ERROR>>> {result.stderr.strip()}", self.color_settings["error"])
+                return
+
+            # If not a direct command, process through AI
+            if self.model_manager.model_info.name == "smolvlm":
+                # Fallback to default model if smolvlm not available
+                self.model_manager.set_ollama_model("llama2")
+            
             result = self.processor.process_command(text)
-        self.display_result(result)
+            self.display_result(result)
+            
+        except Exception as e:
+            self.append_colored(f"🙁  ERROR>>> {str(e)}", self.color_settings["error"])
+
+    def is_real_shell_command(self, cmd):
+        # Common shell commands and their variations
+        shell_commands = [
+            "open", "osascript", "xdg-open", "start", "cmd", "powershell",
+            "ls", "cd", "pwd", "mkdir", "rm", "cp", "mv", "cat", "echo",
+            "python", "pip", "brew", "apt", "yum", "dnf"
+        ]
+        return any(cmd.strip().startswith(cmd) for cmd in shell_commands)
 
     def take_screenshot(self):
         try:
@@ -522,15 +541,13 @@ class UaiBotGUI(QWidget):
                 plan = json.loads(result.output)
                 if "plan" in plan and isinstance(plan["plan"], list):
                     for step in plan["plan"]:
-                        if step.get("operation") == "system_command":
-                            cmd = step.get("parameters", {}).get("command")
-                            if cmd and isinstance(cmd, str) and cmd.strip():
+                        if step.get("operation", "").startswith("system_command"):
+                            cmd = step.get("parameters", {}).get("command", "")
+                            if cmd:
                                 mapped_cmd = self.map_to_shell_command(cmd)
                                 if mapped_cmd:
-                                    cmd = mapped_cmd
-                                if self.is_real_shell_command(cmd):
                                     try:
-                                        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                                        result = subprocess.run(mapped_cmd, shell=True, capture_output=True, text=True, timeout=10)
                                         if result.returncode == 0:
                                             feedback = self.get_system_command_feedback(cmd, result.stdout.strip())
                                             self.append_colored(f"💻 SYSTEM>>> {feedback}", self.color_settings["system"])
@@ -538,17 +555,12 @@ class UaiBotGUI(QWidget):
                                             self.append_colored(f"🙁  ERROR>>> {result.stderr.strip()}", self.color_settings["error"])
                                     except Exception as e:
                                         self.append_colored(f"🙁  ERROR>>> {str(e)}", self.color_settings["error"])
-                                else:
-                                    self.append_colored(f"🙁  ERROR>>> No valid system command to execute. Please clarify your request.", self.color_settings["error"])
-                            else:
-                                self.append_colored(f"🙁  ERROR>>> No valid system command to execute. Please clarify your request.", self.color_settings["error"])
                         else:
-                            if step.get("operation") not in ["user_feedback", "correction"]:
-                                self.append_colored(f"🤖 UaiBot>>> {step.get('description', '')}", self.color_settings["robot"])
+                            self.append_colored(f"🤖 UaiBot>>> {step.get('description', '')}", self.color_settings["robot"])
             except json.JSONDecodeError:
                 self.append_colored(f"🤖 UaiBot>>> {result.output}", self.color_settings["robot"])
         elif hasattr(result, 'error') and result.error:
-            self.append_colored(f"🙁  ERROR>>> {result.error}. Please check your model selection in settings.", self.color_settings["error"])
+            self.append_colored(f"🙁  ERROR>>> {result.error}", self.color_settings["error"])
         else:
             self.append_colored("🤖 UaiBot>>> [No output]", self.color_settings["robot"])
 
@@ -581,10 +593,6 @@ class UaiBotGUI(QWidget):
             # Add more mappings as needed
         }
         return mapping.get(cmd.strip(), None)
-
-    def is_real_shell_command(self, cmd):
-        # Heuristic: must start with a known shell command
-        return any(cmd.strip().startswith(prefix) for prefix in ["open ", "osascript ", "xdg-open ", "start ", "cmd ", "powershell "])
 
     def discover_local_models(self):
         models = []
@@ -637,6 +645,24 @@ class UaiBotGUI(QWidget):
             self.append_colored("🙁  ERROR>>> Selected vision model is not vision-capable. Please select a valid vision model in settings.", self.color_settings["error"])
             return
         # ... existing vision processing logic ...
+
+    def speak(self, text):
+        """Speak text using the selected TTS model or fallback to macOS say command."""
+        if self.tts_model == "pyttsx3":
+            try:
+                import pyttsx3
+                engine = pyttsx3.init()
+                engine.say(text)
+                engine.runAndWait()
+            except Exception as e:
+                self.append_colored(f"🙁  ERROR>>> pyttsx3 failed: {e}", self.color_settings["error"])
+        else:
+            # Use macOS system TTS if available
+            import platform, os
+            if platform.system() == "Darwin":
+                os.system(f'say "{text}"')
+            else:
+                self.append_colored(f"🔈 {text}", self.color_settings["system"])
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

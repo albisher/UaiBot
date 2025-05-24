@@ -1,9 +1,9 @@
 {
     "default_ai_provider": "ollama",
     "ollama_base_url": "http://localhost:11434",
-    "default_ollama_model": "smolvlm",
+    "default_ollama_model": "gemma3:1b",
     "text_model": "gemma3:1b",
-    "vision_model": "gemma3:1b",
+    "vision_model": "SmolVLM-256M",
     "stt_model": "whisper",
     "tts_model": "pyttsx3",
     "shell_safe_mode": true,
@@ -32,6 +32,6 @@
         "log_commands": true,
         "last_updated": "2025-05-24T09:43:42.698805"
     },
-    "last_updated": "2025-05-24T13:03:34.054371",
+    "last_updated": "2025-05-24T16:28:49.941501",
     "use_fp32": true
 }

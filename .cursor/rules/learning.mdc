@@ -1,0 +1,43 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Learning Mechanism Rules
+
+## Overview
+UaiBot uses a learning mechanism to improve its performance over time. This document outlines the rules and best practices for using this mechanism.
+
+## Rules
+
+1. **Log Command Results:**
+   - Every command result must be logged into the knowledge base, even if the command succeeds.
+   - Include the capability, OS, action, and command pattern in the log.
+
+2. **Suggest Alternatives:**
+   - If a command fails, UaiBot must suggest reliable alternatives based on the knowledge base.
+   - Alternatives should be context-aware and relevant to the current OS.
+
+3. **Knowledge Base Structure:**
+   - The knowledge base must be stored in a JSON file, with a clear structure for capabilities, OS, actions, and command patterns.
+   - Example:
+     ```json
+     {
+       "mouse_control": {
+         "darwin": {
+           "actions": {
+             "move_to": {"success_count": 10, "fail_count": 0},
+             "click": {"success_count": 8, "fail_count": 2}
+           },
+           "command_patterns": {
+             "move mouse to (x, y)": {"success_count": 5, "fail_count": 0}
+           }
+         }
+       }
+     }
+     ```
+
+4. **Future Improvements:**
+   - Consider using embeddings and vector databases for more advanced learning.
+   - Extend the learning mechanism to handle other capabilities (e.g., keyboard input, screen reading).
+   - Enhance the suggestion mechanism to provide more context-aware recommendations.
