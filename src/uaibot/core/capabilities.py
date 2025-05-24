@@ -230,4 +230,19 @@ class CapabilitiesManager:
             cap.version = "1.0.0"
             cap.description = "Control mouse movements, clicks, drags, and gestures"
             cap.dependencies = ["screen_reading"]
-            self._save_capabilities() 
+            self._save_capabilities()
+
+    def register_system_awareness(self) -> None:
+        """Register 'system_awareness' capability."""
+        self.register_capability(
+            name="system_awareness",
+            description="Monitor and interact with system-level events and resources (mouse, windows, system, keyboard).",
+            category="system",
+            implementation_path="",
+            status="active",
+            version="0.1.0",
+            dependencies=["pyautogui", "psutil", "pynput"],
+            keywords=["mouse", "window", "system", "cpu", "memory", "keyboard"],
+            expandable=True
+        )
+        self._save_capabilities() 
