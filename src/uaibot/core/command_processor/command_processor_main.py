@@ -81,24 +81,23 @@ class CommandProcessor:
         """
         start_time = datetime.now()
         try:
-            # Update stats
-            self.stats.total_commands += 1
-            
-            # Validate command
-            validation = validate_command(command)
-            if not validation.is_valid:
-                raise CommandValidationError(validation.error)
-                
-            # Check safety
-            safety = check_command_safety(command, self.config.safety_level)
-            if not safety.is_safe:
-                raise CommandSafetyError(safety.error)
-                
-            # Check for research command
+            # --- 3a: Check for research and awareness commands FIRST ---
             research_result = self._handle_research_command(command)
             if research_result is not None:
                 return research_result
-                
+            awareness_result = self._handle_awareness_command(command)
+            if awareness_result is not None:
+                return awareness_result
+            # --- End 3a ---
+
+            # Now do validation and safety checks for all other commands
+            validation = validate_command(command)
+            if not validation.is_valid:
+                raise CommandValidationError(validation.error)
+            safety = check_command_safety(command, self.config.safety_level)
+            if not safety.is_safe:
+                raise CommandSafetyError(safety.error)
+            
             # Process command with AI
             response = self.ai_handler.process_prompt(command)
             result = CommandResult(
@@ -196,32 +195,30 @@ class CommandProcessor:
         Detect and handle research-related commands such as 'add new research', 'new research', etc.
         Returns a CommandResult if handled, otherwise None.
         """
-        # Patterns for research commands
+        # --- 3b: More robust regex for research commands ---
         research_patterns = [
-            r"^(add|new|create|submit)\s+research(\s|,|:|$)",
-            r"^(add|new|create|submit)\s+new\s+research(\s|,|:|$)",
-            r"^research\s+(add|new|create|submit)(\s|,|:|$)",
-            r"^add new research(\s|,|:|$)",
-            r"^new research(\s|,|:|$)",
-            r"^submit new research(\s|,|:|$)",
-            r"^add research(\s|,|:|$)",
-            r"^create research(\s|,|:|$)",
+            r"^(add|new|create|submit)\s*[,\s:;-]*research([,\s:;-]|$)",
+            r"^(add|new|create|submit)\s*[,\s:;-]*new\s*[,\s:;-]*research([,\s:;-]|$)",
+            r"^research\s*[,\s:;-]*(add|new|create|submit)([,\s:;-]|$)",
+            r"^add\s*[,\s:;-]*new\s*[,\s:;-]*research([,\s:;-]|$)",
+            r"^new\s*[,\s:;-]*research([,\s:;-]|$)",
+            r"^submit\s*[,\s:;-]*new\s*[,\s:;-]*research([,\s:;-]|$)",
+            r"^add\s*[,\s:;-]*research([,\s:;-]|$)",
+            r"^create\s*[,\s:;-]*research([,\s:;-]|$)",
         ]
         for pat in research_patterns:
             if re.match(pat, command.strip(), re.IGNORECASE):
                 # Try to extract topic and URL from the command
-                # Example: 'add new research , MITRE ATT&CK Framework , https://attack.mitre.org/'
-                parts = [p.strip() for p in re.split(r",|:", command, maxsplit=2)]
+                # Accepts flexible whitespace and punctuation
+                parts = [p.strip() for p in re.split(r",|:|;|-", command, maxsplit=2)]
                 if len(parts) >= 3:
                     _, topic, url = parts[:3]
                 else:
-                    # Prompt for topic and url if not provided
                     return CommandResult(
                         success=False,
                         output="Please provide the topic and URL, e.g. 'add new research , MITRE ATT&CK Framework , https://attack.mitre.org/'",
                         metadata={}
                     )
-                # Add topic
                 added = self.research_manager.add_topic(topic, url)
                 if not added:
                     return CommandResult(
@@ -229,7 +226,6 @@ class CommandProcessor:
                         output=f"Failed to add research topic: {topic}",
                         metadata={}
                     )
-                # Process topic
                 processed = self.research_manager.process_topic(topic)
                 if not processed:
                     return CommandResult(
@@ -237,7 +233,6 @@ class CommandProcessor:
                         output=f"Failed to process research topic: {topic}",
                         metadata={}
                     )
-                # Integrate into awareness
                 integrated = self.awareness_integrator.integrate_topic(topic)
                 if not integrated:
                     return CommandResult(
@@ -250,6 +245,32 @@ class CommandProcessor:
                     success=True,
                     output=f"Research topic '{topic}' added, processed, and integrated.\nAwareness patterns:\n" + "\n".join(patterns),
                     metadata={"topic": topic, "url": url, "patterns": patterns}
+                )
+        return None
+
+    def _handle_awareness_command(self, command: str) -> Optional[CommandResult]:
+        """
+        Detect and handle awareness-related commands (expand as needed).
+        Returns a CommandResult if handled, otherwise None.
+        """
+        # --- 3b: Example robust regex for awareness commands ---
+        awareness_patterns = [
+            r"^show\s*[,\s:;-]*awareness([,\s:;-]|$)",
+            r"^list\s*[,\s:;-]*awareness([,\s:;-]|$)",
+            r"^get\s*[,\s:;-]*awareness([,\s:;-]|$)",
+            r"^awareness\s*[,\s:;-]*list([,\s:;-]|$)",
+            r"^awareness\s*[,\s:;-]*show([,\s:;-]|$)",
+        ]
+        for pat in awareness_patterns:
+            if re.match(pat, command.strip(), re.IGNORECASE):
+                # Example: return all integrated awareness patterns
+                all_patterns = {}
+                for topic in self.awareness_integrator.awareness_managers:
+                    all_patterns[topic] = self.awareness_integrator.get_awareness_patterns(topic)
+                return CommandResult(
+                    success=True,
+                    output="Current awareness patterns:\n" + json.dumps(all_patterns, indent=2),
+                    metadata={"awareness": all_patterns}
                 )
         return None
 
