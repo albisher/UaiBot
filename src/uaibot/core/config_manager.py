@@ -62,6 +62,10 @@ class Config:
     default_ai_provider: str = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     default_ollama_model: str = "gemma3:4b"
+    text_model: str = "smolvlm"
+    vision_model: str = "smolvlm"
+    stt_model: str = "whisper"
+    tts_model: str = "none"
     shell_safe_mode: bool = True
     shell_dangerous_check: bool = True
     interactive_mode: bool = True
@@ -73,6 +77,7 @@ class Config:
     file_operation_settings: FileOperationConfig = field(default_factory=FileOperationConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     last_updated: datetime = field(default_factory=datetime.now)
+    use_fp32: bool = True
 
 class ConfigManager:
     """
@@ -100,6 +105,24 @@ class ConfigManager:
         self.user_settings_file = self.config_dir / 'user_settings.json'
         self.config = self._load_config()
         self._validate_config()
+        self.valid_keys = {
+            'default_ai_provider',
+            'ollama_base_url',
+            'default_ollama_model',
+            'text_model',
+            'vision_model',
+            'stt_model',
+            'tts_model',
+            'shell_safe_mode',
+            'shell_dangerous_check',
+            'interactive_mode',
+            'use_gui',
+            'use_structured_ai_responses',
+            'prefer_json_format',
+            'output_verbosity',
+            'language_support',
+            'use_fp32'
+        }
     
     def _load_config(self) -> Config:
         """Load configuration from files."""
@@ -122,11 +145,38 @@ class ConfigManager:
         """Convert dictionary to Config object, filtering out unknown keys."""
         # Handle nested configs
         if 'language_support' in config_dict:
-            config_dict['language_support'] = LanguageConfig(**config_dict['language_support'])
+            lang = config_dict['language_support']
+            if isinstance(lang, dict):
+                if 'last_updated' in lang and isinstance(lang['last_updated'], str):
+                    try:
+                        lang['last_updated'] = datetime.fromisoformat(lang['last_updated'])
+                    except Exception:
+                        lang['last_updated'] = datetime.now()
+                config_dict['language_support'] = LanguageConfig(**lang)
         if 'file_operation_settings' in config_dict:
-            config_dict['file_operation_settings'] = FileOperationConfig(**config_dict['file_operation_settings'])
+            fos = config_dict['file_operation_settings']
+            if isinstance(fos, dict):
+                if 'last_updated' in fos and isinstance(fos['last_updated'], str):
+                    try:
+                        fos['last_updated'] = datetime.fromisoformat(fos['last_updated'])
+                    except Exception:
+                        fos['last_updated'] = datetime.now()
+                config_dict['file_operation_settings'] = FileOperationConfig(**fos)
         if 'logging' in config_dict:
-            config_dict['logging'] = LoggingConfig(**config_dict['logging'])
+            log = config_dict['logging']
+            if isinstance(log, dict):
+                if 'last_updated' in log and isinstance(log['last_updated'], str):
+                    try:
+                        log['last_updated'] = datetime.fromisoformat(log['last_updated'])
+                    except Exception:
+                        log['last_updated'] = datetime.now()
+                config_dict['logging'] = LoggingConfig(**log)
+        # Top-level last_updated
+        if 'last_updated' in config_dict and isinstance(config_dict['last_updated'], str):
+            try:
+                config_dict['last_updated'] = datetime.fromisoformat(config_dict['last_updated'])
+            except Exception:
+                config_dict['last_updated'] = datetime.now()
         # Only keep keys that are fields in Config
         config_fields = set(f.name for f in Config.__dataclass_fields__.values())
         filtered = {k: v for k, v in config_dict.items() if k in config_fields}
@@ -185,6 +235,10 @@ class ConfigManager:
             'default_ai_provider': config.default_ai_provider,
             'ollama_base_url': config.ollama_base_url,
             'default_ollama_model': config.default_ollama_model,
+            'text_model': config.text_model,
+            'vision_model': config.vision_model,
+            'stt_model': config.stt_model,
+            'tts_model': config.tts_model,
             'shell_safe_mode': config.shell_safe_mode,
             'shell_dangerous_check': config.shell_dangerous_check,
             'interactive_mode': config.interactive_mode,
@@ -211,7 +265,8 @@ class ConfigManager:
                 'log_commands': config.logging.log_commands,
                 'last_updated': config.logging.last_updated.isoformat()
             },
-            'last_updated': config.last_updated.isoformat()
+            'last_updated': config.last_updated.isoformat(),
+            'use_fp32': config.use_fp32
         }
     
     def _validate_config(self) -> None:
@@ -219,7 +274,11 @@ class ConfigManager:
         required_settings = [
             'default_ai_provider',
             'ollama_base_url',
-            'default_ollama_model'
+            'default_ollama_model',
+            'text_model',
+            'vision_model',
+            'stt_model',
+            'tts_model'
         ]
         
         for setting in required_settings:

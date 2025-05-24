@@ -71,72 +71,73 @@ class CommandProcessor:
         # Initialize stats to avoid attribute errors
         self.stats = type('Stats', (), {'total_commands': 0})()
     
-    def process_command(self, command: str) -> CommandResult:
+    def process_command(self, command: str, extra_context: str = None) -> CommandResult:
         """
         Process a command using the AI model.
         
         Args:
             command (str): The command to process
-            
+            extra_context (str, optional): Extra context (e.g., vision result) to pass to the AI model
         Returns:
             CommandResult: The result of the command execution
-            
-        Raises:
-            Exception: If there's an error processing the command
         """
         start_time = datetime.now()
         try:
-            # Update stats
             self.stats.total_commands += 1
-            # Validate command
             if not self._validate_command(command):
                 print("[DEBUG] Invalid command format.")
                 return CommandResult(success=False, output="", error="Invalid command format")
-            # Check command safety
             if not self._check_command_safety(command):
                 print("[DEBUG] Command failed safety check.")
                 return CommandResult(success=False, output="", error="Command failed safety check")
-            # Process command with AI
-            response = self.ai_handler.process_prompt(command)
-            # Try to interpret the plan from the AI response (JSON)
+            print(f"[USER COMMAND]: {command}")
+            # Pass extra_context to AI handler if present
+            response = self.ai_handler.process_prompt(command, extra_context=extra_context) if extra_context else self.ai_handler.process_prompt(command)
             import json, subprocess
-            user_message = None
+            user_messages = []
+            incomplete_plan = False
             try:
                 plan_obj = json.loads(response.text)
                 print("\n[AI PLAN JSON]\n", json.dumps(plan_obj, indent=2))
                 if "plan" in plan_obj and isinstance(plan_obj["plan"], list):
-                    step = plan_obj["plan"][0] if plan_obj["plan"] else None
-                    if step:
+                    for step in plan_obj["plan"]:
                         print("[AI PLAN STEP]", json.dumps(step, indent=2))
-                        # Show the description as the user-friendly message
-                        user_message = step.get("description")
-                        # If it's a system command, try to execute it
-                        if step.get("operation") == "system_command":
-                            cmd = step.get("parameters", {}).get("command")
+                        desc = step.get("description", "")
+                        op = step.get("operation", "")
+                        params = step.get("parameters", {})
+                        msg = desc
+                        if op == "system_command":
+                            cmd = params.get("command")
                             if cmd:
                                 print(f"[EXECUTING SYSTEM COMMAND]: {cmd}")
                                 try:
                                     result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
                                     if result.returncode == 0:
                                         print("[SYSTEM OUTPUT]:\n", result.stdout.strip())
-                                        user_message += f"\n[System Output]:\n{result.stdout.strip()}"
+                                        msg += f"\n[System Output]:\n{result.stdout.strip()}"
+                                        # After executing a system command, get user-friendly feedback
+                                        feedback = self.get_system_command_feedback(cmd, result.stdout.strip())
+                                        # Pass feedback to GUI/system output
                                     else:
                                         print("[SYSTEM ERROR]:\n", result.stderr.strip())
-                                        user_message += f"\n[System Error]:\n{result.stderr.strip()}"
+                                        msg += f"\n[System Error]:\n{result.stderr.strip()}"
                                 except Exception as e:
                                     print(f"[EXECUTION ERROR]: {str(e)}")
-                                    user_message += f"\n[Execution Error]: {str(e)}"
+                                    msg += f"\n[Execution Error]: {str(e)}"
+                            else:
+                                incomplete_plan = True
+                                msg += "\n[ERROR: Missing required parameters for system command]"
+                        user_messages.append(msg)
                 else:
                     print("[DEBUG] No valid plan found in AI response.")
-                    user_message = response.text
+                    user_messages.append(response.text)
             except Exception as e:
                 print(f"[DEBUG] Failed to parse or execute plan: {e}")
-                user_message = response.text
-            # Save result
+                user_messages.append(response.text)
             self._save_command_result(command, response)
             return CommandResult(
                 success=True,
-                output=user_message,
+                output="\n\n".join(user_messages),
                 metadata=response.metadata
             )
         except Exception as e:
@@ -202,17 +203,13 @@ class CommandProcessor:
             sanitized_command = "".join(c if c.isalnum() else "_" for c in command[:50])
             filename = f"{timestamp}_{sanitized_command}.json"
             
-            # Prepare result data
+            # Prepare result data (only serializable fields)
             result_data = {
                 "timestamp": timestamp,
                 "command": command,
-                "result": response.text,
-                "raw_response": response.raw_response,
-                "metadata": {
-                    "model": response.metadata.get("model"),
-                    "tokens": response.metadata.get("tokens"),
-                    "processing_time": response.metadata.get("processing_time")
-                }
+                "result": getattr(response, 'text', str(response)),
+                "raw_response": str(getattr(response, 'raw_response', '')),
+                "metadata": dict(getattr(response, 'metadata', {})),
             }
             
             # Save to file
@@ -223,4 +220,16 @@ class CommandProcessor:
             logger.info(f"Saved command result to {filepath}")
             
         except Exception as e:
-            logger.error(f"Error saving command result: {str(e)}") 
+            logger.error(f"Error saving command result: {str(e)}")
+            print(f"[ERROR] Error saving command result: {str(e)}")
+
+    def get_system_command_feedback(self, command, output):
+        if output and output.strip():
+            return output.strip()
+        if 'calculator' in command.lower():
+            return "Calculator app opened on screen 1."
+        if 'safari' in command.lower():
+            return "Safari browser launched."
+        if 'open' in command.lower() and 'http' in command.lower():
+            return "Website opened in default browser."
+        return "Command executed successfully, but no output was returned." 

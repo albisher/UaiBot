@@ -45,16 +45,15 @@ class AIHandler:
         self.prompt_config = PromptConfig()
         self.command_extractor = AICommandExtractor()
 
-    def process_prompt(self, prompt: str) -> ResponseInfo:
+    def process_prompt(self, prompt: str, extra_context: str = None) -> ResponseInfo:
         try:
-            # Gather system info for prompt
             system_info = get_system_info()['platform']
-            # Build advanced prompt with explicit JSON instructions
-            formatted_prompt = self.command_extractor.format_ai_prompt(prompt, system_info)
+            if extra_context:
+                prompt = f"[Visual Context]: {extra_context}\n{prompt}"
+            formatted_prompt = self.format_ai_prompt(prompt, system_info)
             logger.debug(f"Formatted AI prompt: {formatted_prompt}")
             response = self._get_model_response(formatted_prompt)
             logger.debug(f"Raw model response: {response}")
-            # Extract and validate command from model response
             success, plan, extraction_metadata = self.command_extractor.extract_command(response.get('response', ''))
             logger.debug(f"Extraction success: {success}, plan: {plan}, metadata: {extraction_metadata}")
             if not success or not plan:
@@ -67,6 +66,45 @@ class AIHandler:
         except Exception as e:
             logger.error(f"Error processing prompt: {str(e)}")
             raise
+
+    def format_ai_prompt(self, prompt: str, system_info: str) -> str:
+        """Format the prompt for the AI model with standardized instructions."""
+        return f"""You are UaiBot, an AI assistant that helps users with tasks. Follow these guidelines:
+
+1. Command Processing:
+   - Focus on executing commands, not providing feedback
+   - Break down complex commands into clear, sequential steps
+   - Each step should have a clear description and operation
+   - For system commands, provide the exact command to execute
+
+2. Response Format:
+   Always respond in this JSON format:
+   {{
+     "plan": [
+       {{
+         "step": "step_name",
+         "description": "Clear description of what this step does",
+         "operation": "system_command",
+         "parameters": {{
+           "command": "exact system command to execute"
+         }},
+         "confidence": 0.0-1.0,
+         "conditions": null
+       }}
+     ]
+   }}
+
+3. System Information:
+   Current system: {system_info}
+
+User Command: {prompt}
+
+Remember:
+- Focus on executing commands, not providing feedback
+- Use standardized response format
+- Include confidence scores
+- Break down complex commands into multiple steps
+- Only include system commands that can be executed"""
 
     def _format_prompt(self, prompt: str) -> str:
         return f"User: {prompt}\nAssistant:"

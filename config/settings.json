@@ -1,7 +1,11 @@
 {
-    "ollama_base_url": "http://localhost:11434",
-    "default_ollama_model": "gemma3:4b",
     "default_ai_provider": "ollama",
+    "ollama_base_url": "http://localhost:11434",
+    "default_ollama_model": "smolvlm",
+    "text_model": "gemma3:1b",
+    "vision_model": "gemma3:1b",
+    "stt_model": "whisper",
+    "tts_model": "pyttsx3",
     "shell_safe_mode": true,
     "shell_dangerous_check": true,
     "interactive_mode": true,
@@ -11,34 +15,23 @@
     "output_verbosity": "normal",
     "language_support": {
         "english": true,
-        "arabic": true
+        "arabic": true,
+        "last_updated": "2025-05-24T09:43:42.698795"
     },
     "file_operation_settings": {
         "max_results": 20,
         "max_content_length": 1000,
         "default_directory": "data",
-        "test_directory": "tests"
+        "test_directory": "tests",
+        "last_updated": "2025-05-24T09:43:42.698803"
     },
     "logging": {
         "log_level": "${LOG_LEVEL:-INFO}",
         "log_file": "log/uaibot.log",
         "log_errors": true,
-        "log_commands": true
+        "log_commands": true,
+        "last_updated": "2025-05-24T09:43:42.698805"
     },
-    "test_setting": "${TEST_VAR:-default}",
-    "nested_setting": {
-        "level1": {
-            "level2": "${NESTED_VAR:-default}"
-        }
-    },
-    "test_persistence": "test_value",
-    "username": "",
-    "full_name": "",
-    "preferred_name": "",
-    "home_directory": "",
-    "preferred_locations": {
-        "desktop": "",
-        "documents": "",
-        "downloads": ""
-    }
+    "last_updated": "2025-05-24T13:03:34.054371",
+    "use_fp32": true
 }

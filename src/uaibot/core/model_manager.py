@@ -102,7 +102,8 @@ class ModelManager:
             name=config.get("default_ollama_model", "gemma:4b"),
             base_url=config.get("ollama_base_url", "http://localhost:11434")
         )
-        self._initialize_ollama_model()
+        if self.model_info.name != "smolvlm":
+            self._initialize_ollama_model()
     
     def _initialize_ollama_model(self) -> None:
         """
@@ -131,16 +132,12 @@ class ModelManager:
                 # Set default model based on what's available
                 models: List[Dict[str, Any]] = resp.json().get("models", [])
                 if models:
-                    # Use a sensible default from available models
                     model_names: List[str] = [m["name"] for m in models]
-                    # Preference order: gemma:latest, llama3:latest, mistral:latest, or first available
-                    for preferred in ["gemma:latest", "gemma", "llama3:latest", "llama3", "mistral:latest"]:
-                        if any(m.startswith(preferred) for m in model_names):
-                            self.model_info.name = next(m for m in model_names if m.startswith(preferred))
-                            break
+                    user_model = self.model_info.name
+                    if user_model in model_names:
+                        self.model_info.name = user_model
                     else:
-                        # If none of the preferred models are available, use the first one
-                        self.model_info.name = models[0]["name"]
+                        raise ValueError(f"User-selected model '{user_model}' is not available in Ollama. Available: {model_names}")
                 
                 self._log(f"Using Ollama model: {self.model_info.name}")
                 
