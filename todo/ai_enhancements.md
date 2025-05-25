@@ -3,7 +3,7 @@ description: This file contains a comprehensive list of AI-related enhancements 
 alwaysApply: true
 ---
 
-# AI Enhancements and Improvements
+# AI Enhancements (Agentic, SmolAgents, A2A, MCP)
 
 ## 1. AI Model Integration
 ### Current Status
@@ -122,4 +122,16 @@ alwaysApply: true
 2. Maintain backward compatibility
 3. Add comprehensive tests for new features
 4. Document all changes and additions
-5. Monitor performance impact 
+5. Monitor performance impact
+
+## Additional Todo Items
+- [ ] Integrate SmolAgents as the core agent framework
+- [ ] Refactor AI command extraction to agent plan/execute loop
+- [ ] Expose AI capabilities as agent tools
+- [ ] Enable agent memory/state for context retention
+- [ ] Support multi-agent collaboration (A2A)
+- [ ] Add multi-channel (MCP) support for AI/agent interaction
+- [ ] Ensure all AI features work local-first, minimal memory/storage
+- [ ] Expand multi-language support for AI/agent workflows
+- [ ] Document agentic AI patterns and interfaces
+- [ ] Add tests for agentic AI workflows, A2A, MCP 

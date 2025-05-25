@@ -138,3 +138,18 @@ src/
 - Directory structure must be maintained in CI/CD
 - File organization must be part of code review
 - Violations must be fixed immediately
+
+# File Organization & Cleanup (Core Principle)
+
+- File organization and cleanup is strictly enforced.
+- No files should be left in the root except LICENSE, README, and config files.
+- Placement rules:
+  - Test artifacts: `tests/fixtures/` or `tests/outputs/`
+  - Logs: `log/`
+  - State/context: `src/uaibot/state/`
+  - Registry/config: `src/uaibot/core/`
+  - Scripts/entry-points: `scripts/`
+  - License: project root
+- All contributors must follow these rules for every commit.
+- Regular file audits must be performed after major changes.
+- Violations must be fixed immediately before merging or release.

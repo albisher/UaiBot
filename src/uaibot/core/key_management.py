@@ -11,7 +11,7 @@ from typing import List, Optional
 # Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.uaibot.core.key_manager import KeyManager
+from uaibot.core.key_manager import KeyManager
 
 class KeyManagement:
     """Utility for managing API keys."""

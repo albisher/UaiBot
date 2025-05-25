@@ -1,3 +1,78 @@
+# UaiBot .gitignore (Enforced File Organization)
+
+# Root-level enforcement: Only LICENSE, README, and config allowed in root
+!/LICENSE
+!/README.md
+!/requirements.txt
+!/pyproject.toml
+!/setup.py
+!/COMMERCIAL_LICENSE
+!/config/
+
+# Ignore misplaced test outputs, logs, state, and scripts in root
+/test_*.txt
+/test_*
+/uaibot.log
+/context.json
+/execution_state.json
+/capabilities_registry.json
+/launch.py
+/launch_gui.py
+
+# Ignore logs, caches, and outputs everywhere
+logs/
+log/
+.cache/
+*.log
+*.bak
+*.tmp
+*.swp
+*~
+
+# Ignore test artifacts
+/tests/outputs/
+/tests/results/
+/tests/fixtures/
+/test_files/
+
+# Ignore state/context outside src/uaibot/state
+/context.json
+/execution_state.json
+
+# Ignore registry/config outside src/uaibot/core
+/capabilities_registry.json
+
+# Ignore scripts outside scripts/
+/launch.py
+/launch_gui.py
+
+# Ignore Python cache and venv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Ignore IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Ignore build and dist
+build/
+dist/
+*.egg-info/
+
+# Ignore coverage and test output
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Ignore Jupyter
+.ipynb_checkpoints/
+
 # Python
 __pycache__/
 *.py[cod]

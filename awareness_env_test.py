@@ -1,9 +1,9 @@
-from src.uaibot.core.awareness.audio_awareness import AudioAwarenessManager
-from src.uaibot.core.awareness.bluetooth_awareness import BluetoothAwarenessManager
-from src.uaibot.core.awareness.sensor_awareness import SensorAwarenessManager
-from src.uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessManager
-from src.uaibot.core.awareness.app_awareness import AppAwarenessManager
-from src.uaibot.core.awareness.network_awareness import NetworkAwarenessManager
+from uaibot.core.awareness.audio_awareness import AudioAwarenessManager
+from uaibot.core.awareness.bluetooth_awareness import BluetoothAwarenessManager
+from uaibot.core.awareness.sensor_awareness import SensorAwarenessManager
+from uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessManager
+from uaibot.core.awareness.app_awareness import AppAwarenessManager
+from uaibot.core.awareness.network_awareness import NetworkAwarenessManager
 
 def print_section(title):
     print(f"\n{'='*10} {title} {'='*10}")

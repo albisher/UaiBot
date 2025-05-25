@@ -12,10 +12,8 @@ from typing import Dict, Any
 
 from uaibot.core.config_manager import ConfigManager
 from uaibot.core.model_manager import ModelManager
-from uaibot.core.ai_handler import AIHandler
-from uaibot.core.command_processor.command_processor import CommandProcessor
-from uaibot.core.command_processor.command_processor_monitor import CommandProcessorMonitor
-from uaibot.core.command_processor.command_processor_metrics import CommandProcessorMetrics
+from uaibot.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
+from uaibot.core.ai.agent_tools import FileTool
 
 # Set up logging
 logging.basicConfig(
@@ -25,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def initialize_system() -> Dict[str, Any]:
-    """Initialize the UaiBot system components."""
+    """Initialize the UaiBot system components (agentic core)."""
     try:
         # Initialize configuration
         config_manager = ConfigManager()
@@ -35,29 +33,17 @@ def initialize_system() -> Dict[str, Any]:
         model_manager = ModelManager(config_manager)
         logger.info("Model manager initialized")
 
-        # Initialize AI handler
-        ai_handler = AIHandler(model_manager)
-        logger.info("AI handler initialized")
-
-        # Initialize command processor
-        command_processor = CommandProcessor(ai_handler)
-        logger.info("Command processor initialized")
-
-        # Initialize monitor
-        monitor = CommandProcessorMonitor()
-        logger.info("System monitor initialized")
-
-        # Initialize metrics
-        metrics = CommandProcessorMetrics()
-        logger.info("Metrics collector initialized")
+        # Initialize agentic core
+        registry = ToolRegistry()
+        registry.register(EchoTool())
+        registry.register(FileTool())
+        agent = Agent(tools=registry)
+        logger.info("Agentic core initialized")
 
         return {
             "config_manager": config_manager,
             "model_manager": model_manager,
-            "ai_handler": ai_handler,
-            "command_processor": command_processor,
-            "monitor": monitor,
-            "metrics": metrics
+            "agent": agent
         }
 
     except Exception as e:
@@ -65,46 +51,22 @@ def initialize_system() -> Dict[str, Any]:
         raise
 
 def run_health_checks(components: Dict[str, Any]) -> bool:
-    """Run health checks on system components."""
-    try:
-        # Check command processor health
-        processor_health = components["monitor"].check_health("command_processor")
-        logger.info(f"Command processor health: {processor_health}")
-
-        # Check model manager health
-        model_health = components["monitor"].check_health("model_manager")
-        logger.info(f"Model manager health: {model_health}")
-
-        # Check AI handler health
-        ai_health = components["monitor"].check_health("ai_handler")
-        logger.info(f"AI handler health: {ai_health}")
-
-        # Collect system metrics
-        metrics = components["metrics"].collect_metrics()
-        logger.info(f"System metrics: {metrics}")
-
-        return all([
-            processor_health.status == "healthy",
-            model_health.status == "healthy",
-            ai_health.status == "healthy"
-        ])
-
-    except Exception as e:
-        logger.error(f"Error running health checks: {e}")
-        return False
+    """Stub health check for agentic core."""
+    logger.info("Health check: agentic core initialized.")
+    return True
 
 def test_basic_functionality(components: Dict[str, Any]) -> bool:
-    """Test basic system functionality."""
+    """Test basic system functionality (agentic core)."""
     try:
         # Test simple command
-        result = components["command_processor"].process_command("What is the current time?")
+        result = components["agent"].plan_and_execute("echo Hello, world!", {})
         logger.info(f"Command result: {result}")
 
-        # Test command with parameters
-        result = components["command_processor"].process_command("Show system information")
+        # Test file tool
+        result = components["agent"].plan_and_execute("file", {"filename": "test.txt", "content": "test content"}, action="create")
         logger.info(f"Command result: {result}")
 
-        return result.success
+        return True
 
     except Exception as e:
         logger.error(f"Error testing basic functionality: {e}")

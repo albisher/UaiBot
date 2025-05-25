@@ -8,9 +8,9 @@ import time
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from datetime import datetime
-from .model_manager import ModelManager
-from .system_info_gatherer import SystemInfoGatherer
-from .config_manager import ConfigManager
+from uaibot.core.model_manager import ModelManager
+from uaibot.core.system_info_gatherer import SystemInfoGatherer
+from uaibot.core.config_manager import ConfigManager
 from uaibot.core.logging_config import get_logger
 logger = get_logger(__name__)
 from uaibot.core.cache_manager import CacheManager

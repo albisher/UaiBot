@@ -78,6 +78,7 @@ class Config:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     last_updated: datetime = field(default_factory=datetime.now)
     use_fp32: bool = True
+    openweathermap_api_key: str = ""
 
 class ConfigManager:
     """
@@ -98,11 +99,9 @@ class ConfigManager:
         config (Config): Current configuration settings
     """
     
-    def __init__(self) -> None:
-        """Initialize the configuration manager."""
-        self.config_dir = Path('config')
-        self.settings_file = self.config_dir / 'settings.json'
-        self.user_settings_file = self.config_dir / 'user_settings.json'
+    def __init__(self, settings_file: str = 'config/settings.json'):
+        self.settings_file = settings_file
+        self._ensure_config_file()
         self.config = self._load_config()
         self._validate_config()
         self.valid_keys = {
@@ -121,22 +120,29 @@ class ConfigManager:
             'prefer_json_format',
             'output_verbosity',
             'language_support',
-            'use_fp32'
+            'use_fp32',
+            'openweathermap_api_key'
         }
+    
+    def _ensure_config_file(self):
+        config_dir = os.path.dirname(self.settings_file)
+        if config_dir and not os.path.exists(config_dir):
+            os.makedirs(config_dir, exist_ok=True)
+        if not os.path.exists(self.settings_file) or os.path.getsize(self.settings_file) == 0:
+            with open(self.settings_file, 'w') as f:
+                f.write('{}')
     
     def _load_config(self) -> Config:
         """Load configuration from files."""
-        config_dict: Dict[str, Any] = {}
-        
-        # Load settings.json
-        if self.settings_file.exists():
-            with open(self.settings_file, 'r') as f:
-                config_dict.update(json.load(f))
-        
-        # Load user_settings.json
-        if self.user_settings_file.exists():
-            with open(self.user_settings_file, 'r') as f:
-                config_dict.update(json.load(f))
+        self._ensure_config_file()
+        with open(self.settings_file, 'r') as f:
+            try:
+                config_dict = json.load(f)
+            except json.JSONDecodeError:
+                # If file is empty or invalid, reset to '{}'
+                with open(self.settings_file, 'w') as fw:
+                    fw.write('{}')
+                config_dict = {}
         
         # Convert dict to Config object
         return self._dict_to_config(config_dict)
@@ -180,6 +186,8 @@ class ConfigManager:
         # Only keep keys that are fields in Config
         config_fields = set(f.name for f in Config.__dataclass_fields__.values())
         filtered = {k: v for k, v in config_dict.items() if k in config_fields}
+        if 'openweathermap_api_key' not in filtered:
+            filtered['openweathermap_api_key'] = ""
         return Config(**filtered)
     
     def _interpolate_value(self, value: Any) -> Any:
@@ -226,6 +234,9 @@ class ConfigManager:
         config_dict = self._config_to_dict(self.config)
         
         # Save settings.json
+        config_dir = os.path.dirname(self.settings_file)
+        if config_dir and not os.path.exists(config_dir):
+            os.makedirs(config_dir, exist_ok=True)
         with open(self.settings_file, 'w') as f:
             json.dump(config_dict, f, indent=4)
     
@@ -266,7 +277,8 @@ class ConfigManager:
                 'last_updated': config.logging.last_updated.isoformat()
             },
             'last_updated': config.last_updated.isoformat(),
-            'use_fp32': config.use_fp32
+            'use_fp32': config.use_fp32,
+            'openweathermap_api_key': config.openweathermap_api_key
         }
     
     def _validate_config(self) -> None:

@@ -8,15 +8,13 @@ import tempfile
 import whisper
 import keyboard
 import time
-from uaibot.core.command_processor.command_processor import CommandProcessor
 from uaibot.core.logging_config import setup_logging, get_logger
 from uaibot.core.exceptions import UaiBotError, AIError, ConfigurationError, CommandError
 from uaibot.core.cache_manager import CacheManager
-from uaibot.core.ai_handler import AIHandler
-from uaibot.utils.output_facade import output
-from uaibot.core.file_operations import process_file_flag_request
 from uaibot.core.model_manager import ModelManager
 from uaibot.core.config_manager import ConfigManager
+from uaibot.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
+from uaibot.core.ai.agent_tools import FileTool
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -28,8 +26,10 @@ class UaiBot:
     def __init__(self, debug=False):
         config_manager = ConfigManager()
         model_manager = ModelManager(config_manager)
-        ai_handler = AIHandler(model_manager)
-        self.processor = CommandProcessor(ai_handler)
+        self.registry = ToolRegistry()
+        self.registry.register(EchoTool())
+        self.registry.register(FileTool())
+        self.agent = Agent(tools=self.registry)
         self.debug = debug
     
     def initialize(self):
@@ -38,7 +38,7 @@ class UaiBot:
     
     def process_command(self, command: str) -> dict:
         """Process a command."""
-        return self.processor.execute_command(command)
+        return self.agent.plan_and_execute(command, {})
 
     def start_microphone_mode(self):
         """Start microphone streaming mode with push-to-talk (space bar)."""
@@ -90,7 +90,7 @@ class UaiBot:
                         if transcribed_text.strip():
                             logger.debug(f"Processing transcribed command: {transcribed_text}")
                             try:
-                                result = self.processor.process_command(transcribed_text)
+                                result = self.process_command(transcribed_text)
                                 logger.debug(f"Command processor result: {result}")
                                 # Print the output to the user
                                 output_str = None

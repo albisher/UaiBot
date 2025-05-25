@@ -9,3 +9,10 @@ alwaysApply: false
 - Document all refactoring decisions
 - Keep the codebase modular and maintainable
 - Follow the class architecture defined in class_architecture.md
+
+# Refactoring & File Organization
+
+- All refactoring must include a file organization audit.
+- Any moved, renamed, or deleted files must be reflected in the directory structure and documentation.
+- Refactoring PRs must not introduce root-level clutter or misplaced files.
+- File organization must be checked before merging any refactor.

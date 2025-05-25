@@ -1,5 +1,13 @@
 # filepath: /Users/amac/Documents/code/UaiBot/requirements.txt
 
+# UaiBot requirements are now managed in setup.py
+# Please install using:
+#   pip install .
+# For development tools:
+#   pip install .[dev]
+# For testing tools:
+#   pip install .[test]
+
 # Core dependencies
 torch>=2.0.0
 transformers>=4.30.0
@@ -35,7 +43,6 @@ webdriver-manager>=4.0.1
 playwright>=1.52.0
 selenium>=4.32.0
 cryptography>=42.0.0
-openai-whisper
 pymilvus==2.3.0
 
 # Testing dependencies
@@ -60,3 +67,14 @@ psutil>=5.9.0
 pywin32>=306; platform_system == "Windows"
 python-xlib>=0.33; platform_system == "Linux"
 pyobjc-framework-Quartz>=9.2; platform_system == "Darwin"
+
+# UaiBot requirements (Ubuntu 24.04+)
+# grpcio >=1.71.0 is required for Python 3.12+ (use binary wheels)
+grpcio>=1.71.0
+# GUI and audio dependencies
+PyQt5>=5.15.0
+pyaudio>=0.2.13
+openai-whisper @ git+https://github.com/openai/whisper.git
+# For screenshots and image processing
+Pillow>=9.0.0
+# Add other dependencies below

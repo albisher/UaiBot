@@ -1,4 +1,4 @@
-# Consolidated Todo List
+# Consolidated TODO (Agentic, SmolAgents, A2A, MCP)
 
 ## High Priority Tasks
 
@@ -73,4 +73,17 @@
 - Test suite organization is critical for maintainability
 - File operations and command processing need immediate attention
 - Multilingual support and browser automation are key features
-- Documentation and security are ongoing concerns 
+- Documentation and security are ongoing concerns
+
+## New Actions
+
+- [ ] Refactor all core logic to use Agent abstraction (SmolAgents)
+- [ ] Convert all command handlers/utilities to agent tools
+- [ ] Implement agent memory/state (minimal, efficient)
+- [ ] Add agent plan/execute loop for multi-step workflows
+- [ ] Integrate A2A protocol for agent-to-agent collaboration
+- [ ] Integrate MCP for multi-channel (CLI, GUI, web, etc.) support
+- [ ] Ensure local-first, minimal memory/storage operation
+- [ ] Expand and test multi-language and multi-platform support
+- [ ] Update all documentation for agentic, tool-based, A2A/MCP architecture
+- [ ] Add/expand tests for agent workflows, A2A, MCP, and tool integration 

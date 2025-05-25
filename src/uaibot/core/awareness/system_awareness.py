@@ -6,9 +6,13 @@ import psutil
 from typing import List, Tuple, Dict, Optional
 import platform
 
-try:
-    import pygetwindow as gw
-except ImportError:
+system = platform.system()
+if system in ("Windows", "Darwin"):
+    try:
+        import pygetwindow as gw
+    except ImportError:
+        gw = None
+else:
     gw = None
 
 class SystemAwarenessManager:
@@ -54,13 +58,15 @@ class SystemAwarenessManager:
                 }
                 for w in gw.getAllWindows()
             ]
-        else:
-            # On macOS/Linux, getAllWindows may not be available; use getAllTitles
+        elif system == 'Darwin':
             try:
                 titles = gw.getAllTitles()
                 return [{'title': t} for t in titles if t.strip()]
             except Exception:
                 return []
+        else:
+            # Linux not supported by pygetwindow
+            return []
 
     def get_active_window(self) -> Optional[Dict[str, any]]:
         """Return the active window's title and geometry, or None."""

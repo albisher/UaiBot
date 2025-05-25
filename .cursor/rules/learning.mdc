@@ -41,3 +41,13 @@ UaiBot uses a learning mechanism to improve its performance over time. This docu
    - Consider using embeddings and vector databases for more advanced learning.
    - Extend the learning mechanism to handle other capabilities (e.g., keyboard input, screen reading).
    - Enhance the suggestion mechanism to provide more context-aware recommendations.
+
+## Definitions
+- **Tool:** An atomic, reusable component that provides a specific skill or capability. Tools are the main way UaiBot learns new skills.
+- **Agent:** An orchestrator that plans and routes tasks to tools or other agents. Use new agents for complex workflows or agent-to-agent scenarios.
+- **Capability:** A skill or function UaiBot can perform, usually implemented as a Tool.
+
+## Best Practice
+- Add new skills as Tools by default.
+- Add new Agents only for orchestration, multi-step workflows, or agent-to-agent scenarios.
+- See .cursor/rules/architecture.mdc for more details.

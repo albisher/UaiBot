@@ -159,3 +159,10 @@ class InputProcessor:
   * Provide context-aware suggestions
   * Include best practices and tips
   * Offer optimization suggestions
+
+# GUI/CLI Input Handling
+
+- All user input (text, file, voice) must be routed through the agentic core (Agent, ToolRegistry, etc.)
+- No direct file writes outside designated directories (use safe_path or equivalent)
+- All outputs must use safe_path or equivalent
+- GUI/CLI must document and enforce these requirements

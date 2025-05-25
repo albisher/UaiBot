@@ -9,3 +9,10 @@ alwaysApply: false
 - Follow the documentation structure in the master folder
 - Maintain consistent documentation across all components
 - Include examples in documentation where appropriate
+
+# Documentation & File Organization
+
+- All documentation must reflect the current file organization and directory structure.
+- All documented examples and references must use the correct, up-to-date paths.
+- After any file moves or cleanup, documentation must be updated immediately.
+- Documentation reviews must include a check for correct file paths and structure.

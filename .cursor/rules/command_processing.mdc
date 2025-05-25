@@ -1,98 +1,106 @@
----
-description: 
-globs: 
-alwaysApply: true
----
 - AI Model Architecture:
-  * Use BaseAIModel interface for all model implementations
+  * Use agent-centric interface for all model implementations
   * Support multiple AI providers through standardized interfaces
   * Allow easy switching between different models with validation
-  * Maintain consistent interface through BaseAIModel
+  * Maintain consistent interface through agent-centric model interface
   * Design for future model upgrades/changes
   * Support model-specific optimizations through model_params
+  * Integrate A2A (Agent-to-Agent) and MCP (Multi-Channel Protocol) for agent collaboration and multi-channel support
 
 - Current Implementation:
   * Supports both Google AI and Ollama models
-  * Each model implements BaseAIModel interface
+  * Each model implements agent-centric interface
   * Model-specific code isolated in dedicated classes
   * Consistent parameter handling and response format
   * Robust error handling and fallback mechanisms
   * Easy addition of new models through interface implementation
-  * Currently no regex code is allowed before the AI model reply
+  * No regex code before the agent reply
 
 - Command Processing:
-  * Follow the command processing pipeline
+  * Follow the agentic command processing pipeline
   * Implement proper error handling at each stage
   * Maintain clear separation between interpretation and execution
-  * Document all command patterns
-  * Ensure proper validation of model responses
-  * Support model-agnostic command patterns
-  * Use standardized response format across all models
+  * Document all command/agent patterns
+  * Ensure proper validation of agent responses
+  * Support model-agnostic, agent-driven command patterns
+  * Use standardized response format across all agents
+  * Use agent plan/execute loop for multi-step workflows
+  * Invoke tools via agent interface
+  * Support multi-agent collaboration (A2A)
 
 - Model Response Format:
-  * All models must return responses in the following format:
+  * All agents must return responses in the following format:
     {
       "command": str,  # The processed command
       "confidence": float,  # Confidence score (0-1)
-      "model": str,  # Model name
+      "agent": str,  # Agent name
       "type": str,  # Response type (e.g., "shell")
       "parameters": dict  # Additional parameters
     }
   * Consistent error handling and reporting
   * Proper validation of response format
-  * Support for model-specific metadata
+  * Support for agent-specific metadata
 
-# Command Processing Rules
+# Command Processing Rules (Agentic)
 
-## Command Pipeline
+## Agentic Command Pipeline
 1. Interpretation Stage
    - Natural language processing
    - Intent extraction
    - Command structure validation
    - Use dataclasses for command objects
    - Type-safe command representation
+   - Agent receives command/goal
 
-2. Validation Stage
+2. Planning Stage
+   - Agent plans steps (plan/execute loop)
+   - Tool selection and invocation
+   - Multi-agent delegation (A2A)
+
+3. Validation Stage
    - Safety level assessment
    - Permission checks
    - Context validation
    - Resource availability
    - Use enums for safety levels
 
-3. Execution Stage
-   - Command routing
-   - Shell/system interaction
+4. Execution Stage
+   - Agent executes planned steps
+   - Tool/system interaction
    - Output capture
    - Error handling
    - Event emission
 
-4. Post-processing Stage
+5. Post-processing Stage
    - Output formatting
    - Result storage
    - Logging
    - Event handling
    - Response generation
 
-## Command Objects
+## Command/Agent Objects
 ```python
 @dataclass
-class Command:
+class AgentCommand:
     text: str
     intent: str
     safety_level: SafetyLevel
     parameters: Dict[str, Any]
     metadata: Dict[str, Any]
+    plan: List[Dict[str, Any]]
+    agent: str
 
 @dataclass
-class CommandResult:
+class AgentCommandResult:
     success: bool
     output: str
     error: Optional[str]
     metadata: Dict[str, Any]
+    agent: str
 ```
 
 ## Event System
-- Use observer pattern for command events
+- Use observer pattern for agent events
 - Emit events for each pipeline stage
 - Allow event handlers to modify behavior
 - Support async event processing
@@ -107,7 +115,7 @@ class CommandResult:
 
 ## Best Practices
 - Use type hints for all methods
-- Implement command validation
-- Support command chaining
-- Enable command cancellation
-- Provide command progress updates
+- Implement agent/command validation
+- Support command chaining and agent delegation
+- Enable command/agent cancellation
+- Provide command/agent progress updates

@@ -1,9 +1,9 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-# Architecture Rules
+# Architecture Rules (SmolAgents, Agentic, A2A, MCP)
 
 ## Core Principles
 - Use modern OOP with composition over inheritance
@@ -11,35 +11,44 @@ alwaysApply: true
 - Follow SOLID principles
 - Use dependency injection
 - Leverage Python's modern features
+- **Adopt agent-centric architecture using SmolAgents**
+- **Prioritize local-first, minimal memory/storage, multi-language, multi-platform**
+- **Integrate A2A (Agent-to-Agent) and MCP (Multi-Channel Protocol) as core features**
 
 ## Layer Structure
-1. Core Logic Layer
+1. Core Agent Logic Layer
+   - Agent abstraction (state, memory, planning, execution)
    - Command parsing and validation
-   - Command execution pipeline
+   - Command execution pipeline (as agent workflows)
    - Event handling and state management
    - Use dataclasses for data structures
    - Implement ABCs for interfaces
 
-2. AI Integration Layer
-   - BaseAIModel abstract base class
+2. Tool Integration Layer
+   - Refactor command handlers as agent tools
+   - Tool registry and discovery
+   - Type hints for all interfaces
+   - Async support for tool calls
+
+3. AI/Model Integration Layer
+   - Model-agnostic agent support (SmolAgents, Gemini, Ollama, etc.)
    - Model registry for dynamic loading
    - Model-specific implementations
    - Type hints for all interfaces
    - Async support for API calls
 
-3. Shell/System Interface Layer
+4. System Interface Layer
    - OS abstraction
    - Command execution
    - Safety checks
    - Sandboxing
    - Event-driven command monitoring
 
-4. UI/API Layer
-   - CLI interface
-   - GUI components
-   - Web API
+5. UI/API/Channel Layer
+   - CLI, GUI, Web, API, and other channels (MCP)
    - Event bus for UI updates
    - Response formatting
+   - Channel context/state management
 
 ## Design Patterns
 - Factory for object creation
@@ -47,6 +56,9 @@ alwaysApply: true
 - Strategy for interchangeable algorithms
 - Command for operation encapsulation
 - Decorator for cross-cutting concerns
+- **Agent, Tool, and Workflow patterns (SmolAgents)**
+- **A2A for agent collaboration**
+- **MCP for multi-channel support**
 
 ## Code Organization
 - Feature-based directory structure
@@ -54,6 +66,7 @@ alwaysApply: true
 - Plugin system architecture
 - Modular component design
 - Type-safe interfaces
+- **Agent, tool, and workflow modules**
 
 ## Best Practices
 - Use dataclasses for data containers
@@ -61,26 +74,27 @@ alwaysApply: true
 - Use type hints throughout
 - Follow PEP 8 and modern Python conventions
 - Document all public interfaces
+- **Document agent, tool, and workflow patterns**
 
 - Core Architecture:
-  * Design for model-agnostic system using BaseAIModel interface
+  * Design for agent-centric, model-agnostic system using SmolAgents
   * Support multiple AI providers through standardized interfaces
   * Allow easy model switching with fallback mechanisms
   * Maintain clear separation between components
   * Keep platform-specific code isolated
-  * Design for future extensibility
+  * Design for future extensibility (A2A, MCP)
 
 - Component Organization:
   * Follow the architecture defined in architecture.md
   * Maintain clear separation between core and platform-specific code
   * Keep platform-specific code in app/platform_uai directory
-  * Follow the command processing flow
+  * Follow the agentic command processing flow
   * Maintain consistent file structure
   * Document all architectural decisions
 
 - Model Integration:
-  * Use BaseAIModel abstract class for all model implementations
-  * Implement model-specific classes (GoogleAIModel, OllamaAIModel)
+  * Use agent-centric model interface for all model implementations
+  * Implement model-specific classes (GeminiAgent, OllamaAgent, etc.)
   * Support multiple AI providers through standardized interfaces
   * Allow easy model switching with validation
   * Keep model-specific code isolated in dedicated classes
@@ -88,10 +102,36 @@ alwaysApply: true
   * Document model integration patterns and requirements
 
 - Model Interface Requirements:
-  * All models must implement BaseAIModel interface
-  * Required methods: initialize(), generate(), validate_config(), get_available_models()
+  * All models must implement agent-centric interface
+  * Required methods: initialize(), generate(), validate_config(), get_available_models(), plan(), execute()
   * Consistent parameter handling through model_params
   * Standardized response format
   * Proper error handling and validation
   * Support for model-specific optimizations
   * Clear documentation of model capabilities and limitations
+
+## Agentic Concepts and Extensibility
+
+### Tool
+- A Tool is an atomic, reusable component that provides a specific skill or capability (e.g., file operations, system info, calculator, OCR, translation).
+- Tools are the primary way to add new skills to UaiBot.
+- Tools should be implemented as classes, registered in the ToolRegistry, and exposed to the agent for planning and execution.
+- Use a Tool for any new feature that can be described as a single action or API.
+
+### Agent
+- An Agent is an orchestrator that plans, decomposes, and routes tasks to tools (and possibly other agents).
+- Use a new Agent only for complex workflows, multi-step plans, agent-to-agent (A2A) collaboration, or specialized reasoning/persona.
+- Most features do not require a new Agent; extend the main agent with new tools instead.
+
+### Capability
+- A Capability is a skill or function that UaiBot can perform, typically implemented as a Tool.
+- Capabilities are surfaced to the agent via tool registration and prompt/context updates.
+
+### Best Practice
+- Add new skills as Tools by default.
+- Add new Agents only for orchestration, multi-step workflows, or A2A scenarios.
+- Update documentation and registry when adding new tools or agents.
+
+### References
+- See docs/agents_tools/agents_and_tools.md for the current list of tools and agents.
+- See A2A and MCP sections for agent-to-agent and multi-channel support.
