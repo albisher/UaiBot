@@ -51,6 +51,7 @@ from uaibot.core.ai.agent_tools.code_path_updater_tool import CodePathUpdaterToo
 import requests
 import json
 from uaibot.core.ai.tool_base import Tool
+from smolagents import Agent, Workflow
 
 def safe_path(filename: str, category: str = "test") -> str:
     """
@@ -205,77 +206,74 @@ class EchoTool(Tool):
             return params.get("text", "")
         raise ValueError(f"Unknown action: {action}")
 
-class Agent:
-    """
-    Base agent class. Implements state, memory, plan/execute loop, and tool usage.
-    Now includes a basic planning step (LLMPlanner stub) and rich memory for multi-step workflows.
-
-    Attributes:
-        memory (AgentMemory): Agent's memory/state.
-        tools (ToolRegistry): Registry of available tools.
-        planner (LLMPlanner): Planner for command decomposition.
-    Methods:
-        plan_and_execute(command: str, params: Dict[str, Any], action: Optional[str] = None) -> Any: Plan and execute a command.
-    """
-    def __init__(self, memory: Optional[AgentMemory] = None, tools: Optional[ToolRegistry] = None, planner: Optional[LLMPlanner] = None):
-        self.memory = memory or AgentMemory()
-        self.tools = tools or ToolRegistry()
-        self.tools.register(EchoTool())
-        self.tools.register(FileTool())
-        self.tools.register(SystemResourceTool())
-        self.tools.register(DateTimeTool())
-        self.tools.register(WeatherTool())
-        self.tools.register(CalculatorTool())
-        self.tools.register(SystemAwarenessTool())
-        self.tools.register(MouseControlTool())
-        self.tools.register(KeyboardInputTool())
-        self.tools.register(BrowserAutomationTool())
-        self.tools.register(WebSurfingTool())
-        self.tools.register(WebSearchingTool())
-        self.tools.register(FileAndDocumentOrganizerTool())
-        self.tools.register(CodePathUpdaterTool())
-        # Do NOT instantiate or register GraphMakerAgent or InformationCollectorAgent here
-        # Register ShellTool
-        try:
-            from uaibot.core.ai.agent_tools.shell_tool import ShellTool
-            self.tools.register(ShellTool())
-        except ImportError:
-            pass
-        self.planner = planner or OllamaLLMPlanner()
-
-    def plan_and_execute(self, command: str, params: Dict[str, Any], action: Optional[str] = None) -> Any:
-        """
-        Plan and execute a command. If the command is a tool, call it directly. Otherwise, use the planner to decompose.
-        """
-        tool = self.tools.get(command)
-        if tool:
-            # If action is provided, use it; else default to 'say' for echo, 'create' for file, etc.
-            tool_action = action or ("say" if command == "echo" else "create")
-            result = tool.execute(tool_action, params)
-            self.memory.add_step(command, tool_action, params, result)
-            print(f"[DEBUG] Agent.plan_and_execute result: {result}")
-            return result
-        # Use planner to decompose
-        plan = self.planner.plan(command, params)
-        # Multi-step plan support
-        if isinstance(plan, MultiStepPlan):
-            results = []
-            for step in plan.steps:
-                tool = self.tools.get(step.tool)
-                if not tool:
-                    raise ValueError(f"Tool '{step.tool}' not found.")
-                # (Stub) Parallel/conditional logic can be added here
-                result = tool.execute(step.action, step.params)
-                self.memory.add_step(step.tool, step.action, step.params, result)
-                results.append(result)
-            return results
-        # Single-step plan
-        tool = self.tools.get(plan["tool"])
-        if not tool:
-            raise ValueError(f"Tool '{plan['tool']}' not found.")
-        result = tool.execute(plan["action"], plan["params"])
-        self.memory.add_step(command, plan["action"], plan["params"], result)
-        return result
+class UaiBotAgent(Agent):
+    """UaiBot agent implementation using SmolAgents."""
+    
+    name: str = "UaiBot"
+    description: str = "A modern, agentic framework for AI-powered automation"
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.tools: List[Tool] = []
+        self.workflows: List[Workflow] = []
+        
+    def register_tool(self, tool: Tool) -> None:
+        """Register a new tool with the agent."""
+        self.tools.append(tool)
+        
+    def register_workflow(self, workflow: Workflow) -> None:
+        """Register a new workflow with the agent."""
+        self.workflows.append(workflow)
+        
+    async def plan(self, task: str) -> List[Dict[str, Any]]:
+        """Plan the execution of a task."""
+        # For now, use a simple planning strategy
+        # In the future, this could use an LLM or more sophisticated planning
+        plan = []
+        
+        # Check if any tool can handle this directly
+        for tool in self.tools:
+            if task.lower().startswith(tool.name.lower()):
+                # Extract parameters from the task
+                params = {}
+                if tool.name == "echo":
+                    params["text"] = task[len(tool.name):].strip()
+                plan.append({
+                    "tool": tool.name,
+                    "params": params
+                })
+                break
+        
+        # If no direct tool match, use echo as fallback
+        if not plan:
+            plan.append({
+                "tool": "echo",
+                "params": {"text": f"Command not understood: {task}"}
+            })
+            
+        return plan
+        
+    async def execute(self, plan: List[Dict[str, Any]]) -> Any:
+        """Execute a planned task."""
+        results = []
+        
+        for step in plan:
+            # Find the tool
+            tool = next((t for t in self.tools if t.name == step["tool"]), None)
+            if not tool:
+                raise ValueError(f"Tool {step['tool']} not found")
+                
+            # Execute the tool
+            result = await tool.execute(step["params"])
+            results.append(result)
+            
+        # Return the last result or all results if multiple steps
+        return results[-1] if len(results) == 1 else results
+        
+    async def validate(self, result: Any) -> bool:
+        """Validate the result of a task execution."""
+        # For now, just check if result is not None
+        return result is not None
 
 # Minimal test agent usage
 if __name__ == "__main__":
@@ -283,7 +281,7 @@ if __name__ == "__main__":
     registry.register(EchoTool())
     registry.register(FileTool())
     registry.register(SystemResourceTool())
-    agent = Agent(tools=registry)
+    agent = UaiBotAgent()
     print(agent.plan_and_execute("echo", {"text": "Hello, agent world!"}))
     # Use safe_path for test files
     test_file1 = safe_path("test_agent_file.txt", "test")

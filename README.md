@@ -1,248 +1,242 @@
-# UaiBot: Agentic, Local-First, Multi-Platform AI Framework
+# UaiBot
 
-## Overview
-UaiBot is evolving into a modern, agentic framework built on [SmolAgents](https://github.com/smol-ai/agents), designed for:
-- **Local-first operation** (no cloud lock-in)
-- **Minimal memory and storage footprint**
-- **Multi-language and multi-platform support**
-- **Modular, tool-based agent design**
-- **A2A (Agent-to-Agent) and MCP (Model Context Protocol) as core features**
+UaiBot is an AI agent framework that implements the SmolAgents pattern, A2A (Agent-to-Agent) protocol, and MCP (Model Context Protocol) for building intelligent, interoperable AI agents.
 
-## Key Features
-- **Agent Abstraction:** Agents encapsulate state, memory, and planning, and can orchestrate complex workflows.
-- **Tool Integration:** Command handlers are refactored as tools, discoverable and composable by agents.
-- **Workflow Orchestration:** Agents use a plan/execute loop to break down and execute multi-step tasks.
-- **A2A Collaboration:** Agents can delegate and collaborate on tasks, enabling scalable, modular systems.
-- **MCP (Model Context Protocol) Support:** MCP is an open protocol that standardizes how applications provide context to LLMs. It acts as a bridge between AI models and external tools, data sources, and services, enabling seamless integration and communication—much like a USB-C port connects devices to a computer.
-- **Local-First:** All core features work offline, with optional cloud/model integration.
-- **Minimal Resource Usage:** Designed for efficiency and portability.
-- **Multi-Language:** Supports multiple natural languages and can be extended for more.
-- **Multi-Platform:** Runs on Linux, macOS, Windows, and more.
+## Features
 
-## Capabilities
+- **SmolAgents Pattern**: Minimal and efficient agent implementation with standardized interfaces
+- **A2A Protocol**: Standardized communication between AI agents using JSON-RPC 2.0 over HTTP(S)
+- **MCP Protocol**: Universal interface for AI agents to connect with external tools, data sources, and services
+- **CLI Interface**: Command-line interface for interacting with UaiBot
+- **GUI Interface**: Graphical user interface built with tkinter for a more user-friendly experience
+- **Natural Language Processing**: Convert natural language to executable commands
+- **File Operations**: Create, read, update, and delete files with natural language
+- **System Information**: Get system resource usage, date/time, and more
+- **Weather Information**: Get current weather conditions (requires API key)
+- **Calculator**: Evaluate mathematical expressions
+- **Graph Generation**: Create visualizations from folder data
+- **Multi-language Support**: English and Arabic language support
 
-- UaiBot is fully aware of its OS and environment (system info, mouse, screen, windows, etc.).
-- UaiBot can move the mouse, click, drag, scroll, type, and interact with the screen as a human.
-- UaiBot can open browsers, type in fields, and automate web browsing to achieve tasks.
-- UaiBot can surf the web, search online, organize files/documents, and update code paths using dedicated tools.
-- These capabilities are provided by the SystemAwarenessTool, MouseControlTool, KeyboardInputTool, BrowserAutomationTool, WebSurfingTool, WebSearchingTool, FileAndDocumentOrganizerTool, and CodePathUpdaterTool.
-- See `docs/agents_tools/agents_and_tools.md` for the full list of tools and agents.
+## Architecture
 
-## Browser Automation Capability
+UaiBot is built on three core components:
 
-- UaiBot can automate real browser actions using Playwright (headless Chromium).
-- Use the WebSurfingTool to open URLs, click elements, type in fields, and take screenshots.
-- Supported actions: open_url, click, type, screenshot.
-- Example command: `web_surfing open_url url='https://www.example.com'`
+1. **SmolAgents**: A minimal agent implementation pattern that focuses on:
+   - Minimal memory/state
+   - Standardized interfaces
+   - Efficient execution
+   - Clear separation of concerns
 
-## File and Document Organization Capability
+2. **A2A Protocol**: A standardized protocol for agent communication that provides:
+   - JSON-RPC 2.0 based communication
+   - Agent discovery and capabilities
+   - Message handling for various content types
+   - State persistence
 
-- UaiBot can organize, move, rename, and list files and documents using real file operations.
-- Use the FileAndDocumentOrganizerTool to organize by type, date, or custom rules.
-- Supported actions: move, rename, list, organize_by_type, organize_by_date.
-- Example command: `file_document_organizer organize_by_type directory='docs/'`
+3. **MCP Protocol**: A universal interface for connecting AI agents with external tools that offers:
+   - Tool registration and discovery
+   - Schema validation
+   - Standardized request/response handling
+   - WebSocket support for real-time communication
 
-## Code Path Updating Capability
+## Installation
 
-- UaiBot can update import paths and references in Python files using real code refactoring.
-- Use the CodePathUpdaterTool to update imports across a directory.
-- Supported action: update_imports (old_path, new_path, directory).
-- Example command: `code_path_updater update_imports old_path='old.module' new_path='new.module' directory='src/'`
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/UaiBot.git
+   cd UaiBot
+   ```
 
-## Roadmap
-- [x] Modularize command handlers as tools
-- [x] Introduce agent abstraction and plan/execute loop
-- [ ] Integrate SmolAgents as the core agent framework
-- [ ] Implement A2A and MCP protocols
-- [ ] Refactor workflows for agentic orchestration
-- [ ] Expand multi-language and multi-platform support
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## References
-- [SmolAgents](https://github.com/smol-ai/agents)
-- [Agent Frameworks Comparison](https://prassanna.io/blog/agent-frameworks/)
-- [Langfuse AI Agent Comparison](https://langfuse.com/blog/2025-03-19-ai-agent-comparison)
-- [YouTube: Smol Agents](https://www.youtube.com/watch?v=QjJ2HrOa3J0&t=505s)
-- [YouTube: Agent Frameworks](https://www.youtube.com/watch?v=z8rAXE8tysc)
-- [Perplexity: Agent Dev Kits Comparison](https://www.perplexity.ai/search/comparing-all-agent-dev-kits-a-tfPNmxr.RGWAqJlOM.UqLQ)
+## Usage
+
+### CLI Mode
+
+To start UaiBot in CLI mode:
+
+```bash
+./scripts/launch.py
+```
+
+The CLI provides a text-based interface for interacting with UaiBot. You can:
+- Execute shell commands
+- Send messages to other agents
+- Process user input
+- View command output and responses
+
+### GUI Mode
+
+To start UaiBot in GUI mode:
+
+```bash
+./scripts/launch_gui.py
+```
+
+The GUI provides a more user-friendly interface with:
+- Text output area for displaying messages and responses
+- Input field for entering commands and messages
+- Status indicator
+- Send button for submitting input
+
+## Configuration
+
+### Weather API
+
+1. Get a free API key from [OpenWeatherMap](https://openweathermap.org/api)
+2. Add to `config/settings.json`:
+   ```json
+   {
+     "openweathermap_api_key": "YOUR_API_KEY_HERE"
+   }
+   ```
+
+## Development
+
+### Project Structure
+
+```
+UaiBot/
+├── src/
+│   └── uaibot/
+│       └── core/
+│           └── ai/
+│               ├── smol_agent.py
+│               ├── a2a_protocol.py
+│               ├── mcp_protocol.py
+│               └── channels/
+│                   └── websocket_channel.py
+├── scripts/
+│   ├── launch.py
+│   └── launch_gui.py
+├── tests/
+│   └── test_protocols.py
+├── requirements.txt
+└── README.md
+```
+
+### Running Tests
+
+```bash
+pytest tests/
+```
 
 ## Contributing
-See [CONTRIBUTING.md](docs/development/contributing.md) for guidelines.
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
-See [LICENSE](LICENSE).
 
-## Troubleshooting: grpcio and Python 3.12+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-If you encounter errors installing `grpcio` on Python 3.12+ (especially build errors), try the following:
+## Changelog
 
-1. Upgrade pip, setuptools, and wheel:
-   ```bash
-   pip install --upgrade pip setuptools wheel
-   ```
-2. Install requirements with binary wheels only:
-   ```bash
-   pip install --only-binary=:all: -r requirements.txt
-   ```
-3. Ensure your `requirements.txt` has `grpcio>=1.71.0`.
+### Latest Changes
+- Implemented SmolAgents core framework
+- Added A2A protocol for agent collaboration
+- Integrated MCP for multi-channel support
+- Enhanced file operations with natural language
+- Added graph generation capabilities
+- Improved multi-language support
 
-If you still have issues, see the [grpcio PyPI page](https://pypi.org/project/grpcio/) for platform-specific wheels and more help.
+### Upcoming Features
+- Enhanced agent memory and state management
+- Advanced A2A collaboration patterns
+- Extended MCP capabilities
+- Improved performance and optimization
+- Enhanced security features
+- Comprehensive documentation updates
 
-# How to Install UaiBot (Agentic)
+## Support
 
-## Standard install (core features):
-```bash
-pip install .
-```
-
-## Development tools:
-```bash
-pip install .[dev]
-```
-
-## Testing tools:
-```bash
-pip install .[test]
-```
-
-*All requirements are now managed in `setup.py`. Do not use requirements.txt directly.*
-
-# How to Run UaiBot (Agentic)
-
-## Command-Line Interface (CLI)
-
-**Interactive mode:**
-```bash
-PYTHONPATH=src python3 scripts/launch.py
-```
-- Type commands at the prompt (e.g., `echo Hello world!`, `file create test.txt with content 'hi'`).
-- Type `exit` to quit.
-
-**Single command:**
-```bash
-PYTHONPATH=src python3 scripts/launch.py "echo Hello from CLI"
-```
-
-## Graphical User Interface (GUI)
-
-**Start the GUI:**
-```bash
-PYTHONPATH=src python3 scripts/launch_gui.py
-```
-
-## Troubleshooting
-- If you see `ModuleNotFoundError: No module named 'uaibot'`, always run with `PYTHONPATH=src` as shown above.
-- If you see `ModuleNotFoundError: No module named 'PyQt5'`, make sure you installed with `pip install .` or `pip install .[dev]`.
-- For audio features, you may also need:
-  ```bash
-  sudo apt-get install portaudio19-dev
-  pip install pyaudio
-  ```
-
-## Requirements
-- Python 3.12+
-- Ubuntu 24.04+ (or compatible Linux)
-- See `setup.py` for all dependencies
-
-## Import and Run Instructions
-
-- All imports must use absolute imports (e.g., `from uaibot.core...`).
-- Always run CLI/GUI with `PYTHONPATH=src` from the project root:
-  - CLI: `PYTHONPATH=src python3 scripts/launch.py`
-  - GUI: `PYTHONPATH=src python3 scripts/launch_gui.py`
-- If you see import errors, check that you are running from the project root and that your PYTHONPATH is set correctly.
-- See `.cursor/rules` for enforced file organization and import rules.
-- See `todo/` for ongoing compliance and refactoring tasks.
-
-## How UaiBot Learns New Skills
-
-- **Tools** are atomic, reusable components that provide specific skills or capabilities (e.g., file operations, system info, calculator, OCR, translation).
-- **Agents** are orchestrators that plan, decompose, and route tasks to tools (and possibly other agents). Use new agents only for complex workflows, multi-step plans, or agent-to-agent collaboration.
-- **Best Practice:** Add new skills as Tools by default. Add new Agents only for orchestration, multi-step workflows, or agent-to-agent scenarios.
-- See `docs/agents_tools/agents_and_tools.md` for the current list of tools and agents.
-
-## Weather API Setup
-
-- To enable real weather queries, get a free API key from [OpenWeatherMap](https://openweathermap.org/api).
-- Add your API key to `config/settings.json` under the key `openweathermap_api_key`:
-  ```json
-  {
-    "openweathermap_api_key": "YOUR_API_KEY_HERE"
-  }
-  ```
-- If no key is set, weather queries will return an error message.
-
-## Web Search Capability
-
-- UaiBot can perform real web searches using the DuckDuckGo Instant Answer API.
-- Use the WebSearchingTool to search for information online and get real results (titles, URLs, snippets).
-- Example command: `web_searching search query='latest AI news'`
-
-## Agentic Research Workflow
-
-- UaiBot now supports real agentic research workflows:
-  - **InformationCollectorAgent:** Gathers data from system, web, and files.
-  - **ResearcherAgent:** Plans research, guides the collector, and writes summary reports.
-  - **ResearchEvaluatorAgent:** Evaluates research quality and completeness, provides feedback and scores.
-- Example usage:
-  1. `collector = InformationCollectorAgent(); info = collector.collect_info('AI news')`
-  2. `researcher = ResearcherAgent(); report = researcher.research('AI news')`
-  3. `evaluator = ResearchEvaluatorAgent(); eval = evaluator.evaluate(report)`
-
-## CLI and GUI: Real Agentic Operation
-
-- Both the CLI and GUI now route commands to real tools and agents, including the agentic research workflow (collector, researcher, evaluator) and all agentic tools (e.g., GraphMakerTool).
-- You can use commands like `collect system info`, `research AI news`, `collect graph from folder ...`, or `evaluate` directly in the CLI or GUI.
-- All results are real, not stubs, and errors are handled gracefully.
-
-## GraphMakerTool/Agent
-
-The GraphMakerTool/Agent generates visual graphs (such as file type distribution, file count, and code metrics) from a specified folder. It uses the InformationCollectorAgent to gather data and matplotlib to generate graphs. All outputs are saved in a dedicated work folder for the tool/agent under the user-selected work directory (default: Documents).
-
-**Usage Example (CLI/GUI):**
-
-```
-collect graph from folder /path/to/folder
-```
-
-This will generate graphs (e.g., file type distribution) and save them in the `Documents/graph_maker/` folder (or the selected work directory). You can use this command in both the CLI and GUI.
-
-**Work Directory Structure:**
-- Each agent/tool has its own folder under the work directory (e.g., `Documents/graph_maker/`, `Documents/information_collector/`).
-- All outputs, logs, and generated files are stored in these folders for easy access and organization.
-
-## UaiAgent: Master Agentic Orchestration
-
-- UaiAgent is the master agent for UaiBot, orchestrating multi-step, conditional, and agent-to-agent workflows.
-- All CLI commands are now routed through UaiAgent, which can decompose tasks, delegate to tools and sub-agents, and manage state, memory, and results.
-- UaiAgent integrates configuration, model management, and is designed for future extensibility (capabilities, logging, etc.).
-- This enables robust, extensible, and intelligent automation for all UaiBot workflows.
+For issues and feature requests, please use the GitHub issue tracker.
 
 ## Agent-to-Agent (A2A) Protocol
 
-- UaiAgent supports an agent-to-agent (A2A) protocol, allowing it to delegate steps to sub-agents by name.
-- This enables collaborative, multi-agent workflows (e.g., research, evaluation, information collection).
-- Default sub-agents include:
-  - InformationCollectorAgent
-  - ResearcherAgent
-  - ResearchEvaluatorAgent
-- You can extend UaiAgent with additional sub-agents for new workflows and capabilities.
+The A2A protocol enables standardized communication and collaboration between agents. Key features include:
 
-## PlannerAgent
+- Standardized message format for agent communication
+- Capability negotiation between agents
+- Task delegation and result aggregation
+- Persistent state management
 
-- PlannerAgent is a sub-agent that decomposes high-level commands into multi-step plans.
-- It can ask for research (via ResearcherAgent) or use search (via InformationCollectorAgent).
-- UaiAgent delegates to PlannerAgent for planning and orchestration as needed.
+### Usage
 
-## API-Free Operation
+```python
+from src.uaibot.core.ai.a2a_protocol import A2AProtocol, A2AMessage, AgentCapability
+from src.uaibot.core.ai.smol_agent import SmolAgent
 
-- All tools are now API-free by default. No API keys or external requests are required for core operation.
-- Weather and web search tools return stubs or use local info in API-free mode.
-- This ensures UaiBot works fully offline and is privacy-respecting by default.
+# Create A2A protocol instance
+a2a = A2AProtocol()
 
-## Improved Output Formatting
+# Register agent with capabilities
+capabilities = [
+    AgentCapability(
+        name="example_capability",
+        description="Example capability",
+        parameters={"param1": "string"},
+        required=True
+    )
+]
+a2a.register_agent(agent, capabilities)
 
-- UaiAgent now standardizes and improves output formatting for all agent, tool, and sub-agent results.
-- All results are user-friendly and structured for both CLI and GUI display.
+# Send message to agent
+message = A2AMessage(
+    sender_id="sender",
+    receiver_id="receiver",
+    message_type="task_delegation",
+    content={"task": "example_task", "params": {"param1": "value1"}}
+)
+result = a2a.send_message(message)
+```
 
-## Changelog
-- InformationCollectorAgent now uses FileTool for file operations, fixing file listing and agent-to-agent workflows for graph generation.
+## Multi-Context Protocol (MCP)
+
+The MCP enables communication across different contexts and protocols. Key features include:
+
+- Abstract context interface for different communication protocols
+- WebSocket context implementation
+- Asynchronous message handling
+- Context registration and management
+- Message routing and processing
+
+### Usage
+
+```python
+from src.uaibot.core.ai.mcp_protocol import MCPProtocol, ContextMessage
+from src.uaibot.core.ai.channels.websocket_channel import WebSocketContext
+
+# Create MCP protocol instance
+mcp = MCPProtocol()
+
+# Create and register WebSocket context
+context = WebSocketContext("ws://localhost:8765", "example_context")
+mcp.register_context("example_context", context)
+
+# Register message handler
+async def message_handler(message: ContextMessage):
+    print(f"Received message: {message.content}")
+
+mcp.register_handler("example_context", message_handler)
+
+# Start protocol
+await mcp.start()
+
+# Send message
+message = ContextMessage(
+    context_id="example_context",
+    sender_id="sender",
+    content={"type": "example", "data": "example_data"}
+)
+await mcp.send_message(message)
+
+# Stop protocol
+await mcp.stop()
+```

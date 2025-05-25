@@ -1,104 +1,122 @@
 #!/usr/bin/env python3
 """
-UaiBot CLI Launcher (Agentic)
-- Uses agentic core (Agent, ToolRegistry, etc.)
-- All file outputs use safe_path
-- If you see import errors, run with: PYTHONPATH=src python3 scripts/launch.py
+UaiBot CLI launcher.
+Uses the agentic core with A2A, MCP, and SmolAgents.
 """
+import os
 import sys
+import asyncio
 from pathlib import Path
-import argparse
 
-project_root = Path(__file__).parent.resolve()
-src_path = project_root / 'src'
-if str(src_path) not in sys.path:
-    sys.path.insert(0, str(src_path))
+# Add src to Python path
+src_path = Path(__file__).parent.parent / "src"
+sys.path.append(str(src_path))
 
-try:
-    from uaibot.core.ai.uaibot_agent import UaiAgent
-    cli_agent = UaiAgent()
-    from uaibot.core.ai.agent_tools.file_tool import FileTool
-    from uaibot.core.ai.agents.information_collector import InformationCollectorAgent
-    from uaibot.core.ai.agents.researcher import ResearcherAgent
-    from uaibot.core.ai.agents.research_evaluator import ResearchEvaluatorAgent
-except ModuleNotFoundError as e:
-    print("[ERROR] Could not import agentic core. Try running with: PYTHONPATH=src python3 scripts/launch.py")
-    raise e
+from uaibot.core.ai.smol_agent import SmolAgent
+from uaibot.core.ai.a2a_protocol import A2AProtocol, Message, TextContent, MessageRole, AgentCard, AgentCapability
+from uaibot.core.ai.mcp_protocol import MCPProtocol, MCPTool
+from uaibot.core.ai.channels.websocket_channel import WebSocketTool
 
-# Global agent instance for CLI commands
-cli_agent = UaiAgent()
-# Register GraphMakerTool after agent instantiation to avoid circular import
-try:
-    from uaibot.core.ai.agent_tools.graph_maker_tool import GraphMakerTool
-    cli_agent.tools.register(GraphMakerTool())
-except ImportError:
-    pass
+class UaiBotCLI(SmolAgent):
+    """UaiBot CLI agent implementation."""
+    def __init__(self):
+        super().__init__("uaibot_cli")
+        self.a2a_protocol = A2AProtocol()
+        self.mcp_protocol = MCPProtocol()
+        self._setup_protocols()
 
-def main():
-    parser = argparse.ArgumentParser(description="UaiBot CLI")
-    parser.add_argument("command", type=str, help="Command to execute")
-    parser.add_argument("--folder", type=str, default="todo", help="Folder to analyze (default: todo)")
-    parser.add_argument("--debug", action="store_true", help="Enable debug output")
-    args = parser.parse_args()
+    def _setup_protocols(self):
+        """Set up A2A and MCP protocols."""
+        # Register self as A2A server
+        agent_card = AgentCard(
+            agent_id=self.agent_id,
+            name="UaiBot CLI",
+            description="UaiBot command-line interface agent",
+            capabilities=[
+                AgentCapability(
+                    name="execute_command",
+                    description="Execute shell commands",
+                    parameters={"command": "string"},
+                    required=True
+                ),
+                AgentCapability(
+                    name="process_input",
+                    description="Process user input",
+                    parameters={"input": "string"},
+                    required=True
+                )
+            ]
+        )
+        self.a2a_protocol.register_agent(self, agent_card)
 
-    if args.command in ["collect_and_graph", "collect graph", "graph from folder"]:
-        from uaibot.core.ai.uaibot_agent import UaiAgent
-        agent = UaiAgent(debug=args.debug)
-        result = agent.collect_and_graph(folder=args.folder, debug=args.debug)
-        print(result)
-    else:
-        # Fallback: pass command to agentic core
-        from uaibot.core.ai.uaibot_agent import UaiAgent
-        agent = UaiAgent(debug=args.debug)
-        result = agent.plan_and_execute(args.command, {"debug": args.debug})
-        print(result)
+        # Register WebSocket tool
+        ws_tool = WebSocketTool("ws://localhost:8765", "websocket")
+        self.mcp_protocol.register_tool("websocket", ws_tool)
 
-def run_command(command: str, debug: bool = False):
-    try:
-        if command.strip().startswith('collect graph from folder'):
-            # Extract folder path
-            parts = command.strip().split('collect graph from folder', 1)
-            folder = parts[1].strip() if len(parts) > 1 else '.'
-            result = cli_agent.plan_and_execute('graph_maker', {'folder': folder, 'debug': debug}, action='analyze_folder')
-            if debug:
-                print(f"[DEBUG] GraphMakerTool result: {result}")
-            return result
-        if command.startswith('collect'):
-            agent = InformationCollectorAgent()
-            query = command[len('collect'):].strip()
-            result = agent.collect_info(query)
-            if debug:
-                print(f"[DEBUG] InformationCollectorAgent result: {result}")
-            return result
-        elif command.startswith('research'):
-            agent = ResearcherAgent()
-            topic = command[len('research'):].strip()
-            result = agent.research(topic)
-            if debug:
-                print(f"[DEBUG] ResearcherAgent result: {result}")
-            return result['report']
-        elif command.startswith('evaluate'):
-            agent = ResearchEvaluatorAgent()
-            # For demo, use a dummy report or ask user for report
-            print('Paste research report to evaluate (end with a blank line):')
-            lines = []
-            while True:
-                line = input()
-                if not line:
-                    break
-                lines.append(line)
-            report = {'report': '\n'.join(lines), 'raw': {}}
-            result = agent.evaluate(report)
-            if debug:
-                print(f"[DEBUG] ResearchEvaluatorAgent result: {result}")
-            return result
+    async def execute(self, task: str, params: dict = None) -> dict:
+        """Execute a task."""
+        if task == "execute_command":
+            return await self._execute_command(params.get("command", ""))
+        elif task == "process_input":
+            return await self._process_input(params.get("input", ""))
         else:
-            result = cli_agent.plan_and_execute(command, {'debug': debug})
-            if debug:
-                print(f"[DEBUG] UaiAgent result: {result}")
-            return result
-    except Exception as e:
-        return f"Error: {e}"
+            return {"error": f"Unknown task: {task}"}
 
-if __name__ == '__main__':
-    main() 
+    async def _execute_command(self, command: str) -> dict:
+        """Execute a shell command."""
+        try:
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            return {
+                "success": process.returncode == 0,
+                "stdout": stdout.decode() if stdout else "",
+                "stderr": stderr.decode() if stderr else ""
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _process_input(self, user_input: str) -> dict:
+        """Process user input."""
+        try:
+            # Create A2A message
+            message = Message(
+                content=TextContent(text=user_input),
+                role=MessageRole.USER,
+                conversation_id="cli_session",
+                metadata={"agent_id": self.agent_id}
+            )
+
+            # Send message through A2A protocol
+            response = await self.a2a_protocol.send_message(message)
+            return {"response": response.content.text}
+        except Exception as e:
+            return {"error": str(e)}
+
+async def main():
+    """Main entry point."""
+    cli = UaiBotCLI()
+    print("UaiBot CLI started. Type 'exit' to quit.")
+    
+    while True:
+        try:
+            user_input = input("> ")
+            if user_input.lower() == "exit":
+                break
+
+            result = await cli.execute("process_input", {"input": user_input})
+            if "error" in result:
+                print(f"Error: {result['error']}")
+            else:
+                print(result["response"])
+
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main()) 

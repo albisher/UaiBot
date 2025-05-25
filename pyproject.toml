@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "app"
+name = "uaibot"
 version = "0.1.0"
 authors = [
     { name = "UaiBot Team" },
@@ -18,16 +18,18 @@ classifiers = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["app*"]
+where = ["src"]
+include = ["uaibot*"]
 
 [tool.setuptools.package-data]
-app = ["config/*.json", "config/*.py"]
+uaibot = ["config/*.json", "config/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--cov=. --cov-report=xml --cov-report=term-missing"
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=src --cov-report=term-missing"
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.black]

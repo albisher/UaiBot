@@ -18,15 +18,18 @@ import json
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
+import asyncio
 
 # Add src directory to Python path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(current_dir))
+sys.path.append(project_root)
 
 from uaibot.logging_config import setup_logging, get_logger
 from uaibot.core.exceptions import UaiBotError, AIError, ConfigurationError, CommandError
 from uaibot.core.cache_manager import CacheManager
 from uaibot.platform_uai.platform_manager import PlatformManager
-from uaibot.core.command_processor.command_processor_main import CommandProcessor
+from uaibot.core.command_processor.command_processor import CommandProcessor
 from uaibot.core.shell_handler import ShellHandler
 from uaibot.core.ai_handler import AIHandler
 from uaibot.utils.output_facade import output
@@ -34,6 +37,9 @@ from uaibot.core.file_operations import process_file_flag_request
 from uaibot.health_check.ollama_health_check import check_ollama_server, check_model_available
 from uaibot.core.model_manager import ModelManager
 from uaibot.core.config_manager import ConfigManager
+from uaibot.core.ai.agent import UaiBotAgent
+from uaibot.core.ai.tools.base_tool import UaiBotTool
+from uaibot.core.ai.workflows.base_workflow import UaiBotWorkflow
 
 # Set up logging
 logger = get_logger(__name__)
@@ -378,49 +384,51 @@ You can also:
         else:
             output.error("Invalid model selection.")
 
-def main():
-    """Main entry point for UaiBot."""
-    parser = argparse.ArgumentParser(description='UaiBot: AI-powered shell assistant')
-    parser.add_argument('--debug', action='store_true', help='Enable debug output')
-    parser.add_argument('--fast', action='store_true', help='Enable fast mode')
-    parser.add_argument('-f', '--file', help='Process requests from a file')
-    parser.add_argument('--batch', type=str, help='Path to file with batch user inputs (one per line)')
-    args = parser.parse_args()
+class EchoTool(UaiBotTool):
+    """Simple echo tool for testing."""
+    def __init__(self):
+        super().__init__(
+            name="echo",
+            description="Echoes back the input text",
+            parameters={"text": "The text to echo"}
+        )
     
-    try:
-        # Set up logging
-        if args.debug:
-            setup_logging(component="main", log_level=logging.DEBUG)
-        else:
-            setup_logging(component="main")
-        
-        # Initialize UaiBot
-        uaibot = UaiBot(debug=args.debug, fast_mode=args.fast)
-        
-        if args.file:
-            uaibot.process_test_requests(args.file)
-        elif args.batch:
-            # Batch mode: process each line in the file as a user input
-            with open(args.batch, 'r') as f:
-                for line in f:
-                    user_input = line.strip()
-                    if not user_input or user_input.startswith('#'):
-                        continue  # skip empty lines and comments
-                    print(f"\n[Batch] User: {user_input}")
-                    try:
-                        result = uaibot.process_single_command(user_input)
-                        print(f"[Batch] Result: {result}\n")
-                    except Exception as e:
-                        print(f"[Batch] Error processing input: {e}\n")
-            sys.exit(0)
-        else:
-            uaibot.start()
-            
-    except Exception as e:
-        logger.error(f"Fatal error: {str(e)}", exc_info=True)
-        sys.exit(1)
-    finally:
-        logger.info("Resources cleaned up successfully")
+    async def execute(self, params: Dict[str, Any]) -> str:
+        return params.get("text", "")
 
-if __name__ == '__main__':
-    main()
+async def main():
+    """Main CLI entry point."""
+    print("UaiBot CLI")
+    print("----------")
+    
+    # Initialize agent
+    agent = UaiBotAgent()
+    
+    # Register basic tools
+    agent.register_tool(EchoTool())
+    
+    # Main interaction loop
+    while True:
+        try:
+            # Get user input
+            command = input("\nEnter command (or 'exit' to quit): ").strip()
+            
+            if command.lower() in ['exit', 'quit']:
+                print("Goodbye!")
+                break
+            
+            # Plan and execute
+            plan = await agent.plan(command)
+            result = await agent.execute(plan)
+            
+            # Display result
+            print(f"\nResult: {result}")
+            
+        except KeyboardInterrupt:
+            print("\nGoodbye!")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())

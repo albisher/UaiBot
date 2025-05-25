@@ -234,6 +234,18 @@ class FileOperations:
         except Exception as e:
             return f"Error getting file info: {str(e)}"
 
+    def create_file(self, filename: str, content: str = "") -> str:
+        if hasattr(self, 'work_dir') and self.work_dir:
+            filename = os.path.join(self.work_dir, filename)
+        op = FileOperation(operation="create", filename=filename, content=content)
+        return self._create_file(op)
+
+    def delete_file(self, filename: str) -> str:
+        if hasattr(self, 'work_dir') and self.work_dir:
+            filename = os.path.join(self.work_dir, filename)
+        op = FileOperation(operation="delete", filename=filename)
+        return self._delete_file(op)
+
 # File operation keywords for improved mapping
 FILE_OPERATIONS = {
     'create': ['create', 'new', 'make', 'touch', 'generate'],

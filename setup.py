@@ -8,6 +8,7 @@ base_requires = [
     "psutil>=5.9.0",
     "openai-whisper @ git+https://github.com/openai/whisper.git",
     "Pillow>=9.0.0",
+    "smolagents>=0.1.0",
     # ... add other core agentic dependencies here ...
 ]
 
