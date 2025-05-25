@@ -190,6 +190,59 @@ PYTHONPATH=src python3 scripts/launch_gui.py
 
 ## CLI and GUI: Real Agentic Operation
 
-- Both the CLI and GUI now route commands to real tools and agents, including the agentic research workflow (collector, researcher, evaluator).
-- You can use commands like `collect system info`, `research AI news`, or `evaluate` directly in the CLI or GUI.
+- Both the CLI and GUI now route commands to real tools and agents, including the agentic research workflow (collector, researcher, evaluator) and all agentic tools (e.g., GraphMakerTool).
+- You can use commands like `collect system info`, `research AI news`, `collect graph from folder ...`, or `evaluate` directly in the CLI or GUI.
 - All results are real, not stubs, and errors are handled gracefully.
+
+## GraphMakerTool/Agent
+
+The GraphMakerTool/Agent generates visual graphs (such as file type distribution, file count, and code metrics) from a specified folder. It uses the InformationCollectorAgent to gather data and matplotlib to generate graphs. All outputs are saved in a dedicated work folder for the tool/agent under the user-selected work directory (default: Documents).
+
+**Usage Example (CLI/GUI):**
+
+```
+collect graph from folder /path/to/folder
+```
+
+This will generate graphs (e.g., file type distribution) and save them in the `Documents/graph_maker/` folder (or the selected work directory). You can use this command in both the CLI and GUI.
+
+**Work Directory Structure:**
+- Each agent/tool has its own folder under the work directory (e.g., `Documents/graph_maker/`, `Documents/information_collector/`).
+- All outputs, logs, and generated files are stored in these folders for easy access and organization.
+
+## UaiAgent: Master Agentic Orchestration
+
+- UaiAgent is the master agent for UaiBot, orchestrating multi-step, conditional, and agent-to-agent workflows.
+- All CLI commands are now routed through UaiAgent, which can decompose tasks, delegate to tools and sub-agents, and manage state, memory, and results.
+- UaiAgent integrates configuration, model management, and is designed for future extensibility (capabilities, logging, etc.).
+- This enables robust, extensible, and intelligent automation for all UaiBot workflows.
+
+## Agent-to-Agent (A2A) Protocol
+
+- UaiAgent supports an agent-to-agent (A2A) protocol, allowing it to delegate steps to sub-agents by name.
+- This enables collaborative, multi-agent workflows (e.g., research, evaluation, information collection).
+- Default sub-agents include:
+  - InformationCollectorAgent
+  - ResearcherAgent
+  - ResearchEvaluatorAgent
+- You can extend UaiAgent with additional sub-agents for new workflows and capabilities.
+
+## PlannerAgent
+
+- PlannerAgent is a sub-agent that decomposes high-level commands into multi-step plans.
+- It can ask for research (via ResearcherAgent) or use search (via InformationCollectorAgent).
+- UaiAgent delegates to PlannerAgent for planning and orchestration as needed.
+
+## API-Free Operation
+
+- All tools are now API-free by default. No API keys or external requests are required for core operation.
+- Weather and web search tools return stubs or use local info in API-free mode.
+- This ensures UaiBot works fully offline and is privacy-respecting by default.
+
+## Improved Output Formatting
+
+- UaiAgent now standardizes and improves output formatting for all agent, tool, and sub-agent results.
+- All results are user-friendly and structured for both CLI and GUI display.
+
+## Changelog
+- InformationCollectorAgent now uses FileTool for file operations, fixing file listing and agent-to-agent workflows for graph generation.

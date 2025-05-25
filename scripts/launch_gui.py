@@ -37,7 +37,17 @@ if str(src_path) not in sys.path:
 from uaibot.core.config_manager import ConfigManager
 from uaibot.core.model_manager import ModelManager
 from uaibot.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
-from uaibot.core.ai.agent_tools import FileTool
+from uaibot.core.ai.agent_tools.file_tool import FileTool
+from uaibot.core.ai.agent_tools.system_resource_tool import SystemResourceTool
+from uaibot.core.ai.agent_tools.datetime_tool import DateTimeTool
+from uaibot.core.ai.agent_tools.weather_tool import WeatherTool
+from uaibot.core.ai.agent_tools.calculator_tool import CalculatorTool
+from uaibot.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
+from uaibot.core.ai.agent_tools.mouse_control_tool import MouseControlTool
+from uaibot.core.ai.agent_tools.keyboard_input_tool import KeyboardInputTool
+from uaibot.core.ai.agent_tools.browser_automation_tool import BrowserAutomationTool
+from uaibot.core.ai.agent_tools.web_surfing_tool import WebSurfingTool
+from uaibot.core.ai.agent_tools import FileAndDocumentOrganizerTool, CodePathUpdaterTool, GraphMakerTool
 
 os.environ["WHISPER_FORCE_FP32"] = "1"
 
@@ -355,6 +365,19 @@ class UaiBotGUI(QWidget):
         self.registry = ToolRegistry()
         self.registry.register(EchoTool())
         self.registry.register(FileTool())
+        self.registry.register(SystemResourceTool())
+        self.registry.register(DateTimeTool())
+        self.registry.register(WeatherTool())
+        self.registry.register(CalculatorTool())
+        self.registry.register(SystemAwarenessTool())
+        self.registry.register(MouseControlTool())
+        self.registry.register(KeyboardInputTool())
+        self.registry.register(BrowserAutomationTool())
+        self.registry.register(WebSurfingTool())
+        self.registry.register(WebSearchingTool())
+        self.registry.register(FileAndDocumentOrganizerTool())
+        self.registry.register(CodePathUpdaterTool())
+        self.registry.register(GraphMakerTool())
         self.agent = Agent(tools=self.registry)
 
     def open_settings(self):

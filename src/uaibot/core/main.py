@@ -14,7 +14,7 @@ from uaibot.core.cache_manager import CacheManager
 from uaibot.core.model_manager import ModelManager
 from uaibot.core.config_manager import ConfigManager
 from uaibot.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
-from uaibot.core.ai.agent_tools import FileTool
+from uaibot.core.ai.agent_tools.file_tool import FileTool
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)

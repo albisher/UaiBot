@@ -1,5 +1,7 @@
 from uaibot.core.ai.agent import Agent
-from uaibot.core.ai.agent_tools import SystemAwarenessTool, WebSearchingTool, FileAndDocumentOrganizerTool
+from uaibot.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
+from uaibot.core.ai.agent_tools.web_searching_tool import WebSearchingTool
+from uaibot.core.ai.agent_tools.file_tool import FileTool
 
 class InformationCollectorAgent(Agent):
     """
@@ -10,7 +12,7 @@ class InformationCollectorAgent(Agent):
         super().__init__(*args, **kwargs)
         self.system_tool = SystemAwarenessTool()
         self.web_search_tool = WebSearchingTool()
-        self.file_tool = FileAndDocumentOrganizerTool()
+        self.file_tool = FileTool()
 
     def collect_info(self, query: str) -> dict:
         """Collect information from system, web, and files based on query."""

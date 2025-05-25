@@ -35,9 +35,22 @@ Classes:
 from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass, field
 from datetime import datetime
-from uaibot.core.ai.agent_tools import FileTool, SystemResourceTool, DateTimeTool, WeatherTool, CalculatorTool, SystemAwarenessTool, MouseControlTool, KeyboardInputTool, BrowserAutomationTool, WebSurfingTool, WebSearchingTool, FileAndDocumentOrganizerTool, CodePathUpdaterTool
+from uaibot.core.ai.agent_tools.file_tool import FileTool
+from uaibot.core.ai.agent_tools.system_resource_tool import SystemResourceTool
+from uaibot.core.ai.agent_tools.datetime_tool import DateTimeTool
+from uaibot.core.ai.agent_tools.weather_tool import WeatherTool
+from uaibot.core.ai.agent_tools.calculator_tool import CalculatorTool
+from uaibot.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
+from uaibot.core.ai.agent_tools.mouse_control_tool import MouseControlTool
+from uaibot.core.ai.agent_tools.keyboard_input_tool import KeyboardInputTool
+from uaibot.core.ai.agent_tools.browser_automation_tool import BrowserAutomationTool
+from uaibot.core.ai.agent_tools.web_surfing_tool import WebSurfingTool
+from uaibot.core.ai.agent_tools.web_searching_tool import WebSearchingTool
+from uaibot.core.ai.agent_tools.file_and_document_organizer_tool import FileAndDocumentOrganizerTool
+from uaibot.core.ai.agent_tools.code_path_updater_tool import CodePathUpdaterTool
 import requests
 import json
+from uaibot.core.ai.tool_base import Tool
 
 def safe_path(filename: str, category: str = "test") -> str:
     """
@@ -54,31 +67,6 @@ def safe_path(filename: str, category: str = "test") -> str:
         os.makedirs(base_dirs[category], exist_ok=True)
         return os.path.join(base_dirs[category], filename)
     return filename
-
-class Tool:
-    """
-    Base class for agent tools. Tools encapsulate a single capability or action.
-
-    Attributes:
-        name (str): Name of the tool.
-    Methods:
-        execute(action: str, params: Dict[str, Any]) -> Any: Perform the tool's action.
-    """
-    name: str
-
-    def execute(self, action: str, params: Dict[str, Any]) -> Any:
-        raise NotImplementedError
-
-class EchoTool(Tool):
-    """
-    Minimal example tool that echoes text.
-    """
-    name = "echo"
-
-    def execute(self, action: str, params: Dict[str, Any]) -> Any:
-        if action == "say":
-            return params.get("text", "")
-        raise ValueError(f"Unknown action: {action}")
 
 @dataclass
 class AgentStep:
@@ -210,6 +198,13 @@ class OllamaLLMPlanner(LLMPlanner):
             return {"tool": "calculator", "action": "eval", "params": {"expression": expr}}
         return super().plan(command, params)
 
+class EchoTool(Tool):
+    name = "echo"
+    def execute(self, action: str, params: dict) -> any:
+        if action == "say":
+            return params.get("text", "")
+        raise ValueError(f"Unknown action: {action}")
+
 class Agent:
     """
     Base agent class. Implements state, memory, plan/execute loop, and tool usage.
@@ -239,6 +234,13 @@ class Agent:
         self.tools.register(WebSearchingTool())
         self.tools.register(FileAndDocumentOrganizerTool())
         self.tools.register(CodePathUpdaterTool())
+        # Do NOT instantiate or register GraphMakerAgent or InformationCollectorAgent here
+        # Register ShellTool
+        try:
+            from uaibot.core.ai.agent_tools.shell_tool import ShellTool
+            self.tools.register(ShellTool())
+        except ImportError:
+            pass
         self.planner = planner or OllamaLLMPlanner()
 
     def plan_and_execute(self, command: str, params: Dict[str, Any], action: Optional[str] = None) -> Any:
@@ -251,6 +253,7 @@ class Agent:
             tool_action = action or ("say" if command == "echo" else "create")
             result = tool.execute(tool_action, params)
             self.memory.add_step(command, tool_action, params, result)
+            print(f"[DEBUG] Agent.plan_and_execute result: {result}")
             return result
         # Use planner to decompose
         plan = self.planner.plan(command, params)
