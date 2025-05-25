@@ -1,5 +1,5 @@
 """
-Agent base class and tool registry for agentic architecture (SmolAgents pattern).
+Agent base class and tool registry for agentic architecture.
 
 Agents/Tools:
 - EchoTool: Echoes text
@@ -32,7 +32,7 @@ Classes:
 - LLMPlanner: Returns single or multi-step plans.
 - Agent: Base agent class with plan/execute loop and workflow orchestration.
 """
-from typing import Any, Dict, List, Optional, Callable, Union
+from typing import Any, Dict, List, Optional, Callable, Union, Protocol, TypeVar, Generic
 from dataclasses import dataclass, field
 from datetime import datetime
 from uaibot.core.ai.agent_tools.file_tool import FileTool
@@ -51,7 +51,9 @@ from uaibot.core.ai.agent_tools.code_path_updater_tool import CodePathUpdaterToo
 import requests
 import json
 from uaibot.core.ai.tool_base import Tool
-from smolagents import Agent, Workflow
+import logging
+import os
+from pathlib import Path
 
 def safe_path(filename: str, category: str = "test") -> str:
     """
@@ -109,16 +111,31 @@ class AgentMemory:
 
 @dataclass
 class PlanStep:
-    tool: str
+    """A single step in a multi-step plan."""
     action: str
-    params: Dict[str, Any]
-    condition: Optional[str] = None  # For future conditional logic
-    parallel: bool = False           # For future parallel execution
+    parameters: Dict[str, Any] = field(default_factory=dict)
+    status: str = "pending"  # pending, in_progress, completed, failed
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    timestamp: datetime = field(default_factory=datetime.now)
 
 @dataclass
 class MultiStepPlan:
-    steps: List[PlanStep]
-    plan_type: str = "sequential"  # Could be 'sequential', 'parallel', 'conditional'
+    """A plan consisting of multiple steps."""
+    steps: List[PlanStep] = field(default_factory=list)
+    status: str = "pending"  # pending, in_progress, completed, failed
+    current_step: int = 0
+    created_at: datetime = field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+
+class Tool(Protocol):
+    """Protocol defining the interface for tools."""
+    name: str
+    description: str
+    
+    def execute(self, **kwargs) -> Any:
+        """Execute the tool with the given parameters."""
+        ...
 
 class ToolRegistry:
     """
@@ -206,91 +223,104 @@ class EchoTool(Tool):
             return params.get("text", "")
         raise ValueError(f"Unknown action: {action}")
 
-class UaiBotAgent(Agent):
-    """UaiBot agent implementation using SmolAgents."""
+class Agent:
+    """
+    Base agent class for UaiBot.
     
-    name: str = "UaiBot"
-    description: str = "A modern, agentic framework for AI-powered automation"
+    This class provides core functionality for:
+    - Tool management
+    - Command planning and execution
+    - Memory management
+    - Logging and error handling
+    """
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.tools: List[Tool] = []
-        self.workflows: List[Workflow] = []
-        
+    def __init__(self, name: str = "BaseAgent"):
+        """Initialize the agent."""
+        self.name = name
+        self.tools: Dict[str, Tool] = {}
+        self.memory = AgentMemory()
+        self.logger = logging.getLogger(f"UaiAgent.{name}")
+    
     def register_tool(self, tool: Tool) -> None:
         """Register a new tool with the agent."""
-        self.tools.append(tool)
+        self.tools[tool.name] = tool
+        self.logger.debug(f"Registered tool: {tool.name}")
+    
+    def plan_and_execute(self, command: str, **kwargs) -> Any:
+        """
+        Plan and execute a command.
         
-    def register_workflow(self, workflow: Workflow) -> None:
-        """Register a new workflow with the agent."""
-        self.workflows.append(workflow)
+        Args:
+            command (str): The command to execute
+            **kwargs: Additional parameters for the command
+            
+        Returns:
+            Any: The result of the command execution
+        """
+        self.logger.info(f"Processing command: {command}")
         
-    async def plan(self, task: str) -> List[Dict[str, Any]]:
-        """Plan the execution of a task."""
-        # For now, use a simple planning strategy
-        # In the future, this could use an LLM or more sophisticated planning
-        plan = []
+        # Create a plan
+        plan = self._create_plan(command, **kwargs)
         
-        # Check if any tool can handle this directly
-        for tool in self.tools:
-            if task.lower().startswith(tool.name.lower()):
-                # Extract parameters from the task
-                params = {}
-                if tool.name == "echo":
-                    params["text"] = task[len(tool.name):].strip()
-                plan.append({
-                    "tool": tool.name,
-                    "params": params
-                })
+        # Execute the plan
+        result = self._execute_plan(plan)
+        
+        # Add to memory
+        self.memory.add_step(command, plan.steps[0].action if plan.steps else "unknown", 
+                           plan.steps[0].parameters if plan.steps else {}, result)
+        
+        return result
+    
+    def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
+        """Create a plan for executing the command."""
+        # This is a simplified version - subclasses should override this
+        return MultiStepPlan(steps=[
+            PlanStep(action=command, parameters=kwargs)
+        ])
+    
+    def _execute_plan(self, plan: MultiStepPlan) -> Any:
+        """Execute a plan step by step."""
+        plan.status = "in_progress"
+        
+        for i, step in enumerate(plan.steps):
+            plan.current_step = i
+            step.status = "in_progress"
+            
+            try:
+                # Execute the step
+                if step.action in self.tools:
+                    step.result = self.tools[step.action].execute(**step.parameters)
+                    step.status = "completed"
+                else:
+                    step.status = "failed"
+                    step.error = f"Unknown action: {step.action}"
+                    break
+                
+            except Exception as e:
+                step.status = "failed"
+                step.error = str(e)
+                self.logger.error(f"Error executing step {i}: {str(e)}")
                 break
         
-        # If no direct tool match, use echo as fallback
-        if not plan:
-            plan.append({
-                "tool": "echo",
-                "params": {"text": f"Command not understood: {task}"}
-            })
-            
-        return plan
+        # Update plan status
+        if all(step.status == "completed" for step in plan.steps):
+            plan.status = "completed"
+            plan.completed_at = datetime.now()
+        else:
+            plan.status = "failed"
         
-    async def execute(self, plan: List[Dict[str, Any]]) -> Any:
-        """Execute a planned task."""
-        results = []
-        
-        for step in plan:
-            # Find the tool
-            tool = next((t for t in self.tools if t.name == step["tool"]), None)
-            if not tool:
-                raise ValueError(f"Tool {step['tool']} not found")
-                
-            # Execute the tool
-            result = await tool.execute(step["params"])
-            results.append(result)
-            
-        # Return the last result or all results if multiple steps
-        return results[-1] if len(results) == 1 else results
-        
-    async def validate(self, result: Any) -> bool:
-        """Validate the result of a task execution."""
-        # For now, just check if result is not None
-        return result is not None
+        return plan.steps[-1].result if plan.steps else None
+    
+    def get_memory(self) -> List[AgentStep]:
+        """Get the agent's memory."""
+        return self.memory.get_full_history()
 
 # Minimal test agent usage
 if __name__ == "__main__":
-    registry = ToolRegistry()
-    registry.register(EchoTool())
-    registry.register(FileTool())
-    registry.register(SystemResourceTool())
-    agent = UaiBotAgent()
-    print(agent.plan_and_execute("echo", {"text": "Hello, agent world!"}))
-    # Use safe_path for test files
-    test_file1 = safe_path("test_agent_file.txt", "test")
-    test_file2 = safe_path("test_agent_file2.txt", "test")
-    print(agent.plan_and_execute("file", {"filename": test_file1, "content": "Agent file content!", "directory": None, "pattern": None}, action="create"))
-    print(agent.plan_and_execute("file", {"filename": test_file1}, action="read"))
-    # Multi-step plan: create and read file
-    print(agent.plan_and_execute("create and read file", {"filename": test_file2, "content": "Multi-step!", "directory": None}))
-    # Show full memory history
+    agent = Agent("TestAgent")
+    agent.register_tool(EchoTool())
+    result = agent.plan_and_execute("echo", text="Hello, agent world!")
+    print(f"Result: {result}")
     print("\nAgent memory steps:")
-    for step in agent.memory.get_full_history():
+    for step in agent.get_memory():
         print(step) 

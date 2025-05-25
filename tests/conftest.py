@@ -1,9 +1,17 @@
 import pytest
 import os
 import sys
+from pathlib import Path
 
-# Add src to Python path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+# Add the project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+# Import test fixtures and utilities
+from uaibot.core.ai.uaibot_agent import UaiAgent
+from uaibot.core.cache import Cache
+from uaibot.core.auth import AuthManager
+from uaibot.core.plugins import PluginManager
 
 @pytest.fixture
 def test_config():
@@ -21,4 +29,49 @@ def mock_ai_handler(test_config):
     from uaibot.core.ai_handler import AIHandler
     handler = AIHandler()
     handler.config = test_config
-    return handler 
+    return handler
+
+@pytest.fixture
+def uaibot_agent():
+    """Create a UaiAgent instance for testing."""
+    return UaiAgent(debug=True)
+
+@pytest.fixture
+def cache():
+    """Create a Cache instance for testing."""
+    return Cache(cache_dir=str(Path(__file__).parent / "test_cache"))
+
+@pytest.fixture
+def auth_manager():
+    """Create an AuthManager instance for testing."""
+    return AuthManager(config_dir=str(Path(__file__).parent / "test_config"))
+
+@pytest.fixture
+def plugin_manager():
+    """Create a PluginManager instance for testing."""
+    return PluginManager(plugins_dir=str(Path(__file__).parent / "test_plugins"))
+
+@pytest.fixture(autouse=True)
+def cleanup_test_dirs():
+    """Clean up test directories before and after tests."""
+    test_dirs = [
+        Path(__file__).parent / "test_cache",
+        Path(__file__).parent / "test_config",
+        Path(__file__).parent / "test_plugins"
+    ]
+    
+    # Clean up before tests
+    for dir_path in test_dirs:
+        if dir_path.exists():
+            for file in dir_path.glob("*"):
+                if file.is_file():
+                    file.unlink()
+    
+    yield
+    
+    # Clean up after tests
+    for dir_path in test_dirs:
+        if dir_path.exists():
+            for file in dir_path.glob("*"):
+                if file.is_file():
+                    file.unlink() 

@@ -1,128 +1,128 @@
-# UaiBot
+# UaiBot Framework
 
-UaiBot is an AI agent framework that implements the SmolAgents pattern, A2A (Agent-to-Agent) protocol, and MCP (Model Context Protocol) for building intelligent, interoperable AI agents.
+A powerful and extensible framework for building intelligent agents and bots.
 
 ## Features
 
-- **SmolAgents Pattern**: Minimal and efficient agent implementation with standardized interfaces
-- **A2A Protocol**: Standardized communication between AI agents using JSON-RPC 2.0 over HTTP(S)
-- **MCP Protocol**: Universal interface for AI agents to connect with external tools, data sources, and services
-- **CLI Interface**: Command-line interface for interacting with UaiBot
-- **GUI Interface**: Graphical user interface built with tkinter for a more user-friendly experience
-- **Natural Language Processing**: Convert natural language to executable commands
-- **File Operations**: Create, read, update, and delete files with natural language
-- **System Information**: Get system resource usage, date/time, and more
-- **Weather Information**: Get current weather conditions (requires API key)
-- **Calculator**: Evaluate mathematical expressions
-- **Graph Generation**: Create visualizations from folder data
-- **Multi-language Support**: English and Arabic language support
-
-## Architecture
-
-UaiBot is built on three core components:
-
-1. **SmolAgents**: A minimal agent implementation pattern that focuses on:
-   - Minimal memory/state
-   - Standardized interfaces
-   - Efficient execution
-   - Clear separation of concerns
-
-2. **A2A Protocol**: A standardized protocol for agent communication that provides:
-   - JSON-RPC 2.0 based communication
-   - Agent discovery and capabilities
-   - Message handling for various content types
-   - State persistence
-
-3. **MCP Protocol**: A universal interface for connecting AI agents with external tools that offers:
-   - Tool registration and discovery
-   - Schema validation
-   - Standardized request/response handling
-   - WebSocket support for real-time communication
+- **Agent System**: Core framework for building intelligent agents
+- **Caching System**: Efficient caching with memory and disk storage
+- **Authentication System**: Secure user management and access control
+- **Plugin System**: Extensible plugin architecture for adding new functionality
+- **Weather Plugin**: Example plugin demonstrating weather data integration
+- **Comprehensive Testing**: Extensive test coverage for all components
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/UaiBot.git
-   cd UaiBot
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Usage
-
-### CLI Mode
-
-To start UaiBot in CLI mode:
-
 ```bash
-./scripts/launch.py
+pip install uaibot
 ```
 
-The CLI provides a text-based interface for interacting with UaiBot. You can:
-- Execute shell commands
-- Send messages to other agents
-- Process user input
-- View command output and responses
+## Quick Start
 
-### GUI Mode
+```python
+from uaibot.core.ai.uaibot_agent import UaiAgent
 
-To start UaiBot in GUI mode:
+# Initialize the agent
+agent = UaiAgent()
 
-```bash
-./scripts/launch_gui.py
+# Execute a command
+result = agent.plan_and_execute(
+    command="weather",
+    parameters={"city": "London"}
+)
 ```
 
-The GUI provides a more user-friendly interface with:
-- Text output area for displaying messages and responses
-- Input field for entering commands and messages
-- Status indicator
-- Send button for submitting input
+## Plugin System
 
-## Configuration
+The UaiBot framework includes a powerful plugin system that allows you to extend its functionality. Plugins can add new commands, integrate with external services, and enhance the agent's capabilities.
 
-### Weather API
+### Creating a Plugin
 
-1. Get a free API key from [OpenWeatherMap](https://openweathermap.org/api)
-2. Add to `config/settings.json`:
-   ```json
-   {
-     "openweathermap_api_key": "YOUR_API_KEY_HERE"
-   }
-   ```
+```python
+from uaibot.core.plugins import PluginInfo
 
-## Development
+# Define plugin metadata
+plugin_info = PluginInfo(
+    name="my_plugin",
+    version="1.0.0",
+    description="My custom plugin",
+    author="Your Name",
+    entry_point="my_plugin:initialize"
+)
 
-### Project Structure
+# Create plugin class
+class MyPlugin:
+    def __init__(self, config):
+        self.config = config
+    
+    def handle_command(self, command, parameters):
+        # Handle plugin commands
+        pass
 
+# Initialize function
+def initialize(config):
+    return MyPlugin(config)
 ```
-UaiBot/
-├── src/
-│   └── uaibot/
-│       └── core/
-│           └── ai/
-│               ├── smol_agent.py
-│               ├── a2a_protocol.py
-│               ├── mcp_protocol.py
-│               └── channels/
-│                   └── websocket_channel.py
-├── scripts/
-│   ├── launch.py
-│   └── launch_gui.py
-├── tests/
-│   └── test_protocols.py
-├── requirements.txt
-└── README.md
+
+### Loading Plugins
+
+```python
+from uaibot.core.plugins import PluginManager
+
+# Initialize plugin manager
+plugin_manager = PluginManager()
+
+# Load a plugin
+plugin_info = plugin_manager.register_plugin("path/to/plugin.py")
+plugin_manager.load_plugin(plugin_info.name)
 ```
+
+### Weather Plugin
+
+The framework includes a weather plugin that demonstrates plugin integration:
+
+```python
+# Initialize weather plugin
+weather_plugin = plugin_manager.get_plugin_module("weather").initialize({
+    "api_key": "your_api_key"
+})
+
+# Get current weather
+weather = weather_plugin.get_current_weather("London")
+
+# Get forecast
+forecast = weather_plugin.get_forecast("London", days=5)
+
+# Get weather alerts
+alerts = weather_plugin.get_weather_alerts("London")
+```
+
+## Testing
+
+The framework includes comprehensive tests for all components:
 
 ### Running Tests
 
 ```bash
 pytest tests/
 ```
+
+### Test Coverage
+
+- Unit tests for core components
+- Integration tests for plugin system
+- End-to-end tests for agent functionality
+- Mock tests for external service integration
+
+## Architecture
+
+The UaiBot framework consists of several core components:
+
+1. **Agent System**: Core framework for building intelligent agents
+2. **Caching System**: Efficient caching with memory and disk storage
+3. **Authentication System**: Secure user management and access control
+4. **Plugin System**: Extensible plugin architecture
+5. **Weather Plugin**: Example plugin implementation
 
 ## Contributing
 
@@ -134,109 +134,14 @@ pytest tests/
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License
 
 ## Changelog
 
-### Latest Changes
-- Implemented SmolAgents core framework
-- Added A2A protocol for agent collaboration
-- Integrated MCP for multi-channel support
-- Enhanced file operations with natural language
-- Added graph generation capabilities
-- Improved multi-language support
-
-### Upcoming Features
-- Enhanced agent memory and state management
-- Advanced A2A collaboration patterns
-- Extended MCP capabilities
-- Improved performance and optimization
-- Enhanced security features
-- Comprehensive documentation updates
-
-## Support
-
-For issues and feature requests, please use the GitHub issue tracker.
-
-## Agent-to-Agent (A2A) Protocol
-
-The A2A protocol enables standardized communication and collaboration between agents. Key features include:
-
-- Standardized message format for agent communication
-- Capability negotiation between agents
-- Task delegation and result aggregation
-- Persistent state management
-
-### Usage
-
-```python
-from src.uaibot.core.ai.a2a_protocol import A2AProtocol, A2AMessage, AgentCapability
-from src.uaibot.core.ai.smol_agent import SmolAgent
-
-# Create A2A protocol instance
-a2a = A2AProtocol()
-
-# Register agent with capabilities
-capabilities = [
-    AgentCapability(
-        name="example_capability",
-        description="Example capability",
-        parameters={"param1": "string"},
-        required=True
-    )
-]
-a2a.register_agent(agent, capabilities)
-
-# Send message to agent
-message = A2AMessage(
-    sender_id="sender",
-    receiver_id="receiver",
-    message_type="task_delegation",
-    content={"task": "example_task", "params": {"param1": "value1"}}
-)
-result = a2a.send_message(message)
-```
-
-## Multi-Context Protocol (MCP)
-
-The MCP enables communication across different contexts and protocols. Key features include:
-
-- Abstract context interface for different communication protocols
-- WebSocket context implementation
-- Asynchronous message handling
-- Context registration and management
-- Message routing and processing
-
-### Usage
-
-```python
-from src.uaibot.core.ai.mcp_protocol import MCPProtocol, ContextMessage
-from src.uaibot.core.ai.channels.websocket_channel import WebSocketContext
-
-# Create MCP protocol instance
-mcp = MCPProtocol()
-
-# Create and register WebSocket context
-context = WebSocketContext("ws://localhost:8765", "example_context")
-mcp.register_context("example_context", context)
-
-# Register message handler
-async def message_handler(message: ContextMessage):
-    print(f"Received message: {message.content}")
-
-mcp.register_handler("example_context", message_handler)
-
-# Start protocol
-await mcp.start()
-
-# Send message
-message = ContextMessage(
-    context_id="example_context",
-    sender_id="sender",
-    content={"type": "example", "data": "example_data"}
-)
-await mcp.send_message(message)
-
-# Stop protocol
-await mcp.stop()
-```
+### 1.0.0
+- Initial release
+- Implemented caching system
+- Added authentication system
+- Created plugin system
+- Added weather plugin
+- Implemented comprehensive testing

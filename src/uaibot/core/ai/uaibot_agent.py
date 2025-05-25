@@ -1,103 +1,183 @@
-from typing import Any, Dict, List, Optional, Union
+"""
+UaiBot Agent implementation.
+
+This module provides the main UaiBot agent implementation, which:
+- Manages tools and plugins
+- Handles command planning and execution
+- Integrates with model providers
+- Manages authentication and caching
+"""
+from typing import Any, Dict, List, Optional
+from datetime import datetime
+import logging
+import asyncio
+
 from uaibot.core.ai.agent import Agent, MultiStepPlan, PlanStep
 from uaibot.core.config_manager import ConfigManager
 from uaibot.core.model_manager import ModelManager
-from uaibot.core.ai.agents.information_collector import InformationCollectorAgent
-from uaibot.core.ai.agents.researcher import ResearcherAgent
-from uaibot.core.ai.agents.research_evaluator import ResearchEvaluatorAgent
-from uaibot.core.ai.agents.planner import PlannerAgent
-from uaibot.core.ai.agent_tools.graph_maker_tool import GraphMakerAgent
+from uaibot.core.cache import Cache
+from uaibot.core.auth_manager import AuthManager
+from uaibot.core.plugin_manager import PluginManager
 
 class UaiAgent(Agent):
-    """
-    UaiAgent: Master agent for UaiBot. Orchestrates multi-step, conditional, and agent-to-agent workflows.
-    Integrates config, model, and capability management from UaiBot (core/main.py).
-    Supports agent-to-agent (A2A) protocol: delegates steps to sub-agents by name.
-    Explicitly manages sub-agents: InformationCollectorAgent and GraphMakerAgent.
-    """
-    def __init__(self, *args, debug: bool = False, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.config_manager = ConfigManager()
-        self.model_manager = ModelManager(self.config_manager)
-        self.debug = debug
-        # Register sub-agents for A2A
-        self.sub_agents = {
-            "information_collector": InformationCollectorAgent(),
-            "researcher": ResearcherAgent(),
-            "research_evaluator": ResearchEvaluatorAgent(),
-            "planner": PlannerAgent(),
-        }
-        self.information_collector = InformationCollectorAgent()
-        self.graph_maker = GraphMakerAgent()
-        # TODO: Integrate capability management, logging, etc.
-
-    def plan_and_execute(self, command: str, params: Dict[str, Any], action: Optional[str] = None) -> Any:
-        debug = params.get('debug', getattr(self, 'debug', False))
-        if debug:
-            print(f"[DEBUG] UaiAgent.plan_and_execute: command={command}, params={params}, action={action}")
-        plan = self._decompose_plan(command, params, action)
-        if debug:
-            print(f"[DEBUG] UaiAgent.plan_and_execute: plan={plan}")
-        if isinstance(plan, MultiStepPlan):
-            results = []
-            for step in plan.steps:
-                if getattr(step, 'condition', None):
-                    if not self._evaluate_condition(step.condition):
-                        continue
-                if hasattr(step, 'agent') and step.agent:
-                    result = self._delegate_to_agent(step.agent, step.action, step.params)
-                else:
-                    tool = self.tools.get(step.tool)
-                    if not tool:
-                        raise ValueError(f"Tool '{step.tool}' not found.")
-                    result = tool.execute(step.action, step.params)
-                self.memory.add_step(getattr(step, 'tool', getattr(step, 'agent', 'unknown')), step.action, step.params, result)
-                if debug:
-                    print(f"[DEBUG] Step result: {result}")
-                results.append(result)
-            return self._format_result(results, debug=debug)
-        result = super().plan_and_execute(command, params, action)
-        if debug:
-            print(f"[DEBUG] Super plan_and_execute result: {result}")
-        return self._format_result(result, debug=debug)
-
-    def _decompose_plan(self, command: str, params: Dict[str, Any], action: Optional[str]) -> Union[Dict[str, Any], MultiStepPlan]:
-        return self.planner.plan(command, params)
-
-    def _evaluate_condition(self, condition: str) -> bool:
-        return True
-
-    def _delegate_to_agent(self, agent_name: str, action: str, params: Dict[str, Any]) -> Any:
+    """Main UaiBot agent implementation."""
+    
+    def __init__(self, config: ConfigManager, model_manager: ModelManager,
+                 cache: Cache, auth_manager: AuthManager,
+                 plugin_manager: PluginManager):
+        """Initialize the UaiBot agent."""
+        super().__init__(name="UaiBot")
+        
+        # Store components
+        self.config = config
+        self.model_manager = model_manager
+        self.cache = cache
+        self.auth_manager = auth_manager
+        self.plugin_manager = plugin_manager
+        
+        # Load plugins
+        self._load_plugins()
+        
+        # Set up logging
+        self.logger = logging.getLogger("UaiBot.Agent")
+    
+    def _load_plugins(self):
+        """Load enabled plugins."""
+        for plugin in self.plugin_manager.get_plugins():
+            if hasattr(plugin, 'is_enabled') and plugin.is_enabled:
+                if hasattr(plugin, 'register_tools'):
+                    for tool in plugin.register_tools():
+                        self.register_tool(tool)
+                self.logger.info(f"Loaded plugin: {plugin.__class__.__name__}")
+    
+    async def plan_and_execute(self, command: str, **kwargs) -> Any:
         """
-        Delegate a step to a registered sub-agent by name. Supports A2A protocol.
+        Plan and execute a command.
+        
+        Args:
+            command (str): The command to execute
+            **kwargs: Additional parameters for the command
+            
+        Returns:
+            Any: The result of the command execution
         """
-        agent = self.sub_agents.get(agent_name)
-        if not agent:
-            raise ValueError(f"Sub-agent '{agent_name}' not found.")
-        if hasattr(agent, action):
-            method = getattr(agent, action)
-            return method(**params) if params else method()
-        # Fallback: try plan_and_execute
-        return agent.plan_and_execute(action, params)
-
-    def _format_result(self, result: Any, debug: bool = False) -> Any:
-        if debug:
-            print(f"[DEBUG] Formatting result: {result}")
-        if isinstance(result, list):
-            return '\n'.join([self._format_result(r, debug=debug) for r in result])
-        if isinstance(result, dict):
-            # Pretty print dicts, handle nested dicts
-            lines = []
-            for k, v in result.items():
-                if isinstance(v, dict):
-                    lines.append(f"{k}:")
-                    for subk, subv in v.items():
-                        lines.append(f"  {subk}: {subv}")
+        self.logger.info(f"Processing command: {command}")
+        
+        # Check authentication
+        if not self.auth_manager.is_authenticated():
+            return {"error": "Not authenticated. Please log in first."}
+        
+        # Check cache
+        cache_key = f"cmd:{command}:{str(kwargs)}"
+        cached_result = self.cache.get(cache_key)
+        if cached_result is not None:
+            self.logger.debug("Returning cached result")
+            return cached_result
+        
+        # Create and execute plan
+        plan = self._create_plan(command, **kwargs)
+        result = self._execute_plan(plan)
+        
+        # Cache result
+        if result is not None:
+            self.cache.set(cache_key, result)
+        
+        return result
+    
+    def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
+        """Create a plan for executing the command."""
+        # Check if any plugin can handle this command
+        for plugin in self.plugin_manager.get_plugins():
+            if hasattr(plugin, 'handle_command'):
+                result = plugin.handle_command(command, **kwargs)
+                if result is not None:
+                    return MultiStepPlan(steps=[
+                        PlanStep(action="plugin", parameters={"result": result})
+                    ])
+        
+        # Use model for planning if available
+        if self.model_manager.is_available():
+            try:
+                # Get model's plan
+                model_plan = self.model_manager.get_plan(command, **kwargs)
+                if model_plan:
+                    return model_plan
+            except Exception as e:
+                self.logger.error(f"Error getting model plan: {str(e)}")
+        
+        # Fallback to simple plan
+        return MultiStepPlan(steps=[
+            PlanStep(action=command, parameters=kwargs)
+        ])
+    
+    def _execute_plan(self, plan: MultiStepPlan) -> Any:
+        """Execute a plan step by step."""
+        plan.status = "in_progress"
+        
+        for i, step in enumerate(plan.steps):
+            plan.current_step = i
+            step.status = "in_progress"
+            
+            try:
+                # Handle plugin results
+                if step.action == "plugin":
+                    step.result = step.parameters.get("result")
+                    step.status = "completed"
+                    continue
+                
+                # Execute the step
+                if step.action in self.tools:
+                    step.result = self.tools[step.action].execute(**step.parameters)
+                    step.status = "completed"
                 else:
-                    lines.append(f"{k}: {v}")
-            return '\n'.join(lines)
-        return str(result)
+                    step.status = "failed"
+                    step.error = f"Unknown action: {step.action}"
+                    break
+                
+            except Exception as e:
+                step.status = "failed"
+                step.error = str(e)
+                self.logger.error(f"Error executing step {i}: {str(e)}")
+                break
+        
+        # Update plan status
+        if all(step.status == "completed" for step in plan.steps):
+            plan.status = "completed"
+            plan.completed_at = datetime.now()
+        else:
+            plan.status = "failed"
+        
+        return plan.steps[-1].result if plan.steps else None
 
+    def _setup_logger(self) -> logging.Logger:
+        """Set up logging for the agent."""
+        logger = logging.getLogger('UaiAgent')
+        logger.setLevel(logging.INFO)
+        
+        # Create logs directory if it doesn't exist
+        log_dir = Path('logs')
+        log_dir.mkdir(exist_ok=True)
+        
+        # File handler
+        log_file = log_dir / f'agent_{datetime.now().strftime("%Y%m%d")}.log'
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        
+        # Formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+        
+        # Add handlers
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+        
+        return logger
+        
     def collect_and_graph(self, folder: str = ".", debug: bool = False) -> dict:
         if debug:
             print(f"[DEBUG] UaiAgent: Collecting info from {folder}")
@@ -112,4 +192,40 @@ class UaiAgent(Agent):
         )
         if debug:
             print(f"[DEBUG] UaiAgent: Graph result: {result}")
-        return result 
+        return result
+
+    def authenticate(self, username: str, password: str) -> Dict[str, Any]:
+        """Authenticate a user and return a token."""
+        token = self.auth_manager.authenticate(username, password)
+        if token:
+            return {
+                "status": "success",
+                "token": token
+            }
+        return {
+            "status": "error",
+            "message": "Invalid username or password"
+        }
+
+    def create_user(self, username: str, password: str, roles: List[str] = None) -> Dict[str, Any]:
+        """Create a new user."""
+        try:
+            user = self.auth_manager.create_user(username, password, roles)
+            return {
+                "status": "success",
+                "username": user.username,
+                "roles": user.roles
+            }
+        except ValueError as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    def list_users(self) -> Dict[str, Any]:
+        """List all users."""
+        users = self.auth_manager.list_users()
+        return {
+            "status": "success",
+            "users": users
+        } 

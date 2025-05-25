@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-UaiBot CLI launcher.
-Uses the agentic core with A2A, MCP, and SmolAgents.
+UaiBot CLI Launcher
+
+This script launches the UaiBot CLI application.
+It handles command processing and model management.
 """
-import os
 import sys
+import os
 import asyncio
 from pathlib import Path
 
@@ -12,111 +14,100 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.append(str(src_path))
 
-from uaibot.core.ai.smol_agent import SmolAgent
-from uaibot.core.ai.a2a_protocol import A2AProtocol, Message, TextContent, MessageRole, AgentCard, AgentCapability
-from uaibot.core.ai.mcp_protocol import MCPProtocol, MCPTool
-from uaibot.core.ai.channels.websocket_channel import WebSocketTool
+from uaibot.core.ai.uaibot_agent import UaiAgent
+from uaibot.core.config_manager import ConfigManager
+from uaibot.core.model_manager import ModelManager
+from uaibot.core.cache import Cache
+from uaibot.core.auth_manager import AuthManager
+from uaibot.core.plugin_manager import PluginManager
 
-class UaiBotCLI(SmolAgent):
-    """UaiBot CLI agent implementation."""
-    def __init__(self):
-        super().__init__("uaibot_cli")
-        self.a2a_protocol = A2AProtocol()
-        self.mcp_protocol = MCPProtocol()
-        self._setup_protocols()
+def print_help():
+    """Print help message with available commands."""
+    print("\nAvailable commands:")
+    print("  help              - Show this help message")
+    print("  exit              - Exit the application")
+    print("  models            - List available models")
+    print("  switch-model <provider> <model> - Switch to a different model")
+    print("\nExample commands:")
+    print("  weather in London")
+    print("  weather forecast Paris")
+    print("  weather alert New York")
+    print("  switch-model ollama gemma3:4b")
+    print("  switch-model huggingface gpt2")
 
-    def _setup_protocols(self):
-        """Set up A2A and MCP protocols."""
-        # Register self as A2A server
-        agent_card = AgentCard(
-            agent_id=self.agent_id,
-            name="UaiBot CLI",
-            description="UaiBot command-line interface agent",
-            capabilities=[
-                AgentCapability(
-                    name="execute_command",
-                    description="Execute shell commands",
-                    parameters={"command": "string"},
-                    required=True
-                ),
-                AgentCapability(
-                    name="process_input",
-                    description="Process user input",
-                    parameters={"input": "string"},
-                    required=True
-                )
-            ]
-        )
-        self.a2a_protocol.register_agent(self, agent_card)
-
-        # Register WebSocket tool
-        ws_tool = WebSocketTool("ws://localhost:8765", "websocket")
-        self.mcp_protocol.register_tool("websocket", ws_tool)
-
-    async def execute(self, task: str, params: dict = None) -> dict:
-        """Execute a task."""
-        if task == "execute_command":
-            return await self._execute_command(params.get("command", ""))
-        elif task == "process_input":
-            return await self._process_input(params.get("input", ""))
-        else:
-            return {"error": f"Unknown task: {task}"}
-
-    async def _execute_command(self, command: str) -> dict:
-        """Execute a shell command."""
+async def handle_model_command(command: str, model_manager: ModelManager) -> None:
+    """Handle model-related commands."""
+    parts = command.split()
+    if len(parts) == 1 and parts[0] == "models":
+        # List available models
+        models = model_manager.list_available_models()
+        print("\nAvailable models:")
+        for provider, provider_models in models.items():
+            print(f"\n{provider.upper()}:")
+            for model in provider_models:
+                print(f"  - {model}")
+    elif len(parts) == 3 and parts[0] == "switch-model":
+        # Switch model
+        provider = parts[1]
+        model = parts[2]
         try:
-            process = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            return {
-                "success": process.returncode == 0,
-                "stdout": stdout.decode() if stdout else "",
-                "stderr": stderr.decode() if stderr else ""
-            }
+            model_manager.set_model(provider, model)
+            print(f"Switched to {model} on {provider}")
         except Exception as e:
-            return {"error": str(e)}
-
-    async def _process_input(self, user_input: str) -> dict:
-        """Process user input."""
-        try:
-            # Create A2A message
-            message = Message(
-                content=TextContent(text=user_input),
-                role=MessageRole.USER,
-                conversation_id="cli_session",
-                metadata={"agent_id": self.agent_id}
-            )
-
-            # Send message through A2A protocol
-            response = await self.a2a_protocol.send_message(message)
-            return {"response": response.content.text}
-        except Exception as e:
-            return {"error": str(e)}
+            print(f"Error switching model: {str(e)}")
+    else:
+        print("Invalid model command. Use 'help' for available commands.")
 
 async def main():
-    """Main entry point."""
-    cli = UaiBotCLI()
-    print("UaiBot CLI started. Type 'exit' to quit.")
+    """Main entry point for CLI."""
+    # Initialize components
+    config = ConfigManager()
+    model_manager = ModelManager(config)
+    cache = Cache()
+    auth_manager = AuthManager()
+    plugin_manager = PluginManager()
+    
+    # Initialize agent
+    agent = UaiAgent(
+        config=config,
+        model_manager=model_manager,
+        cache=cache,
+        auth_manager=auth_manager,
+        plugin_manager=plugin_manager
+    )
+    
+    print("Welcome to UaiBot CLI!")
+    print("Type 'help' for available commands.")
     
     while True:
         try:
-            user_input = input("> ")
-            if user_input.lower() == "exit":
+            # Get command
+            command = input("\n> ").strip()
+            
+            # Handle special commands
+            if command.lower() == "exit":
                 break
-
-            result = await cli.execute("process_input", {"input": user_input})
-            if "error" in result:
+            elif command.lower() == "help":
+                print_help()
+                continue
+            elif command.lower() == "models" or command.lower().startswith("switch-model"):
+                await handle_model_command(command, model_manager)
+                continue
+            
+            # Process command
+            result = await agent.plan_and_execute(command)
+            
+            # Display result
+            if isinstance(result, dict) and "error" in result:
                 print(f"Error: {result['error']}")
             else:
-                print(result["response"])
-
+                print(f"Result: {result}")
+                
         except KeyboardInterrupt:
+            print("\nExiting...")
             break
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())
