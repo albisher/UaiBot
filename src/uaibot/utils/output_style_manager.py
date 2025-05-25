@@ -26,10 +26,12 @@ class OutputStyleManager:
             theme (str): The theme to use (default, minimal, professional).
             auto_detect (bool): If True, auto-detects terminal capabilities.
         """
-        # Always use root-level config/output_styles.json unless explicitly overridden
+        # Always use absolute path to config/output_styles.json from project root
         if config_path is None:
-            # Use project root, not src/config or code/config
-            config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../config/output_styles.json"))
+            project_root = Path(__file__).resolve().parent.parent.parent.parent
+            config_path = str(project_root / 'config' / 'output_styles.json')
+        else:
+            config_path = str(Path(config_path).resolve())
         self.config_path = config_path
         self.config = self._load_config()
         self.theme_name = theme

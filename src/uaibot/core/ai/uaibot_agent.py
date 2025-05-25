@@ -33,8 +33,9 @@ class DefaultTool:
     name = 'default'
     description = "Handles unknown or unsupported actions with a friendly message."
     def execute(self, action: str, **kwargs):
-        # Friendly fallback for unknown actions
-        if action.lower() in ["hi", "hello", "hey", "salam", "مرحبا", "السلام عليكم"]:
+        # Friendly fallback for greetings or boolean True
+        greetings = ["hi", "hello", "hey", "salam", "مرحبا", "السلام عليكم", True, "True", 1]
+        if action.lower() in [str(g).lower() for g in greetings]:
             return {"output": "👋 Hello! I'm Labeeb (لبيب), your intelligent assistant. How can I help you today?"}
         return {"error": "Sorry, I didn't understand that command. Please try rephrasing or ask for help."}
 
@@ -164,7 +165,16 @@ class UaiAgent(Agent):
                     return MultiStepPlan(steps=[
                         PlanStep(action="plugin", parameters={"result": result})
                     ])
-        
+        # Map common device/system commands to correct tools
+        cmd_lower = command.lower()
+        if any(x in cmd_lower for x in ["move mouse", "click", "mouse", "screen", "screenshot"]):
+            return MultiStepPlan(steps=[
+                PlanStep(action="device_awareness_tool", parameters={"command": command, **kwargs})
+            ])
+        if any(x in cmd_lower for x in ["open calculator", "launch calculator", "start calculator"]):
+            return MultiStepPlan(steps=[
+                PlanStep(action="system_awareness_tool", parameters={"command": command, **kwargs})
+            ])
         # Use model for planning if available
         if self.model_manager.is_available():
             try:
@@ -174,7 +184,6 @@ class UaiAgent(Agent):
                     return model_plan
             except Exception as e:
                 self.logger.error(f"Error getting model plan: {str(e)}")
-        
         # Fallback to simple plan
         return MultiStepPlan(steps=[
             PlanStep(action=command, parameters=kwargs)
@@ -212,9 +221,12 @@ class UaiAgent(Agent):
             plan.status = "failed"
         last_result = plan.steps[-1].result if plan.steps else None
         last_error = plan.steps[-1].error if plan.steps and hasattr(plan.steps[-1], 'error') else None
+        # If the result is True or 'True', treat as greeting
+        if last_result is True or last_result == "True":
+            return {"output": "👋 Hello! I'm Labeeb (لبيب), your intelligent assistant. How can I help you today?"}
         if last_error:
             return {"error": last_error}
-        if last_result is None or last_result is True:
+        if last_result is None:
             return {"error": "No output."}
         elif last_result is False:
             return {"error": "No output."}
