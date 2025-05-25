@@ -64,4 +64,21 @@
 - [ ] Create user guide
 - [ ] Add developer documentation
 - [ ] Create plugin development guide
-- [ ] Add troubleshooting guide 
+- [ ] Add troubleshooting guide
+
+## New Tasks
+
+### SystemAwareness
+- [x] Refactor SystemAwarenessManager as SystemAwarenessTool and register with agent
+- [x] Refactor UserRoutineAwarenessManager as UserRoutineAwarenessTool and register with agent
+- [x] Refactor Device/USB/Screen/Audio handlers as DeviceAwarenessTool and register with agent
+- [ ] Test CLI/GUI with new tools/agents
+- [ ] Update documentation for each new tool/agent
+- [ ] Add troubleshooting and cross-platform notes to README
+
+## Cross-Platform & Troubleshooting Notes
+- All tools/agents must handle platform-specific features gracefully
+- If a feature is unavailable, return a clear error message
+- Document any platform-specific limitations in the README
+- Ensure proper error handling for missing dependencies (PyAudio, Quartz, WMI)
+- Test device detection on all supported platforms 

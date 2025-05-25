@@ -18,6 +18,9 @@ from uaibot.core.model_manager import ModelManager
 from uaibot.core.cache import Cache
 from uaibot.core.auth_manager import AuthManager
 from uaibot.core.plugin_manager import PluginManager
+from uaibot.core.awareness.system_awareness import SystemAwarenessTool
+from uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessTool
+from uaibot.core.awareness.device_awareness import DeviceAwarenessTool
 
 class UaiAgent(Agent):
     """Main UaiBot agent implementation."""
@@ -40,6 +43,15 @@ class UaiAgent(Agent):
         
         # Set up logging
         self.logger = logging.getLogger("UaiBot.Agent")
+        
+        self.system_awareness_tool = SystemAwarenessTool()
+        self.register_tool(self.system_awareness_tool)
+        
+        self.user_routine_awareness_tool = UserRoutineAwarenessTool()
+        self.register_tool(self.user_routine_awareness_tool)
+        
+        self.device_awareness_tool = DeviceAwarenessTool()
+        self.register_tool(self.device_awareness_tool)
     
     def _load_plugins(self):
         """Load enabled plugins."""

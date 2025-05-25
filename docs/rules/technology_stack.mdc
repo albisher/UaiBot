@@ -1,0 +1,61 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# UaiBot Technology Stack (MDC)
+
+## Core Principles
+- **Minimalism:** Only use libraries that are essential, robust, and cross-platform.
+- **Cross-Platform:** All dependencies must work on macOS, Linux, and Windows (unless platform-specific).
+- **Replaceability:** If a better, more minimal library exists, prefer it and remove redundant ones.
+- **Professionalism:** All choices are justified and documented.
+
+## Core Libraries
+
+| Library         | Version      | Why Used / Justification                                                                 | Cross-Platform | Alternatives / Notes                |
+|----------------|--------------|----------------------------------------------------------------------------------------|----------------|-------------------------------------|
+| pyautogui       | >=0.9.54     | Mouse/keyboard automation, screenshots. Essential for UI automation.                   | Yes            | None (best for cross-platform)      |
+| psutil          | >=5.9.0      | System resource info (CPU, memory, disk, etc).                                         | Yes            | None (de facto standard)            |
+| pillow          | >=10.0.0     | Image processing, screenshot manipulation.                                             | Yes            | None                                |
+| pytesseract     | >=0.3.10     | OCR for extracting text from images/screenshots.                                       | Yes            | None (Tesseract is best for OCR)    |
+| opencv-python   | >=4.8.0      | Advanced image processing, computer vision.                                            | Yes            | None                                |
+| numpy           | >=1.24.0     | Numerical operations, required by many other libs.                                     | Yes            | None                                |
+| websockets      | >=12.0       | WebSocket support for async comms.                                                     | Yes            | None                                |
+| PyQt5           | >=5.15.0     | Modern GUI framework, feature-rich, cross-platform.                                    | Yes            | tkinter (less modern, less robust)  |
+| pyaudio         | >=0.2.13     | Audio input/output. Needed for voice features.                                         | Yes            | sounddevice (if pyaudio fails)      |
+| transformers    | >=4.52.3     | HuggingFace model support for LLMs.                                                    | Yes            | None (industry standard)            |
+| pyjwt           | >=2.10.1     | JWT-based authentication.                                                              | Yes            | None                                |
+| bcrypt          | >=4.3.0      | Secure password hashing.                                                               | Yes            | None                                |
+| pytest          | >=7.4.0      | Testing framework.                                                                    | Yes            | None                                |
+| pytest-asyncio  | >=0.18.0     | Async test support.                                                                   | Yes            | None                                |
+| black           | >=23.7.0     | Code formatting.                                                                      | Yes            | None                                |
+| isort           | >=5.12.0     | Import sorting.                                                                       | Yes            | None                                |
+| flake8          | >=6.1.0      | Linting.                                                                              | Yes            | None                                |
+| mypy            | >=1.5.1      | Type checking.                                                                        | Yes            | None                                |
+| colorlog        | >=6.7.0      | Colored logging output.                                                               | Yes            | None                                |
+| python-json-logger | >=2.0.7   | JSON logging output.                                                                  | Yes            | None                                |
+| screen-brightness-control | >=0.16.0 | Screen brightness control (platform-specific).                                 | Partial         | None                                |
+| pywin32         | >=306        | Windows-specific system access.                                                        | Windows only   | None                                |
+| python-xlib     | >=0.33       | Linux-specific X11 access.                                                             | Linux only     | None                                |
+| pyobjc-framework-Quartz | >=9.2 | macOS-specific system access.                                                          | macOS only     | None                                |
+| openai-whisper  | latest       | Speech-to-text (ASR) via Whisper.                                                     | Yes            | None                                |
+
+## Not Used / Removed
+- grpcio, pymilvus: Not needed for native tools, removed for minimalism.
+- tkinter: Not used (PyQt5 is preferred for modern GUI).
+
+## Recommendations
+- **Always prefer the minimal, most robust, and cross-platform library.**
+- **If a library is only needed for a specific platform, guard its import and usage.**
+- **If a better library emerges, update this file and remove the old one.**
+- **Test all features on all supported platforms.**
+
+## Why These Choices?
+- All libraries above are either de facto standards or best-in-class for their purpose.
+- All are actively maintained and widely used in the Python ecosystem.
+- All are compatible with Python 3.10+ and support macOS, Linux, and Windows (unless noted).
+
+---
+
+_Last updated: 2024-06-XX_

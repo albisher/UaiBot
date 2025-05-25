@@ -145,3 +145,91 @@ MIT License
 - Created plugin system
 - Added weather plugin
 - Implemented comprehensive testing
+
+## System Awareness Tool
+
+UaiBot includes a SystemAwarenessTool for querying system state, mouse, windows, keyboard, and processes. This tool is registered with the agent and can be used from both the CLI and GUI.
+
+### Example Usage
+
+```python
+# Get system info
+result = agent.plan_and_execute(command="get_system_info")
+
+# Get mouse position
+result = agent.plan_and_execute(command="get_mouse_position")
+
+# Get process list
+result = agent.plan_and_execute(command="get_process_list")
+```
+
+### Available Actions
+- `get_system_info`: Returns OS, version, CPU, memory, disk, and time
+- `get_mouse_position`: Returns current mouse coordinates
+- `get_screen_size`: Returns screen size
+- `get_mouse_info`: Returns mouse position and pixel color
+- `get_process_list`: Returns running processes
+
+## User Routine Awareness Tool
+
+UaiBot includes a UserRoutineAwarenessTool for tracking user routines and activity patterns. This tool is registered with the agent and can be used from both the CLI and GUI.
+
+### Example Usage
+
+```python
+# Get current activity state
+result = agent.plan_and_execute(command="get_activity")
+
+# Update keyboard activity
+result = agent.plan_and_execute(command="update_keyboard_activity")
+```
+
+### Available Actions
+- `get_activity`: Returns the current activity state
+- `update_input_activity`: Updates last input activity timestamp
+- `update_screen_dim`: Updates last screen dim timestamp
+- `update_keyboard_activity`: Updates last keyboard activity timestamp
+- `update_mouse_activity`: Updates last mouse activity timestamp
+- `update_window_change`: Updates last window change timestamp
+
+## Device Awareness Tool
+
+UaiBot includes a DeviceAwarenessTool for detecting and monitoring devices across platforms. This tool is registered with the agent and can be used from both the CLI and GUI.
+
+### Example Usage
+
+```python
+# Get all connected devices
+result = agent.plan_and_execute(command="get_all_devices")
+
+# Get USB devices
+result = agent.plan_and_execute(command="get_usb_devices")
+
+# Get audio devices
+result = agent.plan_and_execute(command="get_audio_devices")
+
+# Get screen devices
+result = agent.plan_and_execute(command="get_screen_devices")
+```
+
+### Available Actions
+- `get_all_devices`: Returns all detected devices (USB, audio, screen)
+- `get_usb_devices`: Returns connected USB devices
+- `get_audio_devices`: Returns audio input/output devices
+- `get_screen_devices`: Returns screen/monitor devices
+
+### Platform Support
+- **macOS**: Full support for USB, audio, and screen devices
+- **Windows**: Full support for USB and audio devices, basic screen support
+- **Linux**: Basic USB support via lsusb, audio support via PyAudio
+
+### Dependencies
+- PyAudio for audio device detection
+- Platform-specific libraries (Quartz for macOS, WMI for Windows)
+- PyAutoGUI for screen information
+
+## Troubleshooting & Cross-Platform Notes
+- Some features (e.g., window info, app awareness) may be limited on certain platforms.
+- All platform-specific code is guarded; if a feature is unavailable, a clear error is returned.
+- For best results, ensure all dependencies are installed for your OS (see `requirements.txt`).
+- If you encounter issues, check the logs and consult the [Technology Stack MDC](docs/rules/technology_stack.mdc).

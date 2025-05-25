@@ -3,7 +3,7 @@ import socket
 import datetime
 import pyautogui
 import psutil
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Any
 import platform
 
 system = platform.system()
@@ -15,12 +15,25 @@ if system in ("Windows", "Darwin"):
 else:
     gw = None
 
-class SystemAwarenessManager:
+class SystemAwarenessTool:
     """
-    UaiBot System Awareness Capability ('I know')
+    UaiBot System Awareness Tool ('I know')
     Provides awareness of system state, mouse, windows, keyboard, processes, and more.
-    This capability is for knowing, not doing.
+    This tool is for knowing, not doing.
     """
+    def execute(self, action: str, **kwargs) -> Any:
+        if action == "get_mouse_position":
+            return self.get_mouse_position()
+        elif action == "get_screen_size":
+            return self.get_screen_size()
+        elif action == "get_mouse_info":
+            return self.get_mouse_info()
+        elif action == "get_system_info":
+            return self.get_system_info()
+        elif action == "get_process_list":
+            return self.get_process_list()
+        else:
+            return {"error": f"Unknown action: {action}"}
 
     def get_mouse_position(self) -> Tuple[int, int]:
         """Return the current mouse position as (x, y)."""
@@ -30,7 +43,7 @@ class SystemAwarenessManager:
         """Return the primary screen size as (width, height)."""
         return pyautogui.size()
 
-    def get_mouse_info(self) -> Dict[str, any]:
+    def get_mouse_info(self) -> Dict[str, Any]:
         """Return mouse position and pixel color under the cursor."""
         pos = pyautogui.position()
         try:
@@ -41,6 +54,28 @@ class SystemAwarenessManager:
             'position': pos,
             'color': color
         }
+
+    def get_system_info(self) -> Dict[str, Any]:
+        """Return basic system information."""
+        return {
+            "os": platform.system(),
+            "os_version": platform.version(),
+            "cpu_usage": psutil.cpu_percent(),
+            "memory_usage": psutil.virtual_memory().percent,
+            "disk_usage": psutil.disk_usage('/').percent,
+            "current_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+    def get_process_list(self) -> List[Dict[str, Any]]:
+        """Return a list of running processes."""
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent']):
+            try:
+                info = proc.info
+                processes.append(info)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return processes
 
     def get_open_windows(self) -> List[Dict[str, any]]:
         """Return a list of open windows with title and geometry (best effort cross-platform)."""
@@ -90,16 +125,6 @@ class SystemAwarenessManager:
             'memory': psutil.virtual_memory()._asdict(),
             'disk': psutil.disk_usage('/')._asdict()
         }
-
-    def get_processes(self) -> List[Dict[str, any]]:
-        """Return a list of running processes with pid, name, and status."""
-        procs = []
-        for p in psutil.process_iter(['pid', 'name', 'status']):
-            try:
-                procs.append(p.info)
-            except Exception:
-                continue
-        return procs
 
     def get_active_app(self) -> Optional[str]:
         """Return the name of the currently active application (if possible)."""
@@ -170,7 +195,7 @@ class SystemAwarenessManager:
             'code', 'editor', 'notepad', 'sublime', 'vim', 'emacs', 'nano', 'word', 'excel',
             'powerpoint', 'pages', 'numbers', 'keynote', 'audacity', 'recorder', 'terminal', 'iterm', 'cmd', 'powershell', 'pycharm', 'idea', 'jupyter', 'obs', 'zoom', 'teams', 'slack', 'discord', 'skype', 'screen', 'listen', 'record', 'studio', 'logic', 'garageband', 'photoshop', 'gimp', 'paint', 'draw', 'inkscape', 'illustrator', 'premiere', 'aftereffects', 'finalcut', 'resolve', 'blender', 'maya', 'cad', 'autocad', 'fusion', 'solidworks', 'matlab', 'octave', 'spyder', 'rstudio', 'notion', 'onenote', 'evernote', 'scrivener', 'writer', 'composer', 'audition', 'sound', 'music', 'video', 'vlc', 'media', 'player', 'quicktime', 'preview', 'pdf', 'acrobat', 'foxit', 'sumatra', 'evince', 'okular', 'zathura', 'calibre', 'kindle', 'ebook', 'reader', 'browser', 'chrome', 'firefox', 'safari', 'edge', 'opera', 'brave', 'vivaldi', 'explorer', 'finder', 'explorer.exe', 'finder.app'
         ]
-        procs = self.get_processes()
+        procs = self.get_process_list()
         editing_procs = []
         for p in procs:
             name = (p.get('name') or '').lower()
