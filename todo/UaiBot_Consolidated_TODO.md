@@ -252,4 +252,14 @@
 - [ ] Test fallback and greeting logic in CLI
 - [ ] Test multi-language fallback and greeting
 - [ ] Test all output types (success, error, info, warning) in CLI
-- [ ] Test multi-language output and emoji support 
+- [ ] Test multi-language output and emoji support
+
+### CLI/Output/Tool Routing Critical Fixes
+- [ ] Audit and fix all config path references to ensure only config/output_styles.json in the project root is used
+- [ ] Remove any fallback to src/config or code/config in all config loading logic
+- [ ] Harden greeting/fallback logic so that 'hi', 'hello', etc. always return a friendly greeting and never 'True' or 'Done.'
+- [ ] Explicitly map device/system commands (mouse, calculator, click, screen) to the correct tool in the agent's plan creation logic
+- [ ] Test with commands: 'hi', 'hello', 'move mouse to 100,100', 'open calculator', 'click at 120,120', 'what is on my screen?'
+- [ ] Confirm all output is emoji-rich, professional, and user-friendly
+- [ ] Confirm A2A, MCP, SmolAgents principles are followed for all interactions
+- [ ] Document and test all fixes 
