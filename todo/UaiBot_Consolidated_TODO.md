@@ -81,4 +81,175 @@
 - If a feature is unavailable, return a clear error message
 - Document any platform-specific limitations in the README
 - Ensure proper error handling for missing dependencies (PyAudio, Quartz, WMI)
-- Test device detection on all supported platforms 
+- Test device detection on all supported platforms
+
+## Model Management
+- [x] Refactor ModelManager to use gemma3:1b as default
+- [x] Add better error handling for model selection
+- [x] Add model switching functionality
+- [x] Add model availability checking
+- [ ] Add model size checking before loading
+- [ ] Add model quantization support
+- [ ] Add model performance metrics
+- [ ] Add model memory usage monitoring
+- [ ] Add model response time tracking
+- [ ] Add model quality assessment
+- [ ] Add model fallback strategies
+- [ ] Add model caching for faster responses
+- [ ] Add support for specialized models (e.g., coding, embedding)
+- [ ] Add model size recommendations based on system specs
+
+## Documentation
+- [x] Add model selection documentation
+- [x] Add model troubleshooting guide
+- [x] Add model installation instructions
+- [ ] Add model performance benchmarks
+- [ ] Add model comparison guide
+- [ ] Add model customization guide
+- [ ] Add model training guide
+- [ ] Add model deployment guide
+- [ ] Add model security guide
+- [ ] Add model maintenance guide
+
+## Testing
+- [ ] Add model selection tests
+- [ ] Add model switching tests
+- [ ] Add model fallback tests
+- [ ] Add model performance tests
+- [ ] Add model memory tests
+- [ ] Add model response time tests
+- [ ] Add model quality tests
+- [ ] Add model caching tests
+- [ ] Add model security tests
+- [ ] Add model maintenance tests
+
+## Interaction Awareness
+- [x] Create InteractionAwarenessTool for cross-platform UI interaction
+- [x] Add mouse and keyboard monitoring
+- [x] Add system resource monitoring
+- [x] Add screenshot and image recognition
+- [x] Add audio transcription support
+- [ ] Add tests for all interaction features
+- [ ] Add error handling for missing dependencies
+- [ ] Add performance optimization for image recognition
+- [ ] Add caching for system info
+- [ ] Add rate limiting for resource-intensive operations
+
+## Speech Tool (TTS/STT)
+- [x] Create SpeechTool for cross-platform TTS and STT
+- [x] Register SpeechTool with agent for A2A/MCP/SmolAgents
+- [x] Add pyttsx3/system TTS fallback for TTS
+- [x] Add Whisper support for STT
+- [ ] Add tests for TTS and STT
+- [ ] Add error handling for missing dependencies
+- [ ] Add language/voice selection for TTS
+- [ ] Add streaming STT support
+- [ ] Add CLI/GUI integration examples
+
+## Display Tool
+- [x] Create DisplayTool for GUI output
+- [x] Add emoji display support
+- [x] Add text display with customization
+- [x] Add image display support
+- [x] Add window configuration
+- [ ] Add tests for display features
+- [ ] Add error handling for missing fonts
+- [ ] Add support for custom fonts
+- [ ] Add animation support
+- [ ] Add layout customization
+- [ ] Add widget positioning
+- [ ] Add theme support
+
+## Dependencies
+- [x] Use PyAutoGUI for cross-platform GUI automation
+- [x] Use psutil for system monitoring
+- [x] Use pynput for input monitoring
+- [x] Use Pillow for image processing
+- [x] Use Whisper for audio transcription
+- [x] Use pyttsx3 for TTS (offline, cross-platform)
+- [x] Use system TTS fallback (say/espeak/SAPI)
+- [x] Use Whisper for STT (offline, cross-platform)
+- [x] Use PyQt5 for GUI output
+- [ ] Add font fallback system
+- [ ] Add image format validation
+- [ ] Add dependency version checks
+- [ ] Add dependency documentation
+- [ ] Add dependency testing
+
+## Dependency Management
+- [ ] Create requirements.txt with all dependencies
+- [ ] Create setup.py with proper dependency specifications
+- [ ] Add dependency version constraints
+- [ ] Add platform-specific dependency handling
+- [ ] Add dependency conflict resolution
+- [ ] Add automatic dependency installation script
+- [ ] Add dependency verification script
+- [ ] Add dependency documentation
+
+### Core Dependencies
+- [x] Add aiohttp for async HTTP
+- [x] Add PyQt5 for GUI
+- [x] Add PyQt5-sip for Qt bindings
+- [x] Add PyQt5-Qt5 for Qt binaries
+- [ ] Add version constraints
+- [ ] Add platform-specific installation notes
+- [ ] Add installation tests
+
+### GUI and Display Dependencies
+- [x] Add pyautogui for GUI automation
+- [x] Add psutil for system monitoring
+- [x] Add pynput for input monitoring
+- [x] Add pillow for image processing
+- [ ] Add version constraints
+- [ ] Add platform-specific installation notes
+- [ ] Add installation tests
+
+### Audio and Speech Dependencies
+- [x] Add pyttsx3 for TTS
+- [x] Add whisper for STT
+- [x] Add system TTS dependencies
+- [ ] Add version constraints
+- [ ] Add platform-specific installation notes
+- [ ] Add installation tests
+
+### Installation Scripts
+- [ ] Create install.sh for Unix systems
+- [ ] Create install.bat for Windows
+- [ ] Add virtual environment setup
+- [ ] Add dependency verification
+- [ ] Add platform detection
+- [ ] Add error handling
+- [ ] Add installation logging
+
+### Testing
+- [ ] Add dependency installation tests
+- [ ] Add platform compatibility tests
+- [ ] Add version compatibility tests
+- [ ] Add installation script tests
+- [ ] Add dependency conflict tests
+- [ ] Add upgrade path tests
+
+### Documentation
+- [ ] Add installation guide
+- [ ] Add dependency documentation
+- [ ] Add platform-specific notes
+- [ ] Add troubleshooting guide
+- [ ] Add upgrade guide
+- [ ] Add uninstallation guide
+
+### JSON Handling
+- [x] Implement JSONTool using orjson for fast, correct JSON handling
+- [x] Add orjson to requirements.txt and document in README
+- [ ] Test JSONTool with various valid/invalid JSON inputs
+- [ ] Integrate JSONTool with agent/plan execution for robust parsing
+
+### CLI & Output System
+- [x] Recreate CLI with emoji-rich, professional prompt and output
+- [x] Remove GUI for now
+- [x] Fix config path: always load config/output_styles.json from project root
+- [x] Register DefaultTool for unknown/fallback actions
+- [x] Improve fallback output: friendly message for unknown actions, greeting for 'hi', etc.
+- [ ] Test fallback and greeting logic in CLI
+- [ ] Test multi-language fallback and greeting
+- [ ] Test all output types (success, error, info, warning) in CLI
+- [ ] Test multi-language output and emoji support 

@@ -1,8 +1,0 @@
-{
-  "default_ai_provider": "ollama",
-  "ollama_base_url": "http://localhost:11434",
-  "default_ollama_model": "qwen3:1.7b",
-  "shell_safe_mode": true,
-  "interactive_mode": true,
-  "shell_dangerous_check": true
-}

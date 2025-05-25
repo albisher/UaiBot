@@ -9,13 +9,19 @@
 #   pip install .[test]
 
 # Core dependencies
+aiohttp>=3.12.0
 pyautogui>=0.9.54
-psutil>=5.9.0
-pillow>=10.0.0  # For image processing
+psutil>=7.0.0
+pillow>=11.2.1
 pytesseract>=0.3.10  # For OCR
 opencv-python>=4.8.0  # For image processing
 numpy>=1.24.0
 websockets>=12.0  # For WebSocket support
+ollama>=0.1.7
+transformers>=4.40.0
+pyjwt>=2.8.0
+bcrypt>=4.1.2
+orjson>=3.9.10
 
 # Development dependencies
 pytest>=7.4.0
@@ -45,7 +51,9 @@ pyobjc-framework-Quartz>=9.2; platform_system == "Darwin"
 
 # UaiBot requirements (Ubuntu 24.04+)
 # GUI and audio dependencies
-PyQt5>=5.15.0
+PyQt5>=5.15.11
+PyQt5-sip>=12.17.0
+PyQt5-Qt5>=5.15.17
 pyaudio>=0.2.13
 openai-whisper @ git+https://github.com/openai/whisper.git
 # For screenshots and image processing
@@ -53,3 +61,23 @@ Pillow>=9.0.0
 # Add other dependencies below
 pytest==8.0.0
 pytest-asyncio==0.23.5
+
+# Audio and Speech
+pyttsx3>=2.90
+whisper>=1.1.10
+
+# Optional Dependencies
+# For macOS: say (built-in)
+# For Linux: espeak (system package)
+# For Windows: SAPI.SpVoice (built-in)
+
+PyQt5>=5.15.0
+ollama>=0.1.0
+transformers>=4.30.0
+aiohttp>=3.8.0
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.0.0
+colorama>=0.4.6

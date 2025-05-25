@@ -1,4 +1,0 @@
-{
-  "default_ollama_model": "gemma3:4b",
-  "default_ai_provider": "ollama"
-}

@@ -18,6 +18,7 @@ import re
 import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Union, Tuple
+from pathlib import Path
 
 # Import the style manager
 from uaibot.utils.output_style_manager import OutputStyleManager
@@ -51,7 +52,7 @@ class OutputHandler:
         self.result_shown = False
         
         # Core styling engine
-        self.style_mgr = OutputStyleManager(theme=theme)
+        self.style_mgr = OutputStyleManager(theme=theme, config_path=str(Path(__file__).parent.parent.parent / 'config' / 'output_styles.json'))
         
         # Special display flags
         self.verbose_mode = False  # When True, shows more details

@@ -4,10 +4,12 @@ class Tool:
 
     Attributes:
         name (str): Name of the tool.
+        description (str): Description of the tool's functionality.
     Methods:
         execute(action: str, params: dict) -> any: Perform the tool's action.
     """
     name: str
+    description: str
 
-    def execute(self, action: str, params: dict) -> any:
+    async def execute(self, action: str, params: dict) -> any:
         raise NotImplementedError 

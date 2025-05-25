@@ -20,6 +20,9 @@ class UserRoutineAwarenessTool:
     """
     Tool for tracking user routines and activity patterns.
     """
+    name = 'user_routine_awareness'
+    description = "Track user routines and activity patterns"
+
     def __init__(self):
         self.activity = self._init_activity()
         self.logger = logging.getLogger("UserRoutineAwarenessTool")
@@ -33,45 +36,45 @@ class UserRoutineAwarenessTool:
             'last_window_change': time.time(),
         }
 
-    def execute(self, action: str, **kwargs) -> Any:
+    async def execute(self, action: str, **kwargs) -> Any:
         if action == "update_input_activity":
-            return self.update_input_activity()
+            return await self.update_input_activity()
         elif action == "update_screen_dim":
-            return self.update_screen_dim()
+            return await self.update_screen_dim()
         elif action == "update_keyboard_activity":
-            return self.update_keyboard_activity()
+            return await self.update_keyboard_activity()
         elif action == "update_mouse_activity":
-            return self.update_mouse_activity()
+            return await self.update_mouse_activity()
         elif action == "update_window_change":
-            return self.update_window_change()
+            return await self.update_window_change()
         elif action == "get_activity":
             return self.activity.copy()
         else:
             return {"error": f"Unknown action: {action}"}
 
-    def update_input_activity(self) -> Dict[str, float]:
+    async def update_input_activity(self) -> Dict[str, float]:
         self.activity['last_input_time'] = time.time()
         return self.activity.copy()
 
-    def update_screen_dim(self) -> Dict[str, float]:
+    async def update_screen_dim(self) -> Dict[str, float]:
         self.activity['last_screen_dim_time'] = time.time()
         return self.activity.copy()
 
-    def update_keyboard_activity(self) -> Dict[str, float]:
+    async def update_keyboard_activity(self) -> Dict[str, float]:
         self.activity['last_keyboard_activity'] = time.time()
-        self.update_input_activity()
+        await self.update_input_activity()
         return self.activity.copy()
 
-    def update_mouse_activity(self) -> Dict[str, float]:
+    async def update_mouse_activity(self) -> Dict[str, float]:
         self.activity['last_mouse_activity'] = time.time()
-        self.update_input_activity()
+        await self.update_input_activity()
         return self.activity.copy()
 
-    def update_window_change(self) -> Dict[str, float]:
+    async def update_window_change(self) -> Dict[str, float]:
         self.activity['last_window_change'] = time.time()
         return self.activity.copy()
 
-    def get_user_routine(self) -> Dict[str, Any]:
+    async def get_user_routine(self) -> Dict[str, Any]:
         """Get current user activity data.
         
         Returns:
@@ -87,7 +90,7 @@ class UserRoutineAwarenessTool:
             "last_activity": datetime.fromtimestamp(self.activity['last_input_time']).isoformat()
         }
     
-    def is_user_active(self, idle_threshold_seconds: float = 300) -> bool:
+    async def is_user_active(self, idle_threshold_seconds: float = 300) -> bool:
         """Check if user is currently active.
         
         Args:

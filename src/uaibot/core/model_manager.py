@@ -22,6 +22,13 @@ from typing import Optional, Dict, Any, Union, List, TypeVar, Generic, Protocol
 from dataclasses import dataclass, field
 from datetime import datetime
 from .config_manager import ConfigManager
+from .ai.agent import MultiStepPlan, PlanStep
+from .awareness.terminal_tool import TerminalTool
+import os
+import json
+import requests
+import asyncio
+import aiohttp
 
 try:
     import ollama
@@ -83,100 +90,110 @@ class ModelManagerProtocol(Protocol):
     quiet_mode: bool
 
 class ModelManager:
-    """
-    A class to manage AI models for UaiBot.
+    """Manages model selection and interaction."""
     
-    This class provides a unified interface for managing both Ollama and HuggingFace models.
-    It handles model initialization, configuration, and switching between different models.
-    
-    Attributes:
-        config (ConfigManager): Configuration manager instance
-        model_info (ModelInfo): Current model information
-        quiet_mode (bool): If True, reduces terminal output
-    """
-    
-    def __init__(self, config: ConfigManager) -> None:
-        """
-        Initialize the ModelManager.
-        
-        Args:
-            config (ConfigManager): Configuration manager instance
-            
-        Raises:
-            ImportError: If required packages are not installed
-        """
+    def __init__(self, config):
         self.config = config
-        self.quiet_mode: bool = config.get("quiet_mode", False)
-        self.model_info = ModelInfo(
-            name=config.get("default_model", "gemma:4b"),
-            provider=config.get("default_provider", "ollama"),
-            base_url=config.get("ollama_base_url", "http://localhost:11434"),
-            model_path=config.get("huggingface_model_path")
-        )
+        self.logger = logging.getLogger("ModelManager")
+        self.current_model = None
+        self.available_models = []
+        self.terminal = TerminalTool()
         self._initialize_model()
-    
-    def _initialize_model(self) -> None:
-        """Initialize the selected AI model."""
-        if self.model_info.provider == "ollama":
+        self.quiet_mode = False
+
+    def _initialize_model(self):
+        """Initialize the model based on configuration."""
+        try:
             self._initialize_ollama_model()
-        elif self.model_info.provider == "huggingface":
-            self._initialize_huggingface_model()
-        else:
-            raise ValueError(f"Unsupported model provider: {self.model_info.provider}")
-    
-    def _initialize_ollama_model(self) -> None:
-        """Initialize the Ollama AI model."""
+        except Exception as e:
+            self.logger.error(f"Error initializing model: {str(e)}")
+            raise
+
+    def _initialize_ollama_model(self):
+        """Initialize Ollama model with better error handling."""
         try:
-            import requests
+            # Get available models
+            response = requests.get("http://localhost:11434/api/tags")
+            if response.status_code == 200:
+                self.available_models = [model['name'] for model in response.json()['models']]
+            else:
+                raise ConnectionError("Failed to get available models from Ollama API")
+
+            # Get user-selected model from config
+            user_model = self.config.get("model", "qwen3:8b")  # Default to qwen3:8b
+
+            # Check if model is available
+            if user_model not in self.available_models:
+                self.logger.warning(f"Selected model '{user_model}' not available. Available models: {self.available_models}")
+                # Use default model if selected one is not available
+                user_model = "qwen3:8b"
+                self.logger.info(f"Using default model: {user_model}")
+
+            self.current_model = user_model
+            self.logger.info(f"Initialized model: {self.current_model}")
+
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(f"Failed to connect to Ollama API: {str(e)}")
+        except Exception as e:
+            raise ConnectionError(f"Failed to initialize Ollama model: {str(e)}")
+
+    def list_available_models(self) -> List[str]:
+        """List all available models."""
+        try:
+            response = requests.get("http://localhost:11434/api/tags")
+            if response.status_code == 200:
+                return [model['name'] for model in response.json()['models']]
+            return []
+        except Exception as e:
+            self.logger.error(f"Error listing models: {str(e)}")
+            return []
+
+    def switch_model(self, model_name: str) -> bool:
+        """Switch to a different model."""
+        try:
+            if model_name not in self.available_models:
+                self.logger.error(f"Model '{model_name}' not available. Available models: {self.available_models}")
+                return False
             
-            # Check connection to Ollama
-            try:
-                resp = requests.get(f"{self.model_info.base_url}/api/tags", timeout=5)
-                if resp.status_code != 200:
-                    raise ConnectionError(f"Could not connect to Ollama API at {self.model_info.base_url}")
-                
-                # Set default model based on what's available
-                models: List[Dict[str, Any]] = resp.json().get("models", [])
-                if models:
-                    model_names: List[str] = [m["name"] for m in models]
-                    user_model = self.model_info.name
-                    if user_model in model_names:
-                        self.model_info.name = user_model
+            self.current_model = model_name
+            self.config.set("model", model_name)
+            self.logger.info(f"Switched to model: {model_name}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error switching model: {str(e)}")
+            return False
+
+    async def generate_response(self, prompt: str) -> str:
+        """Generate a response using the current model."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "http://localhost:11434/api/generate",
+                    json={
+                        "model": self.current_model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.7,
+                            "top_p": 0.95,
+                            "top_k": 40,
+                            "max_tokens": 1024
+                        }
+                    }
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        return result.get("response", "")
                     else:
-                        raise ValueError(f"User-selected model '{user_model}' is not available in Ollama. Available: {model_names}")
-                
-                self._log(f"Using Ollama model: {self.model_info.name}")
-                
-            except Exception as e:
-                raise ConnectionError(f"Failed to connect to Ollama API: {str(e)}")
-            
-            self._log("Ollama initialized successfully")
-        except ImportError:
-            raise ImportError("Requests package not installed. Run 'pip install requests'")
+                        raise ConnectionError(f"Failed to generate response: {response.status}")
         except Exception as e:
-            self._log(f"Error initializing Ollama: {str(e)}")
+            self.logger.error(f"Error generating response: {str(e)}")
             raise
-    
-    def _initialize_huggingface_model(self) -> None:
-        """Initialize the HuggingFace AI model."""
-        try:
-            if not AutoModelForCausalLM or not AutoTokenizer:
-                raise ImportError("Transformers package not installed. Run 'pip install transformers'")
-            
-            # Load model and tokenizer
-            self._log(f"Loading HuggingFace model: {self.model_info.name}")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_info.name)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_info.name,
-                device_map="auto",
-                torch_dtype="auto"
-            )
-            self._log("HuggingFace model initialized successfully")
-            
-        except Exception as e:
-            self._log(f"Error initializing HuggingFace model: {str(e)}")
-            raise
-    
+
+    def is_available(self) -> bool:
+        """Check if the model manager is available."""
+        return self.current_model is not None
+
     def set_model(self, provider: str, model_name: str) -> None:
         """
         Set the model to use.
@@ -200,39 +217,6 @@ class ModelManager:
         # Reinitialize the model
         self._initialize_model()
     
-    def list_available_models(self) -> Dict[str, List[str]]:
-        """
-        List available models for each provider.
-        
-        Returns:
-            Dict[str, List[str]]: Dictionary mapping provider names to lists of available models
-        """
-        available_models = {
-            "ollama": [],
-            "huggingface": []
-        }
-        
-        # Get Ollama models
-        try:
-            import requests
-            resp = requests.get(f"{self.model_info.base_url}/api/tags", timeout=5)
-            if resp.status_code == 200:
-                models = resp.json().get("models", [])
-                available_models["ollama"] = [m["name"] for m in models]
-        except Exception:
-            pass
-        
-        # Get HuggingFace models (this would require a more sophisticated approach
-        # to list available models, possibly using the HuggingFace Hub API)
-        # For now, we'll return a few common models
-        available_models["huggingface"] = [
-            "mistralai/Mistral-7B-v0.1",
-            "meta-llama/Llama-2-7b-hf",
-            "tiiuae/falcon-7b"
-        ]
-        
-        return available_models
-    
     def _log(self, message: str) -> None:
         """Print a message if not in quiet mode."""
         if not self.quiet_mode:
@@ -241,4 +225,102 @@ class ModelManager:
     def _log_debug(self, message: str) -> None:
         """Log debug messages if not in quiet mode."""
         if not self.quiet_mode:
-            logger.debug(message) 
+            logger.debug(message)
+
+    async def get_plan(self, command: str, **kwargs) -> Optional[MultiStepPlan]:
+        """
+        Create a plan for executing a command.
+        
+        Args:
+            command (str): The command to plan for
+            **kwargs: Additional parameters for the command
+            
+        Returns:
+            Optional[MultiStepPlan]: A plan for executing the command, or None if planning fails
+        """
+        try:
+            # Handle known commands directly
+            known_commands = {
+                "get_activity": "user_routine_awareness",
+                "tts": "speech",
+                "show_emoji": "display",
+                "get_all_devices": "device_awareness",
+                "status": "system_awareness"
+            }
+            
+            # Handle natural language queries
+            if command.lower().startswith(("hi", "hello", "hey")):
+                return MultiStepPlan(steps=[
+                    PlanStep(
+                        action="terminal",
+                        parameters={"text": "Hello! I am Labeeb (لبيب), your intelligent assistant. How can I help you today?"}
+                    )
+                ])
+            
+            if "who are you" in command.lower() or "what is your name" in command.lower():
+                return MultiStepPlan(steps=[
+                    PlanStep(
+                        action="terminal",
+                        parameters={"text": "I am Labeeb (لبيب), which means intelligent and wise in Arabic. I'm here to assist you with various tasks and provide thoughtful solutions."}
+                    )
+                ])
+            
+            if "temperature" in command.lower() or "weather" in command.lower():
+                return MultiStepPlan(steps=[
+                    PlanStep(
+                        action="terminal",
+                        parameters={"text": "I apologize, but I don't have access to weather information yet. This capability will be added in a future update."}
+                    )
+                ])
+            
+            # Check for known commands
+            for cmd, tool in known_commands.items():
+                if cmd in command.lower():
+                    return MultiStepPlan(steps=[
+                        PlanStep(
+                            action=tool,
+                            parameters=kwargs
+                        )
+                    ])
+            
+            # For unknown commands, try to get a plan from the model
+            prompt = f"""Create a plan to execute the following command: {command}
+            Parameters: {kwargs}
+            
+            Return the plan in JSON format with the following structure:
+            {{
+                "steps": [
+                    {{
+                        "action": "tool_name",
+                        "parameters": {{}}
+                    }}
+                ]
+            }}
+            """
+            
+            # Get the model's response
+            response = await self.generate_response(prompt)
+            
+            # Parse the response into a plan
+            try:
+                plan_data = json.loads(response)
+                steps = []
+                for step in plan_data.get('steps', []):
+                    steps.append(PlanStep(
+                        action=step['action'],
+                        parameters=step.get('parameters', {})
+                    ))
+                return MultiStepPlan(steps=steps)
+            except json.JSONDecodeError:
+                self.logger.error("Failed to parse model response as JSON")
+                # Return a default plan for unknown commands
+                return MultiStepPlan(steps=[
+                    PlanStep(
+                        action="terminal",
+                        parameters={"text": f"I'm not sure how to handle '{command}' yet. Could you please rephrase or try a different command?"}
+                    )
+                ])
+                
+        except Exception as e:
+            self.logger.error(f"Error creating plan: {str(e)}")
+            return None 

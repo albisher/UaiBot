@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 import logging
 import asyncio
+from pathlib import Path
+import platform
 
 from uaibot.core.ai.agent import Agent, MultiStepPlan, PlanStep
 from uaibot.core.config_manager import ConfigManager
@@ -18,9 +20,23 @@ from uaibot.core.model_manager import ModelManager
 from uaibot.core.cache import Cache
 from uaibot.core.auth_manager import AuthManager
 from uaibot.core.plugin_manager import PluginManager
-from uaibot.core.awareness.system_awareness import SystemAwarenessTool
+from uaibot.core.learning import LearningManager
+from uaibot.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
 from uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessTool
 from uaibot.core.awareness.device_awareness import DeviceAwarenessTool
+from uaibot.core.awareness.speech_tool import SpeechTool
+from uaibot.core.awareness.display_tool import DisplayTool
+from uaibot.core.tools.json_tools import JSONTool
+
+class DefaultTool:
+    """Fallback tool for unknown or unsupported actions."""
+    name = 'default'
+    description = "Handles unknown or unsupported actions with a friendly message."
+    def execute(self, action: str, **kwargs):
+        # Friendly fallback for unknown actions
+        if action.lower() in ["hi", "hello", "hey", "salam", "مرحبا", "السلام عليكم"]:
+            return {"output": "👋 Hello! I'm Labeeb (لبيب), your intelligent assistant. How can I help you today?"}
+        return {"error": "Sorry, I didn't understand that command. Please try rephrasing or ask for help."}
 
 class UaiAgent(Agent):
     """Main UaiBot agent implementation."""
@@ -29,7 +45,7 @@ class UaiAgent(Agent):
                  cache: Cache, auth_manager: AuthManager,
                  plugin_manager: PluginManager):
         """Initialize the UaiBot agent."""
-        super().__init__(name="UaiBot")
+        super().__init__(name="Labeeb")  # Changed name to Labeeb
         
         # Store components
         self.config = config
@@ -37,13 +53,28 @@ class UaiAgent(Agent):
         self.cache = cache
         self.auth_manager = auth_manager
         self.plugin_manager = plugin_manager
+        self.learning_manager = LearningManager()
+        
+        # Initialize memory
+        self.memory = {
+            "identity": {
+                "name": "Labeeb",
+                "meaning": "Intelligent, wise, sensible",
+                "language": "Arabic",
+                "description": "An AI assistant focused on smart assistance and thoughtful decision-making"
+            },
+            "conversation_history": [],
+            "learned_patterns": {},
+            "last_interaction": None
+        }
         
         # Load plugins
         self._load_plugins()
         
         # Set up logging
-        self.logger = logging.getLogger("UaiBot.Agent")
+        self.logger = logging.getLogger("Labeeb.Agent")
         
+        # Initialize tools
         self.system_awareness_tool = SystemAwarenessTool()
         self.register_tool(self.system_awareness_tool)
         
@@ -52,6 +83,15 @@ class UaiAgent(Agent):
         
         self.device_awareness_tool = DeviceAwarenessTool()
         self.register_tool(self.device_awareness_tool)
+        
+        self.speech_tool = SpeechTool()
+        self.register_tool(self.speech_tool)
+        
+        self.display_tool = DisplayTool()
+        self.register_tool(self.display_tool)
+        
+        self.default_tool = DefaultTool()
+        self.register_tool(self.default_tool)
     
     def _load_plugins(self):
         """Load enabled plugins."""
@@ -65,38 +105,56 @@ class UaiAgent(Agent):
     async def plan_and_execute(self, command: str, **kwargs) -> Any:
         """
         Plan and execute a command.
-        
-        Args:
-            command (str): The command to execute
-            **kwargs: Additional parameters for the command
-            
-        Returns:
-            Any: The result of the command execution
+        Returns a dict with 'output', 'error', or 'raw' for CLI formatting.
         """
         self.logger.info(f"Processing command: {command}")
-        
-        # Check authentication
+        self.memory["last_interaction"] = datetime.now().isoformat()
+        self.memory["conversation_history"].append({
+            "timestamp": self.memory["last_interaction"],
+            "command": command,
+            "parameters": kwargs
+        })
         if not self.auth_manager.is_authenticated():
             return {"error": "Not authenticated. Please log in first."}
-        
-        # Check cache
         cache_key = f"cmd:{command}:{str(kwargs)}"
         cached_result = self.cache.get(cache_key)
         if cached_result is not None:
             self.logger.debug("Returning cached result")
             return cached_result
-        
-        # Create and execute plan
-        plan = self._create_plan(command, **kwargs)
-        result = self._execute_plan(plan)
-        
-        # Cache result
+        plan = await self._create_plan(command, **kwargs)
+        result = await self._execute_plan(plan)
         if result is not None:
+            self.learning_manager.learn_from_result(command, {
+                "status": "success" if result else "failed",
+                "action": plan.steps[0].action if plan.steps else None,
+                "os": platform.system(),
+                "capability": "general"
+            })
             self.cache.set(cache_key, result)
-        
-        return result
+        # Always return a dict for CLI formatting
+        if isinstance(result, dict):
+            if "error" in result:
+                return {"error": result["error"]}
+            if "output" in result:
+                return {"output": result["output"]}
+            if "message" in result:
+                return {"output": result["message"]}
+            if "text" in result:
+                return {"output": result["text"]}
+            if "raw" in result:
+                return {"raw": result["raw"]}
+            return {"raw": str(result)}
+        elif isinstance(result, str):
+            # Detect fallback/model errors
+            if "Failed to parse model response as JSON" in result or "not sure" in result.lower():
+                return {"error": result}
+            return {"output": result}
+        elif result is False or result is None:
+            return {"error": "No output."}
+        else:
+            return {"raw": str(result)}
     
-    def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
+    async def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
         """Create a plan for executing the command."""
         # Check if any plugin can handle this command
         for plugin in self.plugin_manager.get_plugins():
@@ -111,7 +169,7 @@ class UaiAgent(Agent):
         if self.model_manager.is_available():
             try:
                 # Get model's plan
-                model_plan = self.model_manager.get_plan(command, **kwargs)
+                model_plan = await self.model_manager.get_plan(command, **kwargs)
                 if model_plan:
                     return model_plan
             except Exception as e:
@@ -122,44 +180,69 @@ class UaiAgent(Agent):
             PlanStep(action=command, parameters=kwargs)
         ])
     
-    def _execute_plan(self, plan: MultiStepPlan) -> Any:
-        """Execute a plan step by step."""
+    async def _execute_plan(self, plan: MultiStepPlan) -> Any:
+        """Execute a plan step by step. Returns the last step's result or error."""
         plan.status = "in_progress"
-        
         for i, step in enumerate(plan.steps):
             plan.current_step = i
             step.status = "in_progress"
-            
             try:
-                # Handle plugin results
                 if step.action == "plugin":
                     step.result = step.parameters.get("result")
                     step.status = "completed"
                     continue
-                
-                # Execute the step
-                if step.action in self.tools:
-                    step.result = self.tools[step.action].execute(**step.parameters)
-                    step.status = "completed"
+                tool = self.tools.get(step.action)
+                if not tool:
+                    # Use DefaultTool for unknown actions
+                    tool = self.default_tool
+                if asyncio.iscoroutinefunction(tool.execute):
+                    step.result = await tool.execute(action=step.action, **step.parameters)
                 else:
-                    step.status = "failed"
-                    step.error = f"Unknown action: {step.action}"
-                    break
-                
+                    step.result = tool.execute(action=step.action, **step.parameters)
+                step.status = "completed"
             except Exception as e:
                 step.status = "failed"
                 step.error = str(e)
                 self.logger.error(f"Error executing step {i}: {str(e)}")
                 break
-        
-        # Update plan status
         if all(step.status == "completed" for step in plan.steps):
             plan.status = "completed"
             plan.completed_at = datetime.now()
         else:
             plan.status = "failed"
-        
-        return plan.steps[-1].result if plan.steps else None
+        last_result = plan.steps[-1].result if plan.steps else None
+        last_error = plan.steps[-1].error if plan.steps and hasattr(plan.steps[-1], 'error') else None
+        if last_error:
+            return {"error": last_error}
+        if last_result is None or last_result is True:
+            return {"error": "No output."}
+        elif last_result is False:
+            return {"error": "No output."}
+        elif isinstance(last_result, dict):
+            if "error" in last_result:
+                return {"error": last_result["error"]}
+            if "output" in last_result:
+                return {"output": last_result["output"]}
+            if "message" in last_result:
+                return {"output": last_result["message"]}
+            if "text" in last_result:
+                return {"output": last_result["text"]}
+            if "raw" in last_result:
+                return {"raw": last_result["raw"]}
+            return {"raw": str(last_result)}
+        return {"output": str(last_result)}
+
+    def get_identity(self) -> Dict[str, Any]:
+        """Get the agent's identity information."""
+        return self.memory["identity"]
+
+    def get_conversation_history(self) -> List[Dict[str, Any]]:
+        """Get the agent's conversation history."""
+        return self.memory["conversation_history"]
+
+    def get_learned_patterns(self) -> Dict[str, Any]:
+        """Get the agent's learned patterns."""
+        return self.memory["learned_patterns"]
 
     def _setup_logger(self) -> logging.Logger:
         """Set up logging for the agent."""

@@ -17,6 +17,7 @@ import sys
 import os
 from typing import Optional, Any, Dict, Union, List
 from uaibot.core.logging_config import get_logger
+from pathlib import Path
 
 # Import the OutputHandler as our implementation class
 from uaibot.utils.output_handler import OutputHandler
@@ -56,7 +57,7 @@ class OutputFacade:
             raise RuntimeError("Use OutputFacade.get_instance() to get the singleton instance")
             
         # Create the actual handler that will implement our output operations
-        self._handler = OutputHandler(theme=theme)
+        self._handler = OutputHandler(theme=theme, config_path=str(Path(__file__).parent.parent.parent / 'config' / 'output_styles.json'))
         
         # Set verbosity level
         self._set_verbosity(verbosity)

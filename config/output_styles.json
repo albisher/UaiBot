@@ -19,36 +19,22 @@
       "warning": "⚠️",
       "error": "❌",
       "info": "ℹ️",
-      "loading": "🔄",
       "robot": "🤖",
-      "settings": "⚙️",
-      "security": "🔐",
       "stats": "📊",
       "computer": "💻",
-      "mobile": "📱",
-      "printer": "🖨️",
-      "camera": "📷",
-      "controller": "🎮",
       "folder": "📁",
       "file": "📄",
       "document": "📝",
-      "code": "📜",
-      "web": "🌐",
-      "signal": "📡",
-      "wifi": "📶",
-      "lock": "🔒",
+      "time": "🕒",
       "green": "🟢",
       "yellow": "🟡",
       "red": "🔴",
-      "blue": "🔵",
       "search": "🔍",
-      "play": "▶️",
-      "pause": "⏸️",
-      "stop": "⏹️",
       "tip": "💡",
-      "time": "🕒",
       "question": "❓",
-      "thinking": "🤔"
+      "thinking": "🤔",
+      "command": "📌",
+      "explanation": "💬"
     },
     "minimal": {
       "success": "+",
@@ -58,10 +44,19 @@
       "robot": "R",
       "stats": "#",
       "folder": "D",
-      "file": "f",
-      "green": "O",
-      "yellow": "O",
-      "red": "O"
+      "file": "F",
+      "time": "T",
+      "green": "o",
+      "yellow": "o",
+      "red": "o",
+      "document": "D",
+      "computer": "C",
+      "search": "S",
+      "tip": "*",
+      "question": "?",
+      "thinking": "?",
+      "command": ">",
+      "explanation": "="
     },
     "ascii": {
       "success": "[OK]",
@@ -69,16 +64,19 @@
       "error": "[X]",
       "info": "[i]",
       "robot": "[BOT]",
-      "settings": "[CFG]",
-      "security": "[SEC]",
       "stats": "[STATS]",
-      "computer": "[PC]",
       "folder": "[DIR]",
       "file": "[FILE]",
+      "document": "[DOC]",
+      "time": "[TIME]",
       "green": "[+]",
       "yellow": "[~]",
       "red": "[-]",
-      "tip": "[TIP]"
+      "tip": "[TIP]",
+      "question": "[?]",
+      "thinking": "[?]",
+      "command": "[>]",
+      "explanation": "[=]"
     }
   },
   "box_styles": {
@@ -121,4 +119,4 @@
       "box_style": "default"
     }
   }
-}
+} 

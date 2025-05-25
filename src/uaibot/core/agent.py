@@ -12,12 +12,14 @@ sys.path.append(str(src_path))
 
 from uaibot.core.tools.system_tools import SystemTools
 from uaibot.platform_uai.platform_utils import get_input_handler
+from uaibot.core.tools.json_tools import JSONTool
 
 class UaiAgent:
     """Master agent that coordinates tasks and tools."""
     
     def __init__(self):
         self.tools = SystemTools()
+        self.json_tool = JSONTool()
         self.input_handler = get_input_handler()
         self.memory = {}  # Simple memory for now
         self.logger = self._setup_logger()

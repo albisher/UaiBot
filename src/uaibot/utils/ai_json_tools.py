@@ -1,5 +1,8 @@
 import json
 import os
+import warnings
+
+warnings.warn("ai_json_tools.py is deprecated. Use JSONTool from src/uaibot/core/tools/json_tools.py instead.")
 
 def process_ai_json_output(ai_json_str):
     """

@@ -133,7 +133,7 @@ class Tool(Protocol):
     name: str
     description: str
     
-    def execute(self, **kwargs) -> Any:
+    async def execute(self, **kwargs) -> Any:
         """Execute the tool with the given parameters."""
         ...
 
@@ -237,16 +237,16 @@ class Agent:
     def __init__(self, name: str = "BaseAgent"):
         """Initialize the agent."""
         self.name = name
-        self.tools: Dict[str, Tool] = {}
+        self.tools = ToolRegistry()
         self.memory = AgentMemory()
         self.logger = logging.getLogger(f"UaiAgent.{name}")
     
     def register_tool(self, tool: Tool) -> None:
         """Register a new tool with the agent."""
-        self.tools[tool.name] = tool
+        self.tools.register(tool)
         self.logger.debug(f"Registered tool: {tool.name}")
     
-    def plan_and_execute(self, command: str, **kwargs) -> Any:
+    async def plan_and_execute(self, command: str, **kwargs) -> Any:
         """
         Plan and execute a command.
         
@@ -259,26 +259,25 @@ class Agent:
         """
         self.logger.info(f"Processing command: {command}")
         
-        # Create a plan
-        plan = self._create_plan(command, **kwargs)
+        # Create and execute plan
+        plan = await self._create_plan(command, **kwargs)
+        result = await self._execute_plan(plan)
         
-        # Execute the plan
-        result = self._execute_plan(plan)
-        
-        # Add to memory
-        self.memory.add_step(command, plan.steps[0].action if plan.steps else "unknown", 
-                           plan.steps[0].parameters if plan.steps else {}, result)
+        # Update memory
+        self.memory.add_step(command, plan.steps[-1].action if plan.steps else "unknown",
+                           plan.steps[-1].parameters if plan.steps else {},
+                           result)
         
         return result
     
-    def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
+    async def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
         """Create a plan for executing the command."""
-        # This is a simplified version - subclasses should override this
+        # Default to single-step plan
         return MultiStepPlan(steps=[
             PlanStep(action=command, parameters=kwargs)
         ])
     
-    def _execute_plan(self, plan: MultiStepPlan) -> Any:
+    async def _execute_plan(self, plan: MultiStepPlan) -> Any:
         """Execute a plan step by step."""
         plan.status = "in_progress"
         
@@ -289,8 +288,14 @@ class Agent:
             try:
                 # Execute the step
                 if step.action in self.tools:
-                    step.result = self.tools[step.action].execute(**step.parameters)
-                    step.status = "completed"
+                    tool = self.tools.get(step.action)
+                    if tool:
+                        step.result = await tool.execute(**step.parameters)
+                        step.status = "completed"
+                    else:
+                        step.status = "failed"
+                        step.error = f"Tool not found: {step.action}"
+                        break
                 else:
                     step.status = "failed"
                     step.error = f"Unknown action: {step.action}"

@@ -9,6 +9,15 @@ base_requires = [
     "openai-whisper @ git+https://github.com/openai/whisper.git",
     "Pillow>=9.0.0",
     "smolagents>=0.1.0",
+    "ollama>=0.1.0",
+    "transformers>=4.30.0",
+    "aiohttp>=3.8.0",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "scikit-learn>=1.0.0",
+    "colorama>=0.4.6",
     # ... add other core agentic dependencies here ...
 ]
 

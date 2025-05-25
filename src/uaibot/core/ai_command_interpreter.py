@@ -12,6 +12,7 @@ from datetime import datetime
 
 from uaibot.core.logging_config import get_logger
 from uaibot.core.file_operations import handle_file_operation
+from uaibot.core.tools.json_tools import JSONTool
 
 logger = get_logger(__name__)
 
@@ -59,6 +60,7 @@ class AICommandInterpreter:
         """Initialize the AI command interpreter."""
         self.command_history: List[CommandHistoryEntry] = []
         self.context: Dict[str, Any] = {}
+        self.json_tool = JSONTool()
         
     def interpret_command(self, command: str, language: str = 'en') -> InterpretedCommand:
         """
@@ -204,7 +206,7 @@ class AICommandInterpreter:
             filepath = Path('context.json')
         
         with open(filepath, 'w') as f:
-            json.dump(self.context, f, indent=2)
+            f.write(self.json_tool.dump(self.context, pretty=True))
     
     def load_context(self, filepath: Optional[Path] = None) -> None:
         """
@@ -218,4 +220,4 @@ class AICommandInterpreter:
         
         if filepath.exists():
             with open(filepath, 'r') as f:
-                self.context = json.load(f) 
+                self.context = self.json_tool.load(f.read()) 

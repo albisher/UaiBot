@@ -8,6 +8,9 @@ class DeviceAwarenessTool:
     """
     Tool for detecting and monitoring devices (USB, Audio, Screen) across platforms.
     """
+    name = 'device_awareness'
+    description = "Detect and monitor devices (USB, Audio, Screen) across platforms"
+
     def __init__(self):
         self.logger = logging.getLogger("DeviceAwarenessTool")
         self._setup_platform_specific()
@@ -49,31 +52,31 @@ class DeviceAwarenessTool:
             self.logger.warning("subprocess not available on Linux")
             self.subprocess = None
 
-    def execute(self, action: str, **kwargs) -> Any:
+    async def execute(self, action: str, **kwargs) -> Any:
         """Execute a device awareness action."""
         if action == "get_usb_devices":
-            return self.get_usb_devices()
+            return await self.get_usb_devices()
         elif action == "get_audio_devices":
-            return self.get_audio_devices()
+            return await self.get_audio_devices()
         elif action == "get_screen_devices":
-            return self.get_screen_devices()
+            return await self.get_screen_devices()
         elif action == "get_all_devices":
-            return self.get_all_devices()
+            return await self.get_all_devices()
         else:
             return {"error": f"Unknown action: {action}"}
 
-    def get_usb_devices(self) -> List[Dict[str, Any]]:
+    async def get_usb_devices(self) -> List[Dict[str, Any]]:
         """Get list of connected USB devices."""
         devices = []
         if self.system == "Darwin":
-            devices = self._get_macos_usb_devices()
+            devices = await self._get_macos_usb_devices()
         elif self.system == "Windows":
-            devices = self._get_windows_usb_devices()
+            devices = await self._get_windows_usb_devices()
         else:  # Linux
-            devices = self._get_linux_usb_devices()
+            devices = await self._get_linux_usb_devices()
         return devices
 
-    def _get_macos_usb_devices(self) -> List[Dict[str, Any]]:
+    async def _get_macos_usb_devices(self) -> List[Dict[str, Any]]:
         """Get USB devices on macOS."""
         devices = []
         try:
@@ -89,7 +92,7 @@ class DeviceAwarenessTool:
             self.logger.error(f"Error getting macOS USB devices: {str(e)}")
         return devices
 
-    def _get_windows_usb_devices(self) -> List[Dict[str, Any]]:
+    async def _get_windows_usb_devices(self) -> List[Dict[str, Any]]:
         """Get USB devices on Windows."""
         devices = []
         try:
@@ -104,7 +107,7 @@ class DeviceAwarenessTool:
             self.logger.error(f"Error getting Windows USB devices: {str(e)}")
         return devices
 
-    def _get_linux_usb_devices(self) -> List[Dict[str, Any]]:
+    async def _get_linux_usb_devices(self) -> List[Dict[str, Any]]:
         """Get USB devices on Linux."""
         devices = []
         try:
@@ -121,7 +124,7 @@ class DeviceAwarenessTool:
             self.logger.error(f"Error getting Linux USB devices: {str(e)}")
         return devices
 
-    def get_audio_devices(self) -> List[Dict[str, Any]]:
+    async def get_audio_devices(self) -> List[Dict[str, Any]]:
         """Get list of audio input/output devices."""
         devices = []
         try:
@@ -143,7 +146,7 @@ class DeviceAwarenessTool:
             self.logger.error(f"Error getting audio devices: {str(e)}")
         return devices
 
-    def get_screen_devices(self) -> List[Dict[str, Any]]:
+    async def get_screen_devices(self) -> List[Dict[str, Any]]:
         """Get list of screen/monitor devices."""
         devices = []
         try:
@@ -178,10 +181,10 @@ class DeviceAwarenessTool:
             self.logger.error(f"Error getting screen devices: {str(e)}")
         return devices
 
-    def get_all_devices(self) -> Dict[str, List[Dict[str, Any]]]:
+    async def get_all_devices(self) -> Dict[str, List[Dict[str, Any]]]:
         """Get all detected devices."""
         return {
-            "usb": self.get_usb_devices(),
-            "audio": self.get_audio_devices(),
-            "screen": self.get_screen_devices()
+            "usb": await self.get_usb_devices(),
+            "audio": await self.get_audio_devices(),
+            "screen": await self.get_screen_devices()
         } 
