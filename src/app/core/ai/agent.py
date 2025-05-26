@@ -1,5 +1,10 @@
 """
-Agent base class and tool registry for agentic architecture.
+Base agent class and tool registry for agentic architecture.
+
+This module implements the core agent functionality following:
+- SmolAgents pattern for minimal, efficient agent implementation
+- A2A (Agent-to-Agent) protocol for agent collaboration
+- MCP (Multi-Channel Protocol) for unified channel support
 
 Agents/Tools:
 - EchoTool: Echoes text
@@ -22,15 +27,6 @@ Workflow Orchestration:
 - Supports plan decomposition into multiple steps (sequential, parallel, conditional).
 - Each step is executed and tracked in memory.
 - Parallel/conditional logic is stubbed for future extension.
-
-Classes:
-- Tool: Base class for agent tools.
-- ToolRegistry: Registry for tool discovery and invocation.
-- AgentStep: Structured memory for each step.
-- AgentMemory: Rich memory/state for multi-step workflows.
-- MultiStepPlan: Structure for multi-step plans.
-- LLMPlanner: Returns single or multi-step plans.
-- Agent: Base agent class with plan/execute loop and workflow orchestration.
 """
 from typing import Any, Dict, List, Optional, Callable, Union, Protocol, TypeVar, Generic
 from dataclasses import dataclass, field
@@ -54,6 +50,9 @@ from app.core.ai.tool_base import Tool
 import logging
 import os
 from pathlib import Path
+from .a2a_protocol import A2AProtocol, Message, MessageRole
+from .mcp_protocol import MCPProtocol, MCPRequest, MCPResponse
+from .smol_agent import SmolAgent, AgentState, AgentResult
 
 def safe_path(filename: str, category: str = "test") -> str:
     """
@@ -72,62 +71,6 @@ def safe_path(filename: str, category: str = "test") -> str:
     return filename
 
 @dataclass
-class AgentStep:
-    step_number: int
-    command: str
-    action: str
-    params: Dict[str, Any]
-    result: Any
-    timestamp: str
-
-@dataclass
-class AgentMemory:
-    """
-    Rich agent memory/state for multi-step workflows.
-    Stores each step as a structured object.
-    """
-    steps: List[AgentStep] = field(default_factory=list)
-
-    def add_step(self, command: str, action: str, params: Dict[str, Any], result: Any):
-        step = AgentStep(
-            step_number=len(self.steps) + 1,
-            command=command,
-            action=action,
-            params=params,
-            result=result,
-            timestamp=datetime.utcnow().isoformat()
-        )
-        self.steps.append(step)
-
-    def get_full_history(self) -> List[AgentStep]:
-        return self.steps
-
-    def get_last_step(self) -> Optional[AgentStep]:
-        return self.steps[-1] if self.steps else None
-
-    def prune(self, max_steps: int = 50):
-        if len(self.steps) > max_steps:
-            self.steps = self.steps[-max_steps:]
-
-@dataclass
-class PlanStep:
-    """A single step in a multi-step plan."""
-    action: str
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    status: str = "pending"  # pending, in_progress, completed, failed
-    result: Optional[Any] = None
-    error: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.now)
-
-@dataclass
-class MultiStepPlan:
-    """A plan consisting of multiple steps."""
-    steps: List[PlanStep] = field(default_factory=list)
-    status: str = "pending"  # pending, in_progress, completed, failed
-    current_step: int = 0
-    created_at: datetime = field(default_factory=datetime.now)
-    completed_at: Optional[datetime] = None
-
 class Tool(Protocol):
     """Protocol defining the interface for tools."""
     name: str
@@ -137,26 +80,82 @@ class Tool(Protocol):
         """Execute the tool with the given parameters."""
         ...
 
+@dataclass
 class ToolRegistry:
     """
     Registry for agent tools. Allows agents to discover and invoke tools by name.
-
-    Methods:
-        register(tool: Tool): Register a tool.
-        get(tool_name: str) -> Optional[Tool]: Retrieve a tool by name.
-        list_tools() -> List[str]: List all registered tool names.
+    Implements A2A and MCP protocols for tool discovery and invocation.
     """
     def __init__(self):
         self._tools: Dict[str, Tool] = {}
+        self._a2a_protocol = A2AProtocol()
+        self._mcp_protocol = MCPProtocol()
 
     def register(self, tool: Tool):
+        """Register a tool with the registry."""
         self._tools[tool.name] = tool
+        # Register tool with A2A and MCP protocols
+        self._a2a_protocol.register_tool(tool)
+        self._mcp_protocol.register_tool(tool)
 
     def get(self, tool_name: str) -> Optional[Tool]:
+        """Get a tool by name."""
         return self._tools.get(tool_name)
 
     def list_tools(self) -> List[str]:
+        """List all registered tool names."""
         return list(self._tools.keys())
+
+    async def execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
+        """Execute a tool with the given parameters."""
+        tool = self.get(tool_name)
+        if not tool:
+            raise ValueError(f"Tool {tool_name} not found")
+        return await tool.execute(**params)
+
+@dataclass
+class AgentMemory:
+    """Rich memory/state for multi-step workflows."""
+    steps: List[Dict[str, Any]] = field(default_factory=list)
+    context: Dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    def add_step(self, command: str, action: str, params: Dict[str, Any], result: Any):
+        """Add a step to the memory."""
+        self.steps.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "command": command,
+            "action": action,
+            "params": params,
+            "result": result
+        })
+        self.updated_at = datetime.utcnow().isoformat()
+
+    def get_steps(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get memory steps, optionally limited to the most recent ones."""
+        if limit is None:
+            return self.steps
+        return self.steps[-limit:]
+
+    def clear(self):
+        """Clear memory."""
+        self.steps = []
+        self.context = {}
+        self.updated_at = datetime.utcnow().isoformat()
+
+@dataclass
+class PlanStep:
+    """Single step in a multi-step plan."""
+    action: str
+    parameters: Dict[str, Any]
+    condition: Optional[Callable[[Dict[str, Any]], bool]] = None
+
+@dataclass
+class MultiStepPlan:
+    """Structure for multi-step plans."""
+    steps: List[PlanStep]
+    parallel: bool = False
 
 class LLMPlanner:
     """
@@ -223,23 +222,28 @@ class EchoTool(Tool):
             return params.get("text", "")
         raise ValueError(f"Unknown action: {action}")
 
-class Agent:
+class Agent(SmolAgent):
     """
     Base agent class for Labeeb.
     
     This class provides core functionality for:
-    - Tool management
+    - Tool management (A2A, MCP compliant)
     - Command planning and execution
     - Memory management
     - Logging and error handling
+    
+    Implements SmolAgents pattern for minimal, efficient agent implementation.
     """
     
-    def __init__(self, name: str = "BaseAgent"):
+    def __init__(self, name: str = "BaseAgent", state_dir: Optional[str] = None):
         """Initialize the agent."""
+        super().__init__(name, state_dir)
         self.name = name
         self.tools = ToolRegistry()
         self.memory = AgentMemory()
         self.logger = logging.getLogger(f"LabeebAgent.{name}")
+        self._a2a_protocol = A2AProtocol()
+        self._mcp_protocol = MCPProtocol()
     
     def register_tool(self, tool: Tool) -> None:
         """Register a new tool with the agent."""
@@ -278,47 +282,39 @@ class Agent:
         ])
     
     async def _execute_plan(self, plan: MultiStepPlan) -> Any:
-        """Execute a plan step by step."""
-        plan.status = "in_progress"
-        
-        for i, step in enumerate(plan.steps):
-            plan.current_step = i
-            step.status = "in_progress"
-            
-            try:
-                # Execute the step
-                if step.action in self.tools:
-                    tool = self.tools.get(step.action)
-                    if tool:
-                        step.result = await tool.execute(**step.parameters)
-                        step.status = "completed"
-                    else:
-                        step.status = "failed"
-                        step.error = f"Tool not found: {step.action}"
-                        break
-                else:
-                    step.status = "failed"
-                    step.error = f"Unknown action: {step.action}"
-                    break
-                
-            except Exception as e:
-                step.status = "failed"
-                step.error = str(e)
-                self.logger.error(f"Error executing step {i}: {str(e)}")
-                break
-        
-        # Update plan status
-        if all(step.status == "completed" for step in plan.steps):
-            plan.status = "completed"
-            plan.completed_at = datetime.now()
-        else:
-            plan.status = "failed"
-        
-        return plan.steps[-1].result if plan.steps else None
-    
-    def get_memory(self) -> List[AgentStep]:
-        """Get the agent's memory."""
-        return self.memory.get_full_history()
+        """Execute a multi-step plan."""
+        results = []
+        for step in plan.steps:
+            if step.condition and not step.condition(self.memory.context):
+                continue
+            result = await self.tools.execute_tool(step.action, step.parameters)
+            results.append(result)
+        return results[-1] if results else None
+
+    async def handle_a2a_message(self, message: Message) -> Message:
+        """Handle an A2A message."""
+        return await self._a2a_protocol.handle_message(message)
+
+    async def handle_mcp_request(self, request: MCPRequest) -> MCPResponse:
+        """Handle an MCP request."""
+        return await self._mcp_protocol.handle_request(request)
+
+    def get_state(self) -> Dict[str, Any]:
+        """Get current agent state."""
+        return {
+            "name": self.name,
+            "memory": {
+                "steps": self.memory.steps,
+                "context": self.memory.context,
+                "created_at": self.memory.created_at,
+                "updated_at": self.memory.updated_at
+            },
+            "tools": self.tools.list_tools()
+        }
+
+    def clear_memory(self):
+        """Clear agent memory."""
+        self.memory.clear()
 
 # Minimal test agent usage
 if __name__ == "__main__":
@@ -327,5 +323,5 @@ if __name__ == "__main__":
     result = agent.plan_and_execute("echo", text="Hello, agent world!")
     print(f"Result: {result}")
     print("\nAgent memory steps:")
-    for step in agent.get_memory():
+    for step in agent.get_state()["memory"]["steps"]:
         print(step) 

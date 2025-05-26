@@ -1,165 +1,229 @@
-# Labeeb (لبيب) - Intelligent AI Assistant
+# Labeeb
 
-Labeeb (لبيب) is an intelligent AI assistant that provides thoughtful solutions and smart assistance. The name means "intelligent, wise, sensible" in Arabic.
+Labeeb is a powerful AI agent framework that implements the SmolAgents pattern, A2A (Agent-to-Agent) protocol, and MCP (Multi-Channel Protocol) for efficient and scalable agent-based systems.
 
 ## Features
 
-- Natural language interaction
-- Cross-platform support (Linux, Windows, macOS)
-- Multi-language capabilities
-- Device awareness and monitoring
-- User routine tracking
-- Text-to-speech and speech-to-text
-- Terminal-based CLI interface
-- Optional GUI display capabilities
-- Learning and adaptation
-- Vector-based memory and knowledge storage
-- Semantic search capabilities
+- **SmolAgents Pattern**: Minimal, efficient agent implementation with clear state management and tool integration
+- **A2A Protocol**: Robust agent-to-agent communication with message passing, tool sharing, and state synchronization
+- **MCP Protocol**: Unified interface for multiple communication channels (HTTP, WebSocket, gRPC, MQTT, Redis, File)
+- **Multi-Language Support**: Comprehensive internationalization with special focus on Arabic and RTL languages
+- **Cross-Platform**: Support for macOS, Windows, and Ubuntu with platform-specific optimizations
+- **Extensible**: Easy to add new agents, tools, and channels
+- **Testable**: Built-in testing support with clear interfaces and state management
+
+## Architecture
+
+### Core Components
+
+1. **SmolAgent**
+   - Minimal, efficient agent implementation
+   - Clear state management
+   - Tool integration
+   - Error handling
+   - Testing support
+
+2. **A2A Protocol**
+   - Direct agent-to-agent communication
+   - Message passing
+   - Tool sharing and discovery
+   - State synchronization
+   - Error handling and recovery
+
+3. **MCP Protocol**
+   - Unified channel interface
+   - Channel discovery and registration
+   - Message routing
+   - Channel state management
+   - Error handling and recovery
+
+4. **Internationalization**
+   - Multi-language support
+   - RTL language handling
+   - Regional variants
+   - Translation management
+   - Fallback mechanisms
+
+### Directory Structure
+
+```
+labeeb/
+├── src/
+│   ├── app/
+│   │   ├── core/
+│   │   │   ├── ai/
+│   │   │   │   ├── agent.py
+│   │   │   │   ├── a2a_protocol.py
+│   │   │   │   ├── mcp_protocol.py
+│   │   │   │   └── smol_agent.py
+│   │   │   └── i18n/
+│   │   │       ├── i18n.py
+│   │   │       └── translations/
+│   │   └── platform_core/
+│   │       ├── platform_manager.py
+│   │       └── system_info.py
+│   └── tests/
+│       └── unit/
+│           ├── core/
+│           │   └── ai/
+│           │       ├── test_agent.py
+│           │       ├── test_a2a_protocol.py
+│           │       ├── test_mcp_protocol.py
+│           │       └── test_smol_agent.py
+│           └── platform_core/
+│               ├── test_platform_manager.py
+│               └── test_system_info.py
+├── docs/
+│   ├── architecture.md
+│   ├── i18n.md
+│   └── platform_core.md
+├── setup.py
+├── requirements.txt
+└── README.md
+```
 
 ## Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/UaiBot.git
-cd UaiBot
-```
+# Clone the repository
+git clone https://github.com/yourusername/labeeb.git
+cd labeeb
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-3. Install dependencies:
-```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package
 pip install -e .
 ```
 
-### Required Dependencies
-
-- Python 3.8+
-- colorama (for terminal colors)
-- PyQt5 (for optional GUI display)
-- ollama (for local model support)
-- transformers (for HuggingFace model support)
-- aiohttp (for async HTTP requests)
-- chromadb (for vector storage)
-- sentence-transformers (for embeddings)
-- numpy (for numerical operations)
-- pandas (for data handling)
-- scikit-learn (for machine learning tasks)
-
-### Model Requirements
-
-1. Install Ollama:
-   - macOS: `brew install ollama`
-   - Linux: `curl https://ollama.ai/install.sh | sh`
-   - Windows: Download from https://ollama.ai/download
-
-2. Pull required models:
-```bash
-ollama pull gemma3:latest
-ollama pull nomic-embed-text
-```
-
-### JSON Handling
-
-Labeeb includes a fast, robust JSONTool using [orjson](https://github.com/ijl/orjson) for:
-- Loading and validating JSON
-- Serializing (dumping) Python objects to JSON
-- Pretty-printing JSON for debugging
-- Used internally for agent-to-agent (A2A), multi-component planning (MCP), and SmolAgents workflows
-
-**Dependency:** `orjson` (automatically installed with requirements)
-
 ## Usage
 
-1. Start the CLI:
-```bash
-./scripts/launch.py
+### Basic Agent Usage
+
+```python
+from labeeb.core.ai import SmolAgent, Tool
+
+# Create a tool
+class EchoTool(Tool):
+    name = "echo"
+    description = "Echoes the input text"
+    
+    async def execute(self, text: str) -> str:
+        return text
+
+# Create an agent
+agent = SmolAgent("test_agent")
+
+# Register the tool
+agent.register_tool(EchoTool())
+
+# Execute the tool
+result = await agent.execute_tool("echo", text="Hello, World!")
+print(result.data)  # Output: Hello, World!
 ```
 
-2. Available commands:
-- `hi` or `hello` - Get a greeting from Labeeb
-- `who are you` - Learn about Labeeb's identity
-- `get_activity` - Check user activity
-- `status` - Check system status
-- `show_emoji 😊` - Display an emoji (GUI only)
-- `tts "Hello"` - Text-to-speech
-- `get_all_devices` - List connected devices
+### A2A Communication
 
-### Terminal Interface
+```python
+from labeeb.core.ai import A2AProtocol, Message, MessageType
 
-The primary interface is terminal-based, providing:
-- Colored output for better readability
-- Formatted text display
-- Error and success messages
-- Command history
-- Auto-completion
+# Create A2A protocol
+a2a = A2AProtocol()
 
-### GUI Interface (Optional)
+# Create a message
+message = Message(
+    type=MessageType.REQUEST,
+    sender="agent1",
+    receiver="agent2",
+    content={"text": "Hello!"}
+)
 
-The GUI interface provides:
-- Visual display of emojis and images
-- Text display with formatting
-- Theme support (light/dark)
-- Configurable window size and appearance
+# Send message and get response
+response = await a2a.send_message(message)
+print(response.content)  # Output: {"text": "Hello!"}
+```
 
-### CLI Usage
+### MCP Channel Usage
 
-- The CLI prompt is now: `🤔 You > `
-- All output is emoji-prefixed (success, error, info, warning)
-- Errors are shown with a red error emoji and never show a green check for failures
-- No more 'Done', 'True', or misleading output—only meaningful, styled responses
-- If you see a warning or error about JSON/model output, check your model settings or try rephrasing your query
+```python
+from labeeb.core.ai import MCPProtocol, MCPRequest, ChannelConfig, ChannelType
 
-### Fallback and Friendly Output
+# Create MCP protocol
+mcp = MCPProtocol()
 
-- Labeeb now includes a DefaultTool for unknown or unsupported actions.
-- If you type a greeting (hi, hello, salam, مرحبا), Labeeb will greet you back.
-- For unknown commands, Labeeb will respond with a friendly message and suggest rephrasing or asking for help.
-- All config/output_styles.json loading is now from the project root only.
+# Create channel config
+config = ChannelConfig(
+    type=ChannelType.HTTP,
+    name="api",
+    config={"url": "http://api.example.com"}
+)
 
-#### Troubleshooting
-- If you see a fallback message for unknown actions, check your command or try rephrasing.
-- For simple greetings, you should see a friendly welcome from Labeeb.
+# Register channel
+mcp.register_channel(channel, config)
+
+# Create request
+request = MCPRequest(
+    channel="api",
+    method="GET",
+    params={"path": "/users"}
+)
+
+# Send request
+response = await mcp.send_request(request)
+print(response.result)  # Output: {"users": [...]}
+```
 
 ## Development
 
-### Project Structure
+### Running Tests
 
-```
-UaiBot/
-├── src/
-│   └── uaibot/
-│       ├── core/
-│       │   ├── ai/
-│       │   ├── awareness/
-│       │   │   ├── terminal_tool.py
-│       │   │   └── display_tool.py
-│       │   ├── learning.py
-│       │   └── memory.py
-│       └── plugins/
-├── scripts/
-├── tests/
-└── docs/
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/unit/core/ai/test_agent.py
+
+# Run with coverage
+pytest --cov=src
 ```
 
 ### Adding New Features
 
-1. Create a new tool in `src/uaibot/core/awareness/`
-2. Register the tool in `UaiAgent`
-3. Update the model manager to handle new commands
-4. Add tests in `tests/`
+1. Create a new branch
+2. Add your changes
+3. Add tests
+4. Update documentation
+5. Submit a pull request
+
+### Code Style
+
+- Follow PEP 8
+- Use type hints
+- Write docstrings
+- Add tests
+- Update documentation
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+3. Make your changes
+4. Add tests
+5. Update documentation
+6. Submit a pull request
 
 ## License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- SmolAgents pattern for minimal, efficient agent implementation
+- A2A protocol for agent-to-agent communication
+- MCP protocol for unified channel support
+- All contributors and users of the project
