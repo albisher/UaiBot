@@ -1,35 +1,31 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "labeeb"
 version = "0.1.0"
-description = "A platform-agnostic automation framework"
-readme = "README.md"
+description = "A cross-platform AI assistant"
 authors = [
     {name = "Labeeb Team", email = "team@labeeb.ai"}
 ]
-license = {file = "LICENSE"}
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-requires-python = ">=3.8"
 dependencies = [
-    "pyobjc-framework-Quartz>=9.0",
-    "pyobjc-framework-CoreAudio>=9.0",
-    "pyobjc-framework-IOKit>=9.0",
-    "pyobjc-framework-AVFoundation>=9.0",
-    "pillow>=9.0",
+    "pyobjc-framework-CoreAudio>=9.2",
+    "pyobjc-framework-AppKit>=9.2",
+    "pyobjc-framework-Foundation>=9.2",
+    "pyobjc-framework-IOBluetooth>=9.2",
+    "pyobjc-framework-IOKit>=9.2",
+    "aioimaplib>=2.0.0",
+    "aiomysql>=0.1.1",
+    "aiosmtplib>=2.0.2",
+    "opencv-python>=4.8.0",
+    "dnspython>=2.4.2",
+    "ffmpeg-python>=0.2.0",
+    "soundfile>=0.12.1",
+    "pywin32>=306; sys_platform == 'win32'",
+    "PyYAML>=6.0.1"
 ]
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 dev = [
@@ -69,4 +65,18 @@ disallow_incomplete_defs = true
 [tool.flake8]
 max-line-length = 88
 extend-ignore = "E203"
-exclude = [".git", "__pycache__", "build", "dist"] 
+exclude = [".git", "__pycache__", "build", "dist"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/app",
+    "scripts",
+    "docs",
+    "tests"
+] 

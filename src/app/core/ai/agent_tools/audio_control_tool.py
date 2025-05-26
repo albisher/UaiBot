@@ -1,15 +1,25 @@
+"""
+Audio control tool with A2A, MCP, and SmolAgents compliance.
+
+This tool provides audio control functionality while following:
+- A2A (Agent-to-Agent) protocol for agent collaboration
+- MCP (Multi-Channel Protocol) for unified channel support
+- SmolAgents pattern for minimal, efficient implementation
+"""
+
 import logging
-import pyttsx3
+import os
+import platform
+from typing import Dict, Any, List, Optional, Union
 import sounddevice as sd
+import soundfile as sf
 import numpy as np
-from typing import Dict, Any, List, Optional
-from app.agent_tools.base_tool import BaseAgentTool
-from app.platform_core.platform_manager import PlatformManager
+from app.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 
-class AudioControlTool(BaseAgentTool):
-    """Tool for controlling audio devices and settings with platform-specific optimizations."""
+class AudioControlTool(BaseTool):
+    """Tool for controlling audio playback and recording with platform-specific optimizations."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the audio control tool.
@@ -17,43 +27,47 @@ class AudioControlTool(BaseAgentTool):
         Args:
             config: Optional configuration dictionary
         """
-        super().__init__(config)
-        self._platform_manager = None
-        self._platform_info = None
-        self._handlers = None
-        self._audio_handler = None
-        self._default_device = config.get('default_device')
-        self._volume_step = config.get('volume_step', 5)
-        self._max_volume = config.get('max_volume', 100)
+        super().__init__(
+            name="audio_control",
+            description="Tool for controlling audio playback and recording with platform-specific optimizations",
+            config=config
+        )
+        self._sample_rate = config.get('sample_rate', 44100)
+        self._channels = config.get('channels', 2)
+        self._device = config.get('device', None)
+        self._stream = None
+        self._is_recording = False
+        self._is_playing = False
+        self._current_file = None
     
-    def initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize the tool.
         
         Returns:
             bool: True if initialization was successful, False otherwise
         """
         try:
-            self._platform_manager = PlatformManager()
-            self._platform_info = self._platform_manager.get_platform_info()
-            self._handlers = self._platform_manager.get_handlers()
-            self._audio_handler = self._handlers.get('audio')
-            if not self._audio_handler:
-                logger.error("Audio handler not found")
-                return False
-            self._initialized = True
-            return True
+            # Initialize audio device
+            if self._device is None:
+                self._device = sd.default.device
+            
+            # Test audio device
+            sd.check_input_settings(device=self._device, channels=self._channels, samplerate=self._sample_rate)
+            sd.check_output_settings(device=self._device, channels=self._channels, samplerate=self._sample_rate)
+            
+            return await super().initialize()
         except Exception as e:
             logger.error(f"Failed to initialize AudioControlTool: {e}")
             return False
     
-    def cleanup(self) -> None:
+    async def cleanup(self) -> None:
         """Clean up resources used by the tool."""
         try:
-            self._platform_manager = None
-            self._platform_info = None
-            self._handlers = None
-            self._audio_handler = None
-            self._initialized = False
+            if self._stream:
+                self._stream.stop()
+                self._stream.close()
+                self._stream = None
+            await super().cleanup()
         except Exception as e:
             logger.error(f"Error cleaning up AudioControlTool: {e}")
     
@@ -63,13 +77,17 @@ class AudioControlTool(BaseAgentTool):
         Returns:
             Dict[str, bool]: Dictionary of capability names and their availability
         """
-        return {
-            'volume_control': True,
-            'mute_control': True,
-            'device_selection': True,
-            'device_info': True,
-            'platform_specific_optimization': bool(self._platform_info)
+        base_capabilities = super().get_capabilities()
+        tool_capabilities = {
+            'play': True,
+            'record': True,
+            'stop': True,
+            'pause': True,
+            'resume': True,
+            'get_devices': True,
+            'get_status': True
         }
+        return {**base_capabilities, **tool_capabilities}
     
     def get_status(self) -> Dict[str, Any]:
         """Get the current status of the tool.
@@ -77,16 +95,19 @@ class AudioControlTool(BaseAgentTool):
         Returns:
             Dict[str, Any]: Dictionary containing status information
         """
-        return {
-            'initialized': self._initialized,
-            'platform': self._platform_info.get('name') if self._platform_info else None,
-            'default_device': self._default_device,
-            'volume_step': self._volume_step,
-            'max_volume': self._max_volume
+        base_status = super().get_status()
+        tool_status = {
+            'sample_rate': self._sample_rate,
+            'channels': self._channels,
+            'device': self._device,
+            'is_recording': self._is_recording,
+            'is_playing': self._is_playing,
+            'current_file': self._current_file
         }
+        return {**base_status, **tool_status}
     
-    def execute(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute a command using this tool.
+    async def _execute_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Execute a specific command.
         
         Args:
             command: Command to execute
@@ -95,362 +116,187 @@ class AudioControlTool(BaseAgentTool):
         Returns:
             Dict[str, Any]: Result of the command execution
         """
-        if not self._initialized:
-            return {'error': 'Tool not initialized'}
+        if command == 'play':
+            return await self._play_audio(args)
+        elif command == 'record':
+            return await self._record_audio(args)
+        elif command == 'stop':
+            return await self._stop_audio()
+        elif command == 'pause':
+            return await self._pause_audio()
+        elif command == 'resume':
+            return await self._resume_audio()
+        elif command == 'get_devices':
+            return await self._get_audio_devices()
+        else:
+            return {'error': f'Unknown command: {command}'}
+    
+    async def _play_audio(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Play audio from a file.
         
+        Args:
+            args: Playback arguments
+            
+        Returns:
+            Dict[str, Any]: Result of playback
+        """
         try:
-            if command == 'get_devices':
-                return self._get_devices()
-            elif command == 'set_volume':
-                return self._set_volume(args)
-            elif command == 'get_volume':
-                return self._get_volume(args)
-            elif command == 'set_mute':
-                return self._set_mute(args)
-            elif command == 'is_muted':
-                return self._is_muted(args)
-            elif command == 'get_device_info':
-                return self._get_device_info(args)
-            else:
-                return {'error': f'Unknown command: {command}'}
+            if not args or 'file' not in args:
+                return {'error': 'Missing file parameter'}
+            
+            file_path = args['file']
+            if not os.path.exists(file_path):
+                return {'error': f'File not found: {file_path}'}
+            
+            # Stop any current playback
+            if self._is_playing:
+                await self._stop_audio()
+            
+            # Load and play audio
+            data, sample_rate = sf.read(file_path)
+            self._stream = sd.OutputStream(
+                samplerate=sample_rate,
+                channels=data.shape[1] if len(data.shape) > 1 else 1,
+                device=self._device
+            )
+            self._stream.start()
+            self._stream.write(data)
+            self._is_playing = True
+            self._current_file = file_path
+            
+            return {
+                'status': 'success',
+                'action': 'play',
+                'file': file_path
+            }
         except Exception as e:
-            logger.error(f"Error executing command {command}: {e}")
+            logger.error(f"Error playing audio: {e}")
             return {'error': str(e)}
     
-    def get_available_commands(self) -> List[str]:
-        """Get list of available commands for this tool.
-        
-        Returns:
-            List[str]: List of available command names
-        """
-        return [
-            'get_devices',
-            'set_volume',
-            'get_volume',
-            'set_mute',
-            'is_muted',
-            'get_device_info'
-        ]
-    
-    def get_command_help(self, command: str) -> Dict[str, Any]:
-        """Get help information for a specific command.
+    async def _record_audio(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Record audio to a file.
         
         Args:
-            command: Command name to get help for
+            args: Recording arguments
             
         Returns:
-            Dict[str, Any]: Help information for the command
+            Dict[str, Any]: Result of recording
         """
-        help_info = {
-            'get_devices': {
-                'description': 'Get list of available audio devices',
-                'args': {}
-            },
-            'set_volume': {
-                'description': 'Set volume for a specific device',
-                'args': {
-                    'device_id': 'Optional device ID',
-                    'volume': 'Volume level (0-100)'
-                }
-            },
-            'get_volume': {
-                'description': 'Get current volume for a device',
-                'args': {
-                    'device_id': 'Optional device ID'
-                }
-            },
-            'set_mute': {
-                'description': 'Set mute state for a device',
-                'args': {
-                    'device_id': 'Optional device ID',
-                    'mute': 'True to mute, False to unmute'
-                }
-            },
-            'is_muted': {
-                'description': 'Check if a device is muted',
-                'args': {
-                    'device_id': 'Optional device ID'
-                }
-            },
-            'get_device_info': {
-                'description': 'Get detailed information about a device',
-                'args': {
-                    'device_id': 'Device ID'
-                }
+        try:
+            if not args or 'file' not in args:
+                return {'error': 'Missing file parameter'}
+            
+            file_path = args['file']
+            duration = args.get('duration', 5)  # seconds
+            
+            # Stop any current recording
+            if self._is_recording:
+                await self._stop_audio()
+            
+            # Start recording
+            self._stream = sd.InputStream(
+                samplerate=self._sample_rate,
+                channels=self._channels,
+                device=self._device
+            )
+            self._stream.start()
+            self._is_recording = True
+            
+            # Record audio
+            data = self._stream.read(int(duration * self._sample_rate))
+            sf.write(file_path, data[0], self._sample_rate)
+            
+            return {
+                'status': 'success',
+                'action': 'record',
+                'file': file_path,
+                'duration': duration
             }
-        }
-        return help_info.get(command, {'error': f'Unknown command: {command}'})
+        except Exception as e:
+            logger.error(f"Error recording audio: {e}")
+            return {'error': str(e)}
     
-    def validate_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> bool:
-        """Validate if a command and its arguments are valid.
+    async def _stop_audio(self) -> Dict[str, Any]:
+        """Stop audio playback or recording.
         
-        Args:
-            command: Command to validate
-            args: Optional arguments to validate
-            
         Returns:
-            bool: True if command and arguments are valid, False otherwise
+            Dict[str, Any]: Result of stop operation
         """
-        if command not in self.get_available_commands():
-            return False
-        
-        if command == 'set_volume':
-            if not args or 'volume' not in args:
-                return False
-            volume = args['volume']
-            if not isinstance(volume, (int, float)) or volume < 0 or volume > self._max_volume:
-                return False
-        
-        elif command == 'set_mute':
-            if not args or 'mute' not in args:
-                return False
-            if not isinstance(args['mute'], bool):
-                return False
-        
-        elif command == 'get_device_info':
-            if not args or 'device_id' not in args:
-                return False
-        
-        return True
+        try:
+            if self._stream:
+                self._stream.stop()
+                self._stream.close()
+                self._stream = None
+            
+            self._is_playing = False
+            self._is_recording = False
+            self._current_file = None
+            
+            return {
+                'status': 'success',
+                'action': 'stop'
+            }
+        except Exception as e:
+            logger.error(f"Error stopping audio: {e}")
+            return {'error': str(e)}
     
-    def _get_devices(self) -> Dict[str, Any]:
-        """Get list of available audio devices.
+    async def _pause_audio(self) -> Dict[str, Any]:
+        """Pause audio playback.
+        
+        Returns:
+            Dict[str, Any]: Result of pause operation
+        """
+        try:
+            if not self._is_playing:
+                return {'error': 'No audio is currently playing'}
+            
+            if self._stream:
+                self._stream.stop()
+                self._is_playing = False
+            
+            return {
+                'status': 'success',
+                'action': 'pause'
+            }
+        except Exception as e:
+            logger.error(f"Error pausing audio: {e}")
+            return {'error': str(e)}
+    
+    async def _resume_audio(self) -> Dict[str, Any]:
+        """Resume audio playback.
+        
+        Returns:
+            Dict[str, Any]: Result of resume operation
+        """
+        try:
+            if self._is_playing:
+                return {'error': 'Audio is already playing'}
+            
+            if not self._current_file:
+                return {'error': 'No audio file to resume'}
+            
+            return await self._play_audio({'file': self._current_file})
+        except Exception as e:
+            logger.error(f"Error resuming audio: {e}")
+            return {'error': str(e)}
+    
+    async def _get_audio_devices(self) -> Dict[str, Any]:
+        """Get available audio devices.
         
         Returns:
             Dict[str, Any]: List of audio devices
         """
         try:
-            devices = self._audio_handler.get_devices()
-            return {
-                'status': 'success',
-                'devices': devices
-            }
-        except Exception as e:
-            logger.error(f"Error getting devices: {e}")
-            return {'error': str(e)}
-    
-    def _set_volume(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Set volume for a specific device.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Dict[str, Any]: Result of the operation
-        """
-        try:
-            device_id = args.get('device_id', self._default_device)
-            volume = args['volume']
-            
-            self._audio_handler.set_volume(device_id, volume)
-            return {
-                'status': 'success',
-                'device_id': device_id,
-                'volume': volume
-            }
-        except Exception as e:
-            logger.error(f"Error setting volume: {e}")
-            return {'error': str(e)}
-    
-    def _get_volume(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Get current volume for a device.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Dict[str, Any]: Current volume information
-        """
-        try:
-            device_id = args.get('device_id', self._default_device)
-            volume = self._audio_handler.get_volume(device_id)
-            return {
-                'status': 'success',
-                'device_id': device_id,
-                'volume': volume
-            }
-        except Exception as e:
-            logger.error(f"Error getting volume: {e}")
-            return {'error': str(e)}
-    
-    def _set_mute(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Set mute state for a device.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Dict[str, Any]: Result of the operation
-        """
-        try:
-            device_id = args.get('device_id', self._default_device)
-            mute = args['mute']
-            
-            self._audio_handler.set_mute(device_id, mute)
-            return {
-                'status': 'success',
-                'device_id': device_id,
-                'muted': mute
-            }
-        except Exception as e:
-            logger.error(f"Error setting mute state: {e}")
-            return {'error': str(e)}
-    
-    def _is_muted(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Check if a device is muted.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Dict[str, Any]: Mute state information
-        """
-        try:
-            device_id = args.get('device_id', self._default_device)
-            muted = self._audio_handler.is_muted(device_id)
-            return {
-                'status': 'success',
-                'device_id': device_id,
-                'muted': muted
-            }
-        except Exception as e:
-            logger.error(f"Error checking mute state: {e}")
-            return {'error': str(e)}
-    
-    def _get_device_info(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Get detailed information about a device.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Dict[str, Any]: Device information
-        """
-        try:
-            device_id = args['device_id']
-            info = self._audio_handler.get_device_info(device_id)
-            return {
-                'status': 'success',
-                'device_id': device_id,
-                'info': info
-            }
-        except Exception as e:
-            logger.error(f"Error getting device info: {e}")
-            return {'error': str(e)}
-
-    def _configure_platform(self) -> None:
-        """Configure platform-specific audio settings"""
-        try:
-            self.engine = pyttsx3.init()
-            
-            if self._platform_info['name'] == 'mac':
-                self.engine.setProperty('voice', 'com.apple.speech.synthesis.voice.karen')
-                self.engine.setProperty('rate', 150)
-            elif self._platform_info['name'] == 'windows':
-                self.engine.setProperty('voice', 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0')
-                self.engine.setProperty('rate', 150)
-            elif self._platform_info['name'] == 'ubuntu':
-                self.engine.setProperty('voice', 'english-us')
-                self.engine.setProperty('rate', 150)
-        except Exception as e:
-            logger.error(f"Error configuring platform: {str(e)}")
-
-    def speak_text(self, text: str) -> Dict[str, Any]:
-        """Speak text using text-to-speech"""
-        try:
-            result = {
-                'platform': self._platform_info['name'],
-                'action': 'speak',
-                'status': 'success',
-                'text': text
-            }
-
-            self.engine.say(text)
-            self.engine.runAndWait()
-            return result
-
-        except Exception as e:
-            logger.error(f"Error speaking text: {str(e)}")
-            return {
-                'platform': self._platform_info['name'],
-                'action': 'speak',
-                'status': 'error',
-                'error': str(e)
-            }
-
-    def get_audio_devices(self) -> Dict[str, Any]:
-        """Get available audio devices"""
-        try:
             devices = sd.query_devices()
+            input_devices = [d for d in devices if d['max_input_channels'] > 0]
+            output_devices = [d for d in devices if d['max_output_channels'] > 0]
+            
             return {
-                'platform': self._platform_info['name'],
-                'action': 'get_devices',
                 'status': 'success',
-                'devices': devices
-            }
-        except Exception as e:
-            logger.error(f"Error getting audio devices: {str(e)}")
-            return {
-                'platform': self._platform_info['name'],
                 'action': 'get_devices',
-                'status': 'error',
-                'error': str(e)
+                'input_devices': input_devices,
+                'output_devices': output_devices
             }
-
-    def record_audio(self, duration: float = 5.0) -> Dict[str, Any]:
-        """Record audio"""
-        try:
-            result = {
-                'platform': self._platform_info['name'],
-                'action': 'record',
-                'status': 'success',
-                'audio': None
-            }
-
-            # Record audio
-            sample_rate = 44100
-            recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=2)
-            sd.wait()
-            result['audio'] = recording
-            return result
-
         except Exception as e:
-            logger.error(f"Error recording audio: {str(e)}")
-            return {
-                'platform': self._platform_info['name'],
-                'action': 'record',
-                'status': 'error',
-                'error': str(e)
-            }
-
-    def play_audio(self, audio_data: np.ndarray, sample_rate: int = 44100) -> Dict[str, Any]:
-        """Play audio"""
-        try:
-            result = {
-                'platform': self._platform_info['name'],
-                'action': 'play',
-                'status': 'success'
-            }
-
-            sd.play(audio_data, sample_rate)
-            sd.wait()
-            return result
-
-        except Exception as e:
-            logger.error(f"Error playing audio: {str(e)}")
-            return {
-                'platform': self._platform_info['name'],
-                'action': 'play',
-                'status': 'error',
-                'error': str(e)
-            }
-
-    def check_audio_availability(self) -> bool:
-        """Check if audio control is available"""
-        try:
-            # Test audio control
-            devices = sd.query_devices()
-            return len(devices) > 0
-        except Exception as e:
-            logger.error(f"Error checking audio availability: {str(e)}")
-            return False 
+            logger.error(f"Error getting audio devices: {e}")
+            return {'error': str(e)} 

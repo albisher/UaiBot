@@ -3,7 +3,7 @@ description:
 globs:
 alwaysApply: false
 ---
-- Keep platform-specific code isolated in platform_uai directory
+- Keep platform-specific code isolated in platform_Labeeb directory
 - Follow the platform handler structure defined in class_architecture.md
 - Implement proper error handling for platform-specific operations
 - Maintain consistent interface across different platforms

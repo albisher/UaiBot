@@ -1,12 +1,7 @@
 """
 Utility functions for Labeeb.
-Shared across different modules.
 
-This package provides various utility functions for:
-- Platform detection
-- Configuration handling
-- Output formatting
-- File operations
+This module provides various utility functions used throughout the application.
 """
 import os
 import platform
@@ -35,17 +30,20 @@ except ImportError:
     # Output formatter not available, ignore
     pass
 
-def get_platform_name():
+from ..core.platform_core import get_platform_name, get_system_info
+
+def get_descriptive_platform_name():
     """
     Get a more descriptive name for the current platform.
     
     Returns:
         str: Descriptive platform name
     """
-    system = platform.system().lower()
+    system_info = get_system_info()
+    system = system_info['os_name'].lower()
     
     if system == 'darwin':
-        mac_ver = platform.mac_ver()[0]
+        mac_ver = system_info['os_version']
         # Map major version to OS name
         macos_names = {
             "10.15": "Catalina",
@@ -99,16 +97,16 @@ def get_platform_name():
                             pass
         
         # Last resort fallback
-        return f"Linux {platform.release()}"
+        return f"Linux {system_info['kernel_release']}"
         
     elif system == 'windows':
-        win_ver = platform.version()
-        win_ed = platform.win32_edition() if hasattr(platform, 'win32_edition') else ""
+        win_ver = system_info['os_version']
+        win_ed = system_info.get('edition', '')
         return f"Windows {win_ver} {win_ed}"
         
     else:
         # Generic fallback
-        return f"{platform.system()} {platform.release()}"
+        return f"{system_info['os_name']} {system_info['os_version']}"
 
 def get_project_root():
     """

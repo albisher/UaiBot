@@ -11,7 +11,7 @@ src_path = Path(__file__).parent.parent.parent
 sys.path.append(str(src_path))
 
 from labeeb.core.tools.system_tools import SystemTools
-from labeeb.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_core.platform_utils import get_input_handler
 from labeeb.core.tools.json_tools import JSONTool
 
 class LabeebAgent:

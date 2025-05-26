@@ -8,13 +8,12 @@ System Health Check for Labeeb
 """
 import os
 import sys
-import platform
 import subprocess
 import json
 import shutil
 from pathlib import Path
 import logging
-from app.platform_core.platform_manager import PlatformManager
+from app.core.platform_core import get_platform_name, get_system_info, get_file_path
 
 CONFIG_PATH = Path(__file__).parent.parent / 'config' / 'settings.json'
 REQUIRED_MODEL = 'gemma3:4b'
@@ -22,7 +21,8 @@ REQUIRED_MODEL = 'gemma3:4b'
 logger = logging.getLogger(__name__)
 
 def detect_os():
-    return platform.system().lower()
+    """Get the current operating system name."""
+    return get_platform_name()
 
 def find_ollama():
     # Try to find ollama in PATH
@@ -85,27 +85,26 @@ def update_config(model, base_url):
         return False
 
 def check_system_health():
-    """Check overall system health using the platform manager."""
-    platform_manager = PlatformManager()
-    platform_info = platform_manager.get_platform_info()
+    """Check overall system health using the platform abstraction layer."""
+    system_info = get_system_info()
     
     health_status = {
-        'platform': platform_info['name'],
-        'system': platform_info['system'],
-        'architecture': platform_info['architecture'],
+        'platform': get_platform_name(),
+        'system': system_info['os_name'],
+        'architecture': system_info['architecture'],
         'features': {},
         'issues': []
     }
     
     # Check platform-specific features
-    for feature, status in platform_info['features'].items():
+    for feature, status in system_info.get('features', {}).items():
         health_status['features'][feature] = {
             'enabled': status.get('enabled', False),
             'status': 'ok' if status.get('enabled', False) else 'disabled'
         }
     
     # Check paths
-    for path_type, path in platform_info['paths'].items():
+    for path_type, path in system_info.get('paths', {}).items():
         if not os.path.exists(path):
             health_status['issues'].append(f"Missing {path_type} directory: {path}")
     

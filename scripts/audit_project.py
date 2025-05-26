@@ -21,22 +21,22 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).resolve().parent.parent # Assuming this script is in a 'scripts' or 'tools' subdir
 CONFIG = {
     "project_name": "Labeeb",
-    "old_project_names_regex": r'labeeb|Labeeb|LABEEB',
-    "src_dir_name": "src/app",
+    "old_project_names_regex": r'uai|Uai|UAIBOT|UaiBot',
+    "src_dir_name": "src",
     "tests_dir_name": "tests",
     "docs_dir_name": "docs",
     "todo_dir_name": "todo",
-    "cursor_rules_path": ".labeeb/.cursor/rules/project_rules.json", # Example path
+    "cursor_rules_path": ".cursor/rules/project_rules.json",
     "readme_name": "README.md",
     "main_todo_filename": "labeeb_project_professional_todo.md",
-    "platform_core_dir_segment": "platform_core", # Segment identifying the root of platform-specific code, relative to src_dir
-    "platform_dirs_keywords": ['ubuntu', 'windows', 'mac', 'linux'], # Keywords to identify platform-specific files by name
-    "agent_tool_dirs": ['core/ai/agent_tools', 'core/ai/agents'], # Relative to src_dir
-    "agent_docs_subdir": "agents_tools", # Relative to docs_dir
+    "platform_core_dir_segment": "app/core/platform_core", # Updated path
+    "platform_dirs_keywords": ['ubuntu', 'windows', 'mac', 'linux'],
+    "agent_tool_dirs": ['app/core/ai/agent_tools', 'app/core/ai/agents'], # Updated paths
+    "agent_docs_subdir": "agents_tools",
     "test_file_prefix": "test_",
-    "unit_test_subdir": "unit", # Relative to tests_dir
+    "unit_test_subdir": "unit",
     "evaluation_keywords_regex": r'evaluat|feedback|metric',
-    "doc_link_keywords_regex": r'#.*docs|#.*example|\[.*\]\(.*docs\/.*\)|see also:', # Check for # comments or markdown links
+    "doc_link_keywords_regex": r'#.*docs|#.*example|\[.*\]\(.*docs\/.*\)|see also:',
     "compliance_keywords": {
         "A2A": r'A2A|Agent2Agent|agent_to_agent',
         "MCP": r'MCP|ModelContextProtocol|multi_channel_protocol',
@@ -45,14 +45,105 @@ CONFIG = {
     "i18n_keywords_regex": r'i18n|internationalization|translate|gettext|_\(|\b_l\(|\btranslate_text\(',
     "rtl_keywords_regex": r'rtl|arabic|bidi|right-to-left|direction:\s*rtl',
     "generate_stubs": True,
-    "test_generated_stubs": True, # New: Whether to attempt to test generated test stubs
-    "check_project_syntax": True, # New: Whether to perform syntax check on all project .py files
+    "test_generated_stubs": True,
+    "check_project_syntax": True,
     "update_todo_file": True,
     "update_readme_file": False,
     "readme_audit_section_placeholder": ("", ""),
-    "excluded_dirs": ['.git', '__pycache__', 'venv', 'node_modules', '.vscode', '.idea', 'build', 'dist', '*.egg-info'],
+    "excluded_dirs": ['.git', '__pycache__', '.venv', 'node_modules', '.vscode', '.idea', 'build', 'dist', '*.egg-info', '.cache', '.pytest_cache', '.cursor'],
     "text_file_extensions": ('.py', '.md', '.txt', '.json', '.yaml', '.yml', '.html', '.css', '.js', '.ts', '.rst', '.toml'),
-    "python_file_extensions": ('.py',)
+    "python_file_extensions": ('.py',),
+    # Updated AI folder structure configuration to match project_architecture_tree.txt
+    "ai_folder_structure": {
+        "tests": {
+            "unit": [],  # Unit tests
+            "agents": {
+                "planner": ["test_planner_decision_making.py", "test_planner_error_handling.py"],
+                "executor": ["test_executor_tool_selection.py", "test_executor_multi_pc_coordination.py"],
+                "communicator": ["test_communicator_protocols.py", "test_communicator_message_routing.py"],
+                "specialists": {
+                    "math_expert": ["test_math_expert_accuracy.py"],
+                    "researcher": ["test_researcher_information_gathering.py"]
+                }
+            },
+            "tools": [
+                "test_code_editor.py",
+                "test_debugger.py",
+                "test_version_control.py",
+                "test_custom_tool_integration.py"
+            ],
+            "models": [
+                "test_local_model_inference.py",
+                "test_model_selection_logic.py",
+                "test_model_protocol_compliance.py"
+            ],
+            "workflows": {
+                "workflow_1": [
+                    "test_workflow_1_step_order.py",
+                    "test_workflow_1_error_recovery.py"
+                ],
+                "workflow_2": [
+                    "test_workflow_2_parallel_execution.py",
+                    "test_workflow_2_multi_agent_collaboration.py"
+                ]
+            },
+            "protocols": [
+                "test_protocol_a_compliance.py",
+                "test_protocol_b_interoperability.py"
+            ],
+            "integration": [
+                "test_end_to_end_task_completion.py",
+                "test_cross_agent_tool_usage.py",
+                "test_multi_pc_synchronization.py",
+                "test_protocol_switching.py"
+            ]
+        },
+        "docs": {
+            "agents_tools": [],
+            "api": [],
+            "guides": [],
+            "examples": [],
+            "master": [],
+            "secret": []
+        },
+        "config": {
+            "development": [],
+            "production": [],
+            "testing": []
+        },
+        "plugins": {
+            "core": [],
+            "extensions": [],
+            "integrations": []
+        },
+        "scripts": {
+            "setup": [],
+            "utils": []
+        },
+        "data": {
+            "models": [],
+            "training": [],
+            "cache": []
+        },
+        "logs": {
+            "application": [],
+            "error": [],
+            "audit": []
+        },
+        "research": {
+            "papers": [],
+            "experiments": [],
+            "prototypes": []
+        },
+        "secret": {
+            "keys": [],
+            "credentials": []
+        },
+        "master": {
+            "configs": [],
+            "templates": []
+        }
+    }
 }
 # --- (END) User Configurable Variables ---
 
@@ -261,9 +352,36 @@ def check_tests_and_validation():
     # TODO: Implement this function
     pass
 
-# 5. Documentation and TODOs Management
+def convert_txt_to_md(file_path: Path) -> bool:
+    """
+    Convert a .txt file to .md format.
+    Returns True if conversion was successful, False otherwise.
+    """
+    try:
+        # Read the content of the .txt file
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Create the new .md file path
+        md_file_path = file_path.with_suffix('.md')
+        
+        # Write the content to the new .md file
+        with open(md_file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # Remove the original .txt file
+        file_path.unlink()
+        
+        logger.info(f"Successfully converted {file_path} to {md_file_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error converting {file_path} to .md: {e}")
+        return False
+
 def manage_docs_and_todos():
     logger.info("5. Managing Documentation and TODOs...")
+    
+    # Check for old project name references
     logger.info("   Checking for old project name references...")
     old_names_regex = CONFIG["old_project_names_regex"]
     correct_name = CONFIG["project_name"]
@@ -283,68 +401,39 @@ def manage_docs_and_todos():
                 )
         except Exception as e:
             logger.error(f"Error processing file {text_file} for project name check: {e}")
-
-    if CONFIG["update_todo_file"] and VIOLATIONS:
-        ensure_dir_exists(TODO_DIR)
-        logger.info(f"   Updating TODO file: {TODO_FILE}")
+    
+    # Ensure docs directory exists
+    ensure_dir_exists(DOCS_DIR)
+    
+    # Convert .txt files to .md files
+    txt_files = get_all_project_files(PROJECT_ROOT, ('.txt',))
+    for txt_file in txt_files:
+        if txt_file.name != 'requirements.txt':  # Skip requirements.txt
+            convert_txt_to_md(txt_file)
+    
+    # Ensure todo directory exists
+    ensure_dir_exists(TODO_DIR)
+    
+    # Create or update main todo file
+    if CONFIG["update_todo_file"]:
         try:
-            existing_todo_items = set()
-            if TODO_FILE.exists():
-                with open(TODO_FILE, 'r', encoding='utf-8') as f_todo_read:
-                    for line in f_todo_read:
-                        # Normalize a bit for checking existence
-                        norm_line = re.sub(r'\(Line: \d+\)', '(Line: ...)', line.strip()) # Ignore specific line numbers for dupe check
-                        if line.startswith("- [ ]") or line.startswith("* [ ]"):
-                             existing_todo_items.add(norm_line)
-            
-            new_todo_entries_count = 0
-            with open(TODO_FILE, 'a+', encoding='utf-8') as f_todo:
-                f_todo.seek(0, 2)
-                if f_todo.tell() == 0:
-                    f_todo.write(f"# {CONFIG['project_name']} Project TODOs\n\n")
-                    f_todo.write(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                else:
-                    f_todo.write(f"\n\n---\n*Audit run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
-
-                current_run_added_items = set() # To avoid duplicates from the same run if violations are similar
-                for v in VIOLATIONS:
-                    todo_item_md = f"- [ ] **{v['category']}**: {v['message']}"
-                    file_info = ""
-                    if 'file' in v:
-                        file_info += f" (File: `{v['file']}`"
-                        if 'line' in v:
-                            file_info += f", Line: {v['line']}"
-                        file_info += ")"
-                    todo_item_md += file_info
-                    if 'suggestion' in v:
-                        todo_item_md += f" - *Suggestion:* {v['suggestion']}"
-                    
-                    # Normalize for checking against existing_todo_items and current_run_added_items
-                    norm_todo_check = f"- [ ] **{v['category']}**: {v['message']}"
-                    if 'file' in v: # Only add file for dupe check, not line number
-                         norm_todo_check += f" (File: `{v['file']}`)"
-                    
-                    # A more robust check: if a similar message for the same file and category exists, skip.
-                    is_new_item = True
-                    if norm_todo_check in current_run_added_items:
-                        is_new_item = False
-                    else:
-                        for existing_item_line in existing_todo_items:
-                            if norm_todo_check in existing_item_line:
-                                is_new_item = False
-                                break
-                    
-                    if is_new_item:
-                        f_todo.write(f"{todo_item_md}\n")
-                        current_run_added_items.add(norm_todo_check)
-                        new_todo_entries_count +=1
-            
-            if new_todo_entries_count > 0:
-                 logger.info(f"Added {new_todo_entries_count} new items to {TODO_FILE.relative_to(PROJECT_ROOT)}")
-            else:
-                 logger.info(f"No new distinct items to add to {TODO_FILE.relative_to(PROJECT_ROOT)} based on current violations.")
+            with open(TODO_FILE, 'w', encoding='utf-8') as f:
+                f.write(f"# {CONFIG['project_name']} Project TODO List\n\n")
+                f.write(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                f.write("## Project Audit Findings\n\n")
+                for violation in VIOLATIONS:
+                    f.write(f"### {violation['category']}\n")
+                    f.write(f"- {violation['message']}\n")
+                    if 'file' in violation:
+                        f.write(f"  - File: {violation['file']}\n")
+                    if 'line' in violation:
+                        f.write(f"  - Line: {violation['line']}\n")
+                    if 'suggestion' in violation:
+                        f.write(f"  - Suggestion: {violation['suggestion']}\n")
+                    f.write("\n")
+            logger.info(f"Updated TODO file at: {TODO_FILE}")
         except Exception as e:
-            logger.error(f"Failed to update TODO file {TODO_FILE}: {e}")
+            logger.error(f"Error updating TODO file: {e}")
 
     if CONFIG["update_readme_file"] and VIOLATIONS and CONFIG["readme_name"]:
         readme_path = PROJECT_ROOT / CONFIG["readme_name"]
@@ -511,6 +600,46 @@ def check_missing_dependencies():
                 suggestion=f"If '{missing_mod}' is external, add it to your project's dependency file(s) (e.g., requirements.txt, pyproject.toml) and relevant docs. If it's a project module, ensure its path/naming is correct."
             )
 
+def check_ai_folder_structure():
+    """Check if the AI folder structure matches the expected organization."""
+    logger.info("7. Checking AI Folder Structure...")
+    
+    def check_directory_structure(base_path: Path, expected_structure: dict, current_path: Path = None):
+        if current_path is None:
+            current_path = base_path
+            
+        for key, value in expected_structure.items():
+            expected_dir = current_path / key
+            if not expected_dir.exists():
+                add_violation(
+                    "AI_STRUCTURE",
+                    f"Missing expected directory: {expected_dir.relative_to(base_path)}",
+                    suggestion=f"Create directory {expected_dir.relative_to(base_path)} to match the expected AI folder structure."
+                )
+            elif isinstance(value, dict):
+                check_directory_structure(base_path, value, expected_dir)
+            elif isinstance(value, list):
+                for file_name in value:
+                    expected_file = expected_dir / file_name
+                    if not expected_file.exists():
+                        add_violation(
+                            "AI_STRUCTURE",
+                            f"Missing expected test file: {expected_file.relative_to(base_path)}",
+                            suggestion=f"Create test file {expected_file.relative_to(base_path)} to match the expected AI folder structure."
+                        )
+    
+    # Check all major directory structures
+    for dir_name, structure in CONFIG["ai_folder_structure"].items():
+        base_dir = PROJECT_ROOT / dir_name
+        if base_dir.exists():
+            check_directory_structure(base_dir, structure)
+        else:
+            add_violation(
+                "AI_STRUCTURE",
+                f"Missing major directory: {dir_name}",
+                suggestion=f"Create directory {dir_name} to match the expected project structure."
+            )
+
 # --- Main Execution ---
 def main():
     logger.info(f"--- Starting {CONFIG['project_name']} Project Audit ---")
@@ -534,6 +663,7 @@ def main():
     check_tests_and_validation() # This includes stub generation and validation
     manage_docs_and_todos()    # This includes dependency checks and project name check
     report_os_detection_isolation_status()
+    check_ai_folder_structure() # New: Check AI folder structure
 
     logger.info("--- Audit Complete ---")
 

@@ -12,12 +12,12 @@ import json
 import shutil
 from pathlib import Path
 from typing import Dict, Optional
-from app.platform_core.platform_manager import PlatformManager
+from ..core.platform_core import get_platform_name, get_system_info
 
 class OutputStyleManager:
     """Manages output styling preferences for Labeeb."""
     
-    def __init__(self, config_path=None, theme="default", auto_detect=True):
+    def __init__(self, config_path: Optional[str] = None, theme: str = "default", auto_detect: bool = True):
         """
         Initialize the style manager.
         
@@ -27,35 +27,15 @@ class OutputStyleManager:
             theme (str): The theme to use (default, minimal, professional).
             auto_detect (bool): If True, auto-detects terminal capabilities.
         """
-        # Always use absolute path to config/output_styles.json from project root
-        if config_path is None:
-            project_root = Path(__file__).resolve().parent.parent.parent.parent
-            config_path = str(project_root / 'config' / 'output_styles.json')
-        else:
-            config_path = str(Path(config_path).resolve())
         self.config_path = config_path
-        self.config = self._load_config()
-        self.theme_name = theme
+        self.theme = theme
+        self.auto_detect = auto_detect
+        self.style_settings = {}
         
-        # Load the selected theme or fall back to default
-        if theme in self.config.get("themes", {}):
-            self.theme = self.config["themes"][theme]
-        else:
-            self.theme = self.config["themes"]["default"]
-            
-        # Get styles for the selected theme
-        self.emoji_set = self._get_emoji_set()
-        self.box_style = self._get_box_style()
+        # Get platform information
+        self.platform_name = get_platform_name()
+        self.system_info = get_system_info()
         
-        # Get general output settings
-        self.output_styles = self.config.get("output_styles", {})
-        
-        # Auto-detect terminal capabilities if requested
-        if auto_detect:
-            self._detect_terminal_capabilities()
-            
-        self.platform_manager = PlatformManager()
-        self.platform_info = self.platform_manager.get_platform_info()
         self._init_style_settings()
         
     def _init_style_settings(self):
@@ -64,7 +44,7 @@ class OutputStyleManager:
         self.use_unicode = True
         
         # Check if we're on Windows without proper terminal support
-        if self.platform_info['name'] == 'windows' and "TERM" not in os.environ:
+        if self.platform_name == 'windows' and "TERM" not in os.environ:
             self.use_colors = False
             self.use_unicode = False
             
@@ -74,75 +54,24 @@ class OutputStyleManager:
             
     def _load_config(self):
         """Load styling configuration from file."""
+        if not self.config_path:
+            self.config_path = os.path.join(self._get_project_root(), 'config', 'style.json')
+            
         try:
             with open(self.config_path, 'r') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error loading output styles config: {e}")
-            # Return minimal default configuration with extended emoji set
-            return {
-                "output_styles": {"use_emojis": True, "use_color": True},
-                "emoji_sets": {
-                    "default": {
-                        "success": "✅",
-                        "warning": "⚠️",
-                        "error": "❌",
-                        "info": "ℹ️",
-                        "robot": "🤖",
-                        "stats": "📊",
-                        "folder": "📁",
-                        "file": "📄",
-                        "time": "🕒",
-                        "green": "🟢",
-                        "yellow": "🟡",
-                        "red": "🔴",
-                        "document": "📝",
-                        "computer": "💻",
-                        "mobile": "📱",
-                        "search": "🔍",
-                        "tip": "💡",
-                        "question": "❓",
-                        "thinking": "🤔",
-                        "command": "📌",
-                        "explanation": "💬"
-                    },
-                    "minimal": {
-                        "success": "+",
-                        "warning": "!",
-                        "error": "x",
-                        "info": "i",
-                        "robot": "R",
-                        "stats": "#",
-                        "folder": "D",
-                        "file": "F",
-                        "time": "T",
-                        "green": "o",
-                        "yellow": "o",
-                        "red": "o",
-                        "document": "D",
-                        "computer": "C",
-                        "mobile": "M",
-                        "search": "S",
-                        "tip": "*",
-                        "question": "?",
-                        "thinking": "?",
-                        "command": ">",
-                        "explanation": "="
-                    }
-                },
-                "box_styles": {"default": {}, "ascii": {}},
-                "themes": {"default": {"emoji_set": "default", "box_style": "default"}}
-            }
+                self.style_settings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.style_settings = {}
             
     def _get_emoji_set(self):
         """Get the emoji set for the current theme."""
         emoji_set_name = self.theme.get("emoji_set", "default")
-        return self.config.get("emoji_sets", {}).get(emoji_set_name, {})
+        return self.style_settings.get("emoji_sets", {}).get(emoji_set_name, {})
         
     def _get_box_style(self):
         """Get the box style for the current theme."""
         box_style_name = self.theme.get("box_style", "default")
-        return self.config.get("box_styles", {}).get(box_style_name, {})
+        return self.style_settings.get("box_styles", {}).get(box_style_name, {})
         
     def _detect_terminal_capabilities(self):
         """Auto-detect terminal capabilities and adjust settings."""
@@ -153,23 +82,23 @@ class OutputStyleManager:
                 # Get terminal size
                 columns, _ = shutil.get_terminal_size()
                 # Only update if set to auto
-                if self.output_styles.get("terminal_width") == "auto":
-                    self.output_styles["terminal_width"] = columns
+                if self.style_settings.get("terminal_width") == "auto":
+                    self.style_settings["terminal_width"] = columns
                     
                 # Check if we're in Windows command prompt (limited emoji support)
-                if self.platform_info['name'] == 'windows' and "TERM" not in os.environ:
+                if self.platform_name == 'windows' and "TERM" not in os.environ:
                     # Using cmd.exe or PowerShell with limited capabilities
-                    self.output_styles["use_emojis"] = False
+                    self.style_settings["use_emojis"] = False
             else:
                 # Not a TTY, disable fancy formatting
-                self.output_styles["use_emojis"] = False
-                self.output_styles["use_boxes"] = False
+                self.style_settings["use_emojis"] = False
+                self.style_settings["use_boxes"] = False
                 # Set a safe default width
-                self.output_styles["terminal_width"] = 80
+                self.style_settings["terminal_width"] = 80
                 
         except Exception:
             # Fallback to safe defaults on error
-            self.output_styles["terminal_width"] = 80
+            self.style_settings["terminal_width"] = 80
             
     def get_emoji(self, key, fallback=""):
         """
@@ -182,11 +111,11 @@ class OutputStyleManager:
         Returns:
             str: The emoji or fallback character
         """
-        if not self.output_styles.get("use_emojis", True):
+        if not self.style_settings.get("use_emojis", True):
             # If emojis are disabled, use plain text symbols
-            return self.output_styles.get("default_symbols", {}).get(key, fallback)
+            return self.style_settings.get("default_symbols", {}).get(key, fallback)
             
-        return self.emoji_set.get(key, fallback)
+        return self._get_emoji_set().get(key, fallback)
         
     def get_box_char(self, key, fallback=""):
         """
@@ -199,15 +128,15 @@ class OutputStyleManager:
         Returns:
             str: The box drawing character
         """
-        if not self.output_styles.get("use_boxes", True):
+        if not self.style_settings.get("use_boxes", True):
             # If fancy boxes are disabled, use ASCII
-            return self.config.get("box_styles", {}).get("ascii", {}).get(key, fallback)
+            return self.style_settings.get("box_styles", {}).get("ascii", {}).get(key, fallback)
             
-        return self.box_style.get(key, fallback)
+        return self._get_box_style().get(key, fallback)
         
     def get_terminal_width(self):
         """Get the terminal width to use for formatting."""
-        width = self.output_styles.get("terminal_width", "auto")
+        width = self.style_settings.get("terminal_width", "auto")
         if width == "auto" or not isinstance(width, int):
             # If not set or invalid, get from terminal or use default
             try:
@@ -227,11 +156,8 @@ class OutputStyleManager:
         Returns:
             bool: True if successful, False otherwise
         """
-        if theme_name in self.config.get("themes", {}):
-            self.theme_name = theme_name
-            self.theme = self.config["themes"][theme_name]
-            self.emoji_set = self._get_emoji_set()
-            self.box_style = self._get_box_style()
+        if theme_name in self.style_settings.get("themes", {}):
+            self.theme = self.style_settings["themes"][theme_name]
             return True
         return False
         
@@ -248,7 +174,7 @@ class OutputStyleManager:
             str: Content formatted in a box
         """
         # Skip box formatting if boxes are disabled
-        if not self.output_styles.get("use_boxes", True):
+        if not self.style_settings.get("use_boxes", True):
             if title:
                 return f"{title}\n{'-' * len(title)}\n{content}"
             return content
@@ -409,7 +335,7 @@ if __name__ == "__main__":
     style_mgr = OutputStyleManager()
     
     # Show available themes
-    themes = list(style_mgr.config.get("themes", {}).keys())
+    themes = list(style_mgr.style_settings.get("themes", {}).keys())
     print(f"Available themes: {', '.join(themes)}")
     
     # Demo different themes

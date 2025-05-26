@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import spacy
 from transformers import pipeline
 import networkx as nx
-from labeeb.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_core.platform_utils import get_input_handler
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +281,7 @@ class ResearchManager:
             summary['CapabilityTests']['Mouse'] = mouse.move_and_click(10, 10)
             summary['CapabilityTests']['Keyboard'] = keyboard.type_and_enter('test')
             try:
-                from labeeb.platform_uai.platform_utils import get_input_handler
+                from labeeb.platform_core.platform_utils import get_input_handler
                 handler = get_input_handler()
                 summary['CapabilityTests']['Screen'] = handler.get_screen_size() is not None
             except Exception as e:
@@ -291,7 +291,7 @@ class ResearchManager:
             summary['AppControl'] = app.launch_browser(url)
             screen_width, screen_height = 1920, 1080
             try:
-                from labeeb.platform_uai.platform_utils import get_input_handler
+                from labeeb.platform_core.platform_utils import get_input_handler
                 screen_width, screen_height = get_input_handler().get_screen_size()
             except Exception:
                 pass
@@ -698,7 +698,7 @@ class AppControlCapability:
 class MouseControlCapability:
     def move_and_click(self, x: int, y: int) -> bool:
         try:
-            from labeeb.platform_uai.platform_utils import get_input_handler
+            from labeeb.platform_core.platform_utils import get_input_handler
             handler = get_input_handler()
             handler.move_mouse(x, y)
             time.sleep(1)
@@ -712,7 +712,7 @@ class MouseControlCapability:
 class KeyboardControlCapability:
     def type_and_enter(self, text: str) -> bool:
         try:
-            from labeeb.platform_uai.platform_utils import get_input_handler
+            from labeeb.platform_core.platform_utils import get_input_handler
             handler = get_input_handler()
             for c in text:
                 handler.type_text(c)

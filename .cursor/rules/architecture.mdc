@@ -87,7 +87,7 @@ alwaysApply: false
 - Component Organization:
   * Follow the architecture defined in architecture.md
   * Maintain clear separation between core and platform-specific code
-  * Keep platform-specific code in app/platform_uai directory
+  * Keep platform-specific code in app/platform_Labeeb directory
   * Follow the agentic command processing flow
   * Maintain consistent file structure
   * Document all architectural decisions

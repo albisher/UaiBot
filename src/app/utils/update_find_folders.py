@@ -6,94 +6,64 @@ import os
 import logging
 from pathlib import Path
 from app.platform_core.platform_manager import PlatformManager
+from typing import List, Dict, Any
+from ..core.platform_core import get_platform_name, get_file_path
 
 logger = logging.getLogger(__name__)
 
 class FolderFinder:
     def __init__(self):
-        self.platform_manager = PlatformManager()
-        self.platform_info = self.platform_manager.get_platform_info()
-        self._init_platform_paths()
+        """Initialize the folder finder."""
+        self.platform_name = get_platform_name()
 
-    def _init_platform_paths(self):
-        """Initialize platform-specific paths."""
-        self.platform_paths = {
-            'mac': [
-                os.path.expanduser('~/Library/Application Support'),
-                os.path.expanduser('~/Library/Preferences'),
-                os.path.expanduser('~/Library/Caches')
-            ],
-            'windows': [
-                os.path.expanduser('~/AppData/Local'),
-                os.path.expanduser('~/AppData/Roaming'),
-                os.path.expanduser('~/AppData/LocalLow')
-            ],
-            'ubuntu': [
-                os.path.expanduser('~/.config'),
-                os.path.expanduser('~/.local/share'),
-                os.path.expanduser('~/.cache')
-            ]
-        }
-
-    def find_platform_folders(self):
-        """Find platform-specific folders."""
-        platform_name = self.platform_info['name']
-        if platform_name not in self.platform_paths:
-            logger.warning(f"Unsupported platform: {platform_name}")
-            return []
-
-        return [path for path in self.platform_paths[platform_name] if os.path.exists(path)]
-
-    def find_notes_folders(self):
+    def find_notes_folders(self) -> List[str]:
         """Find notes folders based on platform."""
-        platform_name = self.platform_info['name']
         notes_folders = []
 
         # First check for platform-specific notes folders
-        if platform_name == 'mac':
+        if self.platform_name == 'darwin':
             notes_folders.extend([
-                os.path.expanduser('~/Documents/Notes'),
-                os.path.expanduser('~/Library/Application Support/Notes')
+                get_file_path(os.path.expanduser('~/Documents/Notes')),
+                get_file_path(os.path.expanduser('~/Library/Application Support/Notes'))
             ])
-        elif platform_name == 'windows':
+        elif self.platform_name == 'windows':
             notes_folders.extend([
-                os.path.expanduser('~/Documents/Notes'),
-                os.path.expanduser('~/OneDrive/Notes')
+                get_file_path(os.path.expanduser('~/Documents/Notes')),
+                get_file_path(os.path.expanduser('~/OneDrive/Notes'))
             ])
-        elif platform_name == 'ubuntu':
+        elif self.platform_name == 'linux':
             notes_folders.extend([
-                os.path.expanduser('~/Documents/Notes'),
-                os.path.expanduser('~/.local/share/notes')
+                get_file_path(os.path.expanduser('~/Documents/Notes')),
+                get_file_path(os.path.expanduser('~/.local/share/notes'))
             ])
 
         # Add common notes folders
         notes_folders.extend([
-            os.path.expanduser('~/Notes'),
-            os.path.expanduser('~/Documents/Notes'),
-            os.path.expanduser('~/Desktop/Notes')
+            get_file_path(os.path.expanduser('~/Notes')),
+            get_file_path(os.path.expanduser('~/Documents/Notes')),
+            get_file_path(os.path.expanduser('~/Desktop/Notes'))
         ])
 
         return [folder for folder in notes_folders if os.path.exists(folder)]
 
-    def find_config_folders(self):
+    def find_config_folders(self) -> List[str]:
         """Find configuration folders based on platform."""
-        platform_name = self.platform_info['name']
         config_folders = []
 
-        if platform_name == 'mac':
+        if self.platform_name == 'darwin':
             config_folders.extend([
-                os.path.expanduser('~/Library/Application Support/Labeeb'),
-                os.path.expanduser('~/Library/Preferences/Labeeb')
+                get_file_path(os.path.expanduser('~/Library/Application Support/Labeeb')),
+                get_file_path(os.path.expanduser('~/Library/Preferences/Labeeb'))
             ])
-        elif platform_name == 'windows':
+        elif self.platform_name == 'windows':
             config_folders.extend([
-                os.path.expanduser('~/AppData/Roaming/Labeeb'),
-                os.path.expanduser('~/AppData/Local/Labeeb')
+                get_file_path(os.path.expanduser('~/AppData/Roaming/Labeeb')),
+                get_file_path(os.path.expanduser('~/AppData/Local/Labeeb'))
             ])
-        elif platform_name == 'ubuntu':
+        elif self.platform_name == 'linux':
             config_folders.extend([
-                os.path.expanduser('~/.config/Labeeb'),
-                os.path.expanduser('~/.local/share/Labeeb')
+                get_file_path(os.path.expanduser('~/.config/Labeeb')),
+                get_file_path(os.path.expanduser('~/.local/share/Labeeb'))
             ])
 
         return [folder for folder in config_folders if os.path.exists(folder)]
@@ -311,6 +281,5 @@ def main():
 
 if __name__ == "__main__":
     finder = FolderFinder()
-    print("Platform folders:", finder.find_platform_folders())
     print("Notes folders:", finder.find_notes_folders())
     print("Config folders:", finder.find_config_folders())

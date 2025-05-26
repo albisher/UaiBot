@@ -10,7 +10,7 @@ The input control functionality follows a clear organization structure:
 
 ```
 /src/labeeb/
-    /platform_uai/           # System files for platform-specific implementations
+    /platform_core/           # System files for platform-specific implementations
         /common/
             /input_control/
                 base_handler.py      # Core interface definition
@@ -45,7 +45,7 @@ The input control functionality follows a clear organization structure:
 ## File Naming Conventions
 
 1. **System Files**: Core functionality files that are required for the system to operate
-   - Located in `/src/labeeb/platform_uai/`
+   - Located in `/src/labeeb/platform_core/`
    - Named descriptively (e.g., `ubuntu_input_handler.py`, `mac_input_handler.py`)
    - No "test" in production filenames
 
@@ -64,7 +64,7 @@ The input control functionality follows a clear organization structure:
 ### Recommended Import Method
 
 ```python
-from labeeb.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_core.platform_utils import get_input_handler
 
 # Get the platform-specific handler automatically
 handler = get_input_handler()
@@ -79,11 +79,11 @@ handler.type_text("Hello, world!")
 
 ```python
 # Method 1: Import specific implementation (if you know the platform)
-from labeeb.platform_uai.ubuntu.input_control import UbuntuInputHandler
+from labeeb.platform_core.ubuntu.input_control import UbuntuInputHandler
 handler = UbuntuInputHandler()
 
 # Method 2: Legacy import (backwards compatibility)
-from labeeb.platform_uai.common.input_control import MouseKeyboardHandler
+from labeeb.platform_core.common.input_control import MouseKeyboardHandler
 handler = MouseKeyboardHandler()
 ```
 
@@ -107,7 +107,7 @@ To force simulation mode for testing:
 ```python
 import os
 os.environ['DISPLAY'] = ''  # Set before importing the handler
-from labeeb.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_core.platform_utils import get_input_handler
 ```
 
 ## Available Methods
@@ -116,10 +116,4 @@ All input handlers implement the following methods:
 
 - `get_mouse_position()`: Get the current mouse position
 - `get_screen_size()`: Get the screen size
-- `move_mouse(x, y, duration=0.25)`: Move the mouse to specific coordinates
-- `click_mouse(x=None, y=None, button='left', clicks=1)`: Click the mouse
-- `press_key(key)`: Press a single key
-- `type_text(text, interval=0.0)`: Type text
-- `hotkey(*keys)`: Press multiple keys simultaneously
-- `is_key_pressed(key)`: Check if a key is currently pressed
-- `scroll(clicks, x=None, y=None)`: Scroll the mouse wheel
+- `

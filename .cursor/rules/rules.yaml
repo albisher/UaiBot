@@ -5,7 +5,7 @@ system_files:
   - src/labeeb/utils/*.py
   - src/labeeb/config/*.py
   - src/labeeb/health_check/*.py
-  - src/labeeb/platform_uai/*.py
+  - src/labeeb/platform_Labeeb/*.py
   - src/labeeb/command_processor/*.py
   - src/labeeb/terminal_commands/*.py
   - src/labeeb/screen_handler/*.py

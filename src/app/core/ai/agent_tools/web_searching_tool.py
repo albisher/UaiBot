@@ -1,13 +1,23 @@
+"""
+Web searching tool with A2A, MCP, and SmolAgents compliance.
+
+This tool provides web searching capabilities while following:
+- A2A (Agent-to-Agent) protocol for agent collaboration
+- MCP (Multi-Channel Protocol) for unified channel support
+- SmolAgents pattern for minimal, efficient implementation
+"""
+
 import logging
-import requests
-from typing import Dict, Any, List, Optional
-from app.agent_tools.base_tool import BaseAgentTool
-from app.platform_core.platform_manager import PlatformManager
+import asyncio
+import aiohttp
+import time
+from typing import Dict, Any, List, Optional, Union
+from app.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 
-class WebSearchingTool(BaseAgentTool):
-    """Tool for performing web searches with platform-specific optimizations."""
+class WebSearchingTool(BaseTool):
+    """Tool for performing web searches."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the web searching tool.
@@ -15,37 +25,54 @@ class WebSearchingTool(BaseAgentTool):
         Args:
             config: Optional configuration dictionary
         """
-        super().__init__(config)
-        self._platform_manager = None
-        self._platform_info = None
-        self._handlers = None
-        self._search_engines = config.get('search_engines', ['google', 'bing', 'duckduckgo'])
+        super().__init__(
+            name="web_search",
+            description="Tool for performing web searches",
+            config=config
+        )
+        self._api_key = config.get('api_key')
+        self._search_engine = config.get('search_engine', 'google')
         self._max_results = config.get('max_results', 10)
         self._timeout = config.get('timeout', 30)
+        self._operation_history = []
+        self._max_history = config.get('max_history', 100)
+        self._session = None
     
-    def initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize the tool.
         
         Returns:
             bool: True if initialization was successful, False otherwise
         """
         try:
-            self._platform_manager = PlatformManager()
-            self._platform_info = self._platform_manager.get_platform_info()
-            self._handlers = self._platform_manager.get_handlers()
-            self._initialized = True
-            return True
+            # Validate configuration
+            if not self._api_key:
+                logger.error("API key is required")
+                return False
+            
+            if self._search_engine not in ['google', 'bing', 'duckduckgo']:
+                logger.error(f"Unsupported search engine: {self._search_engine}")
+                return False
+            
+            # Create HTTP session
+            self._session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=self._timeout)
+            )
+            
+            return await super().initialize()
         except Exception as e:
             logger.error(f"Failed to initialize WebSearchingTool: {e}")
             return False
     
-    def cleanup(self) -> None:
+    async def cleanup(self) -> None:
         """Clean up resources used by the tool."""
         try:
-            self._platform_manager = None
-            self._platform_info = None
-            self._handlers = None
-            self._initialized = False
+            if self._session:
+                await self._session.close()
+                self._session = None
+            
+            self._operation_history = []
+            await super().cleanup()
         except Exception as e:
             logger.error(f"Error cleaning up WebSearchingTool: {e}")
     
@@ -55,13 +82,14 @@ class WebSearchingTool(BaseAgentTool):
         Returns:
             Dict[str, bool]: Dictionary of capability names and their availability
         """
-        return {
-            'web_search': True,
-            'multi_engine_search': len(self._search_engines) > 1,
-            'platform_specific_optimization': bool(self._platform_info),
-            'result_filtering': True,
-            'error_handling': True
+        base_capabilities = super().get_capabilities()
+        tool_capabilities = {
+            'search': True,
+            'image_search': True,
+            'news_search': True,
+            'history': True
         }
+        return {**base_capabilities, **tool_capabilities}
     
     def get_status(self) -> Dict[str, Any]:
         """Get the current status of the tool.
@@ -69,16 +97,18 @@ class WebSearchingTool(BaseAgentTool):
         Returns:
             Dict[str, Any]: Dictionary containing status information
         """
-        return {
-            'initialized': self._initialized,
-            'platform': self._platform_info.get('name') if self._platform_info else None,
-            'search_engines': self._search_engines,
+        base_status = super().get_status()
+        tool_status = {
+            'search_engine': self._search_engine,
             'max_results': self._max_results,
-            'timeout': self._timeout
+            'timeout': self._timeout,
+            'history_size': len(self._operation_history),
+            'max_history': self._max_history
         }
+        return {**base_status, **tool_status}
     
-    def execute(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute a command using this tool.
+    async def _execute_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Execute a specific command.
         
         Args:
             command: Command to execute
@@ -87,180 +117,293 @@ class WebSearchingTool(BaseAgentTool):
         Returns:
             Dict[str, Any]: Result of the command execution
         """
-        if not self._initialized:
-            return {'error': 'Tool not initialized'}
-        
-        try:
-            if command == 'search':
-                return self._execute_search(args)
-            elif command == 'get_search_info':
-                return self.get_search_info()
-            elif command == 'check_availability':
-                return {'available': self.check_search_availability()}
-            else:
-                return {'error': f'Unknown command: {command}'}
-        except Exception as e:
-            logger.error(f"Error executing command {command}: {e}")
-            return {'error': str(e)}
-    
-    def get_available_commands(self) -> List[str]:
-        """Get list of available commands for this tool.
-        
-        Returns:
-            List[str]: List of available command names
-        """
-        return ['search', 'get_search_info', 'check_availability']
-    
-    def get_command_help(self, command: str) -> Dict[str, Any]:
-        """Get help information for a specific command.
-        
-        Args:
-            command: Command name to get help for
-            
-        Returns:
-            Dict[str, Any]: Help information for the command
-        """
-        help_info = {
-            'search': {
-                'description': 'Search the web for information',
-                'args': {
-                    'query': 'Search query string',
-                    'engine': 'Optional search engine to use',
-                    'max_results': 'Optional maximum number of results'
-                }
-            },
-            'get_search_info': {
-                'description': 'Get information about the search tool',
-                'args': {}
-            },
-            'check_availability': {
-                'description': 'Check if web search is available',
-                'args': {}
-            }
-        }
-        return help_info.get(command, {'error': f'Unknown command: {command}'})
-    
-    def validate_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> bool:
-        """Validate if a command and its arguments are valid.
-        
-        Args:
-            command: Command to validate
-            args: Optional arguments to validate
-            
-        Returns:
-            bool: True if command and arguments are valid, False otherwise
-        """
-        if command not in self.get_available_commands():
-            return False
-        
         if command == 'search':
-            if not args or 'query' not in args:
-                return False
-            if 'engine' in args and args['engine'] not in self._search_engines:
-                return False
-            if 'max_results' in args and not isinstance(args['max_results'], int):
-                return False
-        
-        return True
+            return await self._perform_search(args)
+        elif command == 'image_search':
+            return await self._perform_image_search(args)
+        elif command == 'news_search':
+            return await self._perform_news_search(args)
+        elif command == 'get_history':
+            return await self._get_history()
+        elif command == 'clear_history':
+            return await self._clear_history()
+        else:
+            return {'error': f'Unknown command: {command}'}
     
-    def _execute_search(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute a web search.
+    def _add_to_history(self, operation: str, details: Dict[str, Any]) -> None:
+        """Add an operation to history.
+        
+        Args:
+            operation: Operation performed
+            details: Operation details
+        """
+        self._operation_history.append({
+            'operation': operation,
+            'details': details,
+            'timestamp': time.time()
+        })
+        if len(self._operation_history) > self._max_history:
+            self._operation_history.pop(0)
+    
+    async def _perform_search(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Perform a web search.
         
         Args:
             args: Search arguments
             
         Returns:
-            Dict[str, Any]: Search results
+            Dict[str, Any]: Result of search operation
         """
-        query = args['query']
-        engine = args.get('engine', self._search_engines[0])
-        max_results = args.get('max_results', self._max_results)
-        
         try:
-            result = {
-                'platform': self._platform_info['name'],
-                'query': query,
-                'engine': engine,
-                'status': 'success',
-                'results': []
-            }
+            if not args or 'query' not in args:
+                return {'error': 'Missing query parameter'}
             
-            # Get platform-specific user agent
-            user_agent = self._get_platform_user_agent()
+            query = args['query']
+            max_results = args.get('max_results', self._max_results)
             
-            # Perform the search
-            headers = {
-                'User-Agent': user_agent,
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
-            }
-            
-            # TODO: Implement actual web search logic here
-            # This is a placeholder for demonstration
-            result['results'] = [
-                {
-                    'title': 'Example Result 1',
-                    'url': 'https://example.com/1',
-                    'snippet': 'This is an example search result.'
-                },
-                {
-                    'title': 'Example Result 2',
-                    'url': 'https://example.com/2',
-                    'snippet': 'Another example search result.'
+            headers = {}
+            if self._search_engine == 'google':
+                url = 'https://www.googleapis.com/customsearch/v1'
+                params = {
+                    'key': self._api_key,
+                    'cx': self._config.get('search_engine_id'),
+                    'q': query,
+                    'num': min(max_results, 10)  # Google's limit is 10 per request
                 }
-            ]
+            elif self._search_engine == 'bing':
+                url = 'https://api.bing.microsoft.com/v7.0/search'
+                headers = {'Ocp-Apim-Subscription-Key': self._api_key}
+                params = {
+                    'q': query,
+                    'count': min(max_results, 50)  # Bing's limit is 50 per request
+                }
+            elif self._search_engine == 'duckduckgo':
+                url = 'https://api.duckduckgo.com/'
+                params = {
+                    'q': query,
+                    'format': 'json',
+                    'no_html': 1,
+                    'no_redirect': 1
+                }
             
-            return result
-            
+            async with self._session.get(url, params=params, headers=headers if self._search_engine == 'bing' else None) as response:
+                if response.status != 200:
+                    return {'error': f'Search failed with status {response.status}'}
+                
+                data = await response.json()
+                
+                if self._search_engine == 'google':
+                    results = [{
+                        'title': item.get('title', ''),
+                        'link': item.get('link', ''),
+                        'snippet': item.get('snippet', '')
+                    } for item in data.get('items', [])]
+                elif self._search_engine == 'bing':
+                    results = [{
+                        'title': item.get('name', ''),
+                        'link': item.get('url', ''),
+                        'snippet': item.get('snippet', '')
+                    } for item in data.get('webPages', {}).get('value', [])]
+                elif self._search_engine == 'duckduckgo':
+                    results = [{
+                        'title': item.get('Text', ''),
+                        'link': item.get('FirstURL', ''),
+                        'snippet': item.get('Text', '')
+                    } for item in data.get('RelatedTopics', [])]
+                
+                result = {
+                    'status': 'success',
+                    'action': 'search',
+                    'query': query,
+                    'results': results[:max_results]
+                }
+                
+                self._add_to_history('search', {
+                    'query': query,
+                    'result_count': len(results)
+                })
+                
+                return result
         except Exception as e:
-            logger.error(f"Error executing search: {e}")
-            return {
-                'platform': self._platform_info['name'],
-                'query': query,
-                'status': 'error',
-                'error': str(e)
-            }
+            logger.error(f"Error performing search: {e}")
+            return {'error': str(e)}
     
-    def _get_platform_user_agent(self) -> str:
-        """Get platform-specific user agent string.
+    async def _perform_image_search(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Perform an image search.
         
+        Args:
+            args: Search arguments
+            
         Returns:
-            str: User agent string
-        """
-        platform = self._platform_info['name']
-        user_agents = {
-            'mac': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-            'windows': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'ubuntu': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
-        }
-        return user_agents.get(platform, 'Mozilla/5.0')
-    
-    def get_search_info(self) -> Dict[str, Any]:
-        """Get search tool information.
-        
-        Returns:
-            Dict[str, Any]: Search tool information
-        """
-        return {
-            'platform': self._platform_info['name'],
-            'version': self._platform_info['version'],
-            'features': self._platform_info['features'],
-            'search_engines': self._search_engines,
-            'max_results': self._max_results,
-            'timeout': self._timeout
-        }
-    
-    def check_search_availability(self) -> bool:
-        """Check if web search is available.
-        
-        Returns:
-            bool: True if web search is available, False otherwise
+            Dict[str, Any]: Result of image search operation
         """
         try:
-            # TODO: Implement actual availability check
-            return True
+            if not args or 'query' not in args:
+                return {'error': 'Missing query parameter'}
+            
+            query = args['query']
+            max_results = args.get('max_results', self._max_results)
+            
+            headers = {}
+            if self._search_engine == 'google':
+                url = 'https://www.googleapis.com/customsearch/v1'
+                params = {
+                    'key': self._api_key,
+                    'cx': self._config.get('search_engine_id'),
+                    'q': query,
+                    'searchType': 'image',
+                    'num': min(max_results, 10)  # Google's limit is 10 per request
+                }
+            elif self._search_engine == 'bing':
+                url = 'https://api.bing.microsoft.com/v7.0/images/search'
+                headers = {'Ocp-Apim-Subscription-Key': self._api_key}
+                params = {
+                    'q': query,
+                    'count': min(max_results, 50)  # Bing's limit is 50 per request
+                }
+            else:
+                return {'error': f'Image search not supported for {self._search_engine}'}
+            
+            async with self._session.get(url, params=params, headers=headers if self._search_engine == 'bing' else None) as response:
+                if response.status != 200:
+                    return {'error': f'Image search failed with status {response.status}'}
+                
+                data = await response.json()
+                
+                if self._search_engine == 'google':
+                    results = [{
+                        'title': item.get('title', ''),
+                        'link': item.get('link', ''),
+                        'thumbnail': item.get('image', {}).get('thumbnailLink', ''),
+                        'context': item.get('image', {}).get('contextLink', '')
+                    } for item in data.get('items', [])]
+                elif self._search_engine == 'bing':
+                    results = [{
+                        'title': item.get('name', ''),
+                        'link': item.get('contentUrl', ''),
+                        'thumbnail': item.get('thumbnailUrl', ''),
+                        'context': item.get('hostPageUrl', '')
+                    } for item in data.get('value', [])]
+                
+                result = {
+                    'status': 'success',
+                    'action': 'image_search',
+                    'query': query,
+                    'results': results[:max_results]
+                }
+                
+                self._add_to_history('image_search', {
+                    'query': query,
+                    'result_count': len(results)
+                })
+                
+                return result
         except Exception as e:
-            logger.error(f"Error checking search availability: {e}")
-            return False 
+            logger.error(f"Error performing image search: {e}")
+            return {'error': str(e)}
+    
+    async def _perform_news_search(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Perform a news search.
+        
+        Args:
+            args: Search arguments
+            
+        Returns:
+            Dict[str, Any]: Result of news search operation
+        """
+        try:
+            if not args or 'query' not in args:
+                return {'error': 'Missing query parameter'}
+            
+            query = args['query']
+            max_results = args.get('max_results', self._max_results)
+            
+            headers = {}
+            if self._search_engine == 'google':
+                url = 'https://www.googleapis.com/customsearch/v1'
+                params = {
+                    'key': self._api_key,
+                    'cx': self._config.get('search_engine_id'),
+                    'q': query,
+                    'tbm': 'nws',  # News search
+                    'num': min(max_results, 10)  # Google's limit is 10 per request
+                }
+            elif self._search_engine == 'bing':
+                url = 'https://api.bing.microsoft.com/v7.0/news/search'
+                headers = {'Ocp-Apim-Subscription-Key': self._api_key}
+                params = {
+                    'q': query,
+                    'count': min(max_results, 50)  # Bing's limit is 50 per request
+                }
+            else:
+                return {'error': f'News search not supported for {self._search_engine}'}
+            
+            async with self._session.get(url, params=params, headers=headers if self._search_engine == 'bing' else None) as response:
+                if response.status != 200:
+                    return {'error': f'News search failed with status {response.status}'}
+                
+                data = await response.json()
+                
+                if self._search_engine == 'google':
+                    results = [{
+                        'title': item.get('title', ''),
+                        'link': item.get('link', ''),
+                        'snippet': item.get('snippet', ''),
+                        'date': item.get('pagemap', {}).get('metatags', [{}])[0].get('article:published_time', '')
+                    } for item in data.get('items', [])]
+                elif self._search_engine == 'bing':
+                    results = [{
+                        'title': item.get('name', ''),
+                        'link': item.get('url', ''),
+                        'snippet': item.get('description', ''),
+                        'date': item.get('datePublished', '')
+                    } for item in data.get('value', [])]
+                
+                result = {
+                    'status': 'success',
+                    'action': 'news_search',
+                    'query': query,
+                    'results': results[:max_results]
+                }
+                
+                self._add_to_history('news_search', {
+                    'query': query,
+                    'result_count': len(results)
+                })
+                
+                return result
+        except Exception as e:
+            logger.error(f"Error performing news search: {e}")
+            return {'error': str(e)}
+    
+    async def _get_history(self) -> Dict[str, Any]:
+        """Get operation history.
+        
+        Returns:
+            Dict[str, Any]: Operation history
+        """
+        try:
+            return {
+                'status': 'success',
+                'action': 'get_history',
+                'history': self._operation_history
+            }
+        except Exception as e:
+            logger.error(f"Error getting history: {e}")
+            return {'error': str(e)}
+    
+    async def _clear_history(self) -> Dict[str, Any]:
+        """Clear operation history.
+        
+        Returns:
+            Dict[str, Any]: Result of clearing history
+        """
+        try:
+            self._operation_history = []
+            return {
+                'status': 'success',
+                'action': 'clear_history'
+            }
+        except Exception as e:
+            logger.error(f"Error clearing history: {e}")
+            return {'error': str(e)} 

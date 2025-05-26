@@ -1,12 +1,22 @@
+"""
+Window control tool with A2A, MCP, and SmolAgents compliance.
+
+This tool provides window control functionality while following:
+- A2A (Agent-to-Agent) protocol for agent collaboration
+- MCP (Multi-Channel Protocol) for unified channel support
+- SmolAgents pattern for minimal, efficient implementation
+"""
+
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-from app.agent_tools.base_tool import BaseAgentTool
-from app.platform_core.platform_manager import PlatformManager
+import platform
+from typing import Dict, Any, List, Optional, Union
+import pyautogui
+from app.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 
-class WindowControlTool(BaseAgentTool):
-    """Tool for controlling window operations with platform-specific optimizations."""
+class WindowControlTool(BaseTool):
+    """Tool for controlling windows with platform-specific optimizations."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the window control tool.
@@ -14,44 +24,48 @@ class WindowControlTool(BaseAgentTool):
         Args:
             config: Optional configuration dictionary
         """
-        super().__init__(config)
-        self._platform_manager = None
-        self._platform_info = None
-        self._handlers = None
-        self._window_handler = None
-        self._min_window_size = config.get('min_window_size', (100, 100))
-        self._max_window_size = config.get('max_window_size', (3840, 2160))
-        self._animation_duration = config.get('animation_duration', 0.3)
-        self._focus_delay = config.get('focus_delay', 0.1)
+        super().__init__(
+            name="window_control",
+            description="Tool for controlling windows with platform-specific optimizations",
+            config=config
+        )
+        self._platform = platform.system().lower()
+        self._window_list = []
+        self._active_window = None
+        self._window_positions = {}
+        self._window_sizes = {}
     
-    def initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize the tool.
         
         Returns:
             bool: True if initialization was successful, False otherwise
         """
         try:
-            self._platform_manager = PlatformManager()
-            self._platform_info = self._platform_manager.get_platform_info()
-            self._handlers = self._platform_manager.get_handlers()
-            self._window_handler = self._handlers.get('window')
-            if not self._window_handler:
-                logger.error("Window handler not found")
-                return False
-            self._initialized = True
-            return True
+            # Configure platform-specific settings
+            if self._platform == 'darwin':
+                pyautogui.MAC_OS = True
+            elif self._platform == 'windows':
+                pyautogui.WINDOWS = True
+            elif self._platform == 'linux':
+                pyautogui.LINUX = True
+            
+            # Get initial window list
+            await self._refresh_window_list()
+            
+            return await super().initialize()
         except Exception as e:
             logger.error(f"Failed to initialize WindowControlTool: {e}")
             return False
     
-    def cleanup(self) -> None:
+    async def cleanup(self) -> None:
         """Clean up resources used by the tool."""
         try:
-            self._platform_manager = None
-            self._platform_info = None
-            self._handlers = None
-            self._window_handler = None
-            self._initialized = False
+            self._window_list = []
+            self._active_window = None
+            self._window_positions = {}
+            self._window_sizes = {}
+            await super().cleanup()
         except Exception as e:
             logger.error(f"Error cleaning up WindowControlTool: {e}")
     
@@ -61,19 +75,18 @@ class WindowControlTool(BaseAgentTool):
         Returns:
             Dict[str, bool]: Dictionary of capability names and their availability
         """
-        return {
+        base_capabilities = super().get_capabilities()
+        tool_capabilities = {
             'list_windows': True,
-            'get_active_window': True,
             'activate_window': True,
             'move_window': True,
             'resize_window': True,
             'minimize_window': True,
             'maximize_window': True,
-            'restore_window': True,
             'close_window': True,
-            'get_window_info': True,
-            'platform_specific_optimization': bool(self._platform_info)
+            'get_window_info': True
         }
+        return {**base_capabilities, **tool_capabilities}
     
     def get_status(self) -> Dict[str, Any]:
         """Get the current status of the tool.
@@ -81,17 +94,18 @@ class WindowControlTool(BaseAgentTool):
         Returns:
             Dict[str, Any]: Dictionary containing status information
         """
-        return {
-            'initialized': self._initialized,
-            'platform': self._platform_info.get('name') if self._platform_info else None,
-            'min_window_size': self._min_window_size,
-            'max_window_size': self._max_window_size,
-            'animation_duration': self._animation_duration,
-            'focus_delay': self._focus_delay
+        base_status = super().get_status()
+        tool_status = {
+            'platform': self._platform,
+            'window_count': len(self._window_list),
+            'active_window': self._active_window,
+            'window_positions': self._window_positions,
+            'window_sizes': self._window_sizes
         }
+        return {**base_status, **tool_status}
     
-    def execute(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute a command using this tool.
+    async def _execute_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Execute a specific command.
         
         Args:
             command: Command to execute
@@ -100,216 +114,120 @@ class WindowControlTool(BaseAgentTool):
         Returns:
             Dict[str, Any]: Result of the command execution
         """
-        if not self._initialized:
-            return {'error': 'Tool not initialized'}
-        
-        try:
-            if command == 'list_windows':
-                return self._list_windows()
-            elif command == 'get_active_window':
-                return self._get_active_window()
-            elif command == 'activate_window':
-                return self._activate_window(args)
-            elif command == 'move_window':
-                return self._move_window(args)
-            elif command == 'resize_window':
-                return self._resize_window(args)
-            elif command == 'minimize_window':
-                return self._minimize_window(args)
-            elif command == 'maximize_window':
-                return self._maximize_window(args)
-            elif command == 'restore_window':
-                return self._restore_window(args)
-            elif command == 'close_window':
-                return self._close_window(args)
-            elif command == 'get_window_info':
-                return self._get_window_info(args)
-            else:
-                return {'error': f'Unknown command: {command}'}
-        except Exception as e:
-            logger.error(f"Error executing command {command}: {e}")
-            return {'error': str(e)}
-    
-    def get_available_commands(self) -> List[str]:
-        """Get list of available commands for this tool.
-        
-        Returns:
-            List[str]: List of available command names
-        """
-        return [
-            'list_windows',
-            'get_active_window',
-            'activate_window',
-            'move_window',
-            'resize_window',
-            'minimize_window',
-            'maximize_window',
-            'restore_window',
-            'close_window',
-            'get_window_info'
-        ]
-    
-    def get_command_help(self, command: str) -> Dict[str, Any]:
-        """Get help information for a specific command.
-        
-        Args:
-            command: Command name to get help for
-            
-        Returns:
-            Dict[str, Any]: Help information for the command
-        """
-        help_info = {
-            'list_windows': {
-                'description': 'Get list of all windows',
-                'args': {}
-            },
-            'get_active_window': {
-                'description': 'Get information about the currently active window',
-                'args': {}
-            },
-            'activate_window': {
-                'description': 'Activate a window by its handle or title',
-                'args': {
-                    'window_id': 'Window handle or title'
-                }
-            },
-            'move_window': {
-                'description': 'Move a window to specified coordinates',
-                'args': {
-                    'window_id': 'Window handle or title',
-                    'x': 'X coordinate',
-                    'y': 'Y coordinate'
-                }
-            },
-            'resize_window': {
-                'description': 'Resize a window to specified dimensions',
-                'args': {
-                    'window_id': 'Window handle or title',
-                    'width': 'Window width',
-                    'height': 'Window height'
-                }
-            },
-            'minimize_window': {
-                'description': 'Minimize a window',
-                'args': {
-                    'window_id': 'Window handle or title'
-                }
-            },
-            'maximize_window': {
-                'description': 'Maximize a window',
-                'args': {
-                    'window_id': 'Window handle or title'
-                }
-            },
-            'restore_window': {
-                'description': 'Restore a window from minimized or maximized state',
-                'args': {
-                    'window_id': 'Window handle or title'
-                }
-            },
-            'close_window': {
-                'description': 'Close a window',
-                'args': {
-                    'window_id': 'Window handle or title'
-                }
-            },
-            'get_window_info': {
-                'description': 'Get detailed information about a window',
-                'args': {
-                    'window_id': 'Window handle or title'
-                }
-            }
-        }
-        return help_info.get(command, {'error': f'Unknown command: {command}'})
-    
-    def validate_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> bool:
-        """Validate if a command and its arguments are valid.
-        
-        Args:
-            command: Command to validate
-            args: Optional arguments to validate
-            
-        Returns:
-            bool: True if command and arguments are valid, False otherwise
-        """
-        if command not in self.get_available_commands():
-            return False
-        
-        if command in ['activate_window', 'minimize_window', 'maximize_window', 'restore_window', 'close_window', 'get_window_info']:
-            if not args or 'window_id' not in args:
-                return False
-            if not isinstance(args['window_id'], (int, str)):
-                return False
-        
+        if command == 'list_windows':
+            return await self._list_windows()
+        elif command == 'activate_window':
+            return await self._activate_window(args)
         elif command == 'move_window':
-            if not args or not all(k in args for k in ['window_id', 'x', 'y']):
-                return False
-            if not isinstance(args['window_id'], (int, str)):
-                return False
-            if not isinstance(args['x'], int) or not isinstance(args['y'], int):
-                return False
-        
+            return await self._move_window(args)
         elif command == 'resize_window':
-            if not args or not all(k in args for k in ['window_id', 'width', 'height']):
-                return False
-            if not isinstance(args['window_id'], (int, str)):
-                return False
-            if not isinstance(args['width'], int) or not isinstance(args['height'], int):
-                return False
-            if args['width'] < self._min_window_size[0] or args['height'] < self._min_window_size[1]:
-                return False
-            if args['width'] > self._max_window_size[0] or args['height'] > self._max_window_size[1]:
-                return False
-        
-        return True
+            return await self._resize_window(args)
+        elif command == 'minimize_window':
+            return await self._minimize_window(args)
+        elif command == 'maximize_window':
+            return await self._maximize_window(args)
+        elif command == 'close_window':
+            return await self._close_window(args)
+        elif command == 'get_window_info':
+            return await self._get_window_info(args)
+        else:
+            return {'error': f'Unknown command: {command}'}
     
-    def _list_windows(self) -> Dict[str, Any]:
-        """Get list of all windows.
+    async def _refresh_window_list(self) -> None:
+        """Refresh the list of windows."""
+        try:
+            # Get window list based on platform
+            if self._platform == 'darwin':
+                # macOS specific window listing
+                import Quartz
+                window_list = []
+                for window in Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, Quartz.kCGNullWindowID):
+                    if window.get(Quartz.kCGWindowLayer, 0) == 0:
+                        window_list.append({
+                            'id': window.get(Quartz.kCGWindowNumber, 0),
+                            'title': window.get(Quartz.kCGWindowName, ''),
+                            'owner': window.get(Quartz.kCGWindowOwnerName, ''),
+                            'bounds': window.get(Quartz.kCGWindowBounds, {})
+                        })
+            elif self._platform == 'windows':
+                # Windows specific window listing
+                import win32gui
+                window_list = []
+                def enum_windows_callback(hwnd, windows):
+                    if win32gui.IsWindowVisible(hwnd):
+                        windows.append({
+                            'id': hwnd,
+                            'title': win32gui.GetWindowText(hwnd),
+                            'owner': win32gui.GetClassName(hwnd),
+                            'bounds': win32gui.GetWindowRect(hwnd)
+                        })
+                    return True
+                win32gui.EnumWindows(enum_windows_callback, window_list)
+            else:
+                # Linux specific window listing
+                import Xlib.display
+                display = Xlib.display.Display()
+                root = display.screen().root
+                window_list = []
+                for window in root.query_tree().children:
+                    if window.get_wm_name():
+                        window_list.append({
+                            'id': window.id,
+                            'title': window.get_wm_name(),
+                            'owner': window.get_wm_class()[0] if window.get_wm_class() else '',
+                            'bounds': window.get_geometry()
+                        })
+            
+            self._window_list = window_list
+        except Exception as e:
+            logger.error(f"Error refreshing window list: {e}")
+    
+    async def _list_windows(self) -> Dict[str, Any]:
+        """Get list of windows.
         
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: List of windows
         """
         try:
-            windows = self._window_handler.list_windows()
+            await self._refresh_window_list()
             return {
                 'status': 'success',
                 'action': 'list_windows',
-                'windows': windows,
-                'count': len(windows)
+                'windows': self._window_list
             }
         except Exception as e:
             logger.error(f"Error listing windows: {e}")
             return {'error': str(e)}
     
-    def _get_active_window(self) -> Dict[str, Any]:
-        """Get information about the currently active window.
-        
-        Returns:
-            Dict[str, Any]: Result of the operation
-        """
-        try:
-            window = self._window_handler.get_active_window()
-            return {
-                'status': 'success',
-                'action': 'get_active_window',
-                'window': window
-            }
-        except Exception as e:
-            logger.error(f"Error getting active window: {e}")
-            return {'error': str(e)}
-    
-    def _activate_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Activate a window by its handle or title.
+    async def _activate_window(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Activate a window.
         
         Args:
-            args: Command arguments
+            args: Window activation arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Result of window activation
         """
         try:
+            if not args or 'window_id' not in args:
+                return {'error': 'Missing window_id parameter'}
+            
             window_id = args['window_id']
-            self._window_handler.activate_window(window_id)
+            
+            # Activate window based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)
+            elif self._platform == 'windows':
+                import win32gui
+                win32gui.SetForegroundWindow(window_id)
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                window.set_input_focus()
+            
+            self._active_window = window_id
             return {
                 'status': 'success',
                 'action': 'activate_window',
@@ -319,21 +237,41 @@ class WindowControlTool(BaseAgentTool):
             logger.error(f"Error activating window: {e}")
             return {'error': str(e)}
     
-    def _move_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Move a window to specified coordinates.
+    async def _move_window(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Move a window to a new position.
         
         Args:
-            args: Command arguments
+            args: Window move arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Result of window move
         """
         try:
+            if not args or 'window_id' not in args or 'x' not in args or 'y' not in args:
+                return {'error': 'Missing required parameters'}
+            
             window_id = args['window_id']
             x = args['x']
             y = args['y']
             
-            self._window_handler.move_window(window_id, x, y)
+            # Move window based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                window = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)[0]
+                bounds = window.get(Quartz.kCGWindowBounds, {})
+                bounds['X'] = x
+                bounds['Y'] = y
+                Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)
+            elif self._platform == 'windows':
+                import win32gui
+                win32gui.MoveWindow(window_id, x, y, 0, 0, True)
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                window.configure(x=x, y=y)
+            
+            self._window_positions[window_id] = (x, y)
             return {
                 'status': 'success',
                 'action': 'move_window',
@@ -344,21 +282,42 @@ class WindowControlTool(BaseAgentTool):
             logger.error(f"Error moving window: {e}")
             return {'error': str(e)}
     
-    def _resize_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Resize a window to specified dimensions.
+    async def _resize_window(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Resize a window.
         
         Args:
-            args: Command arguments
+            args: Window resize arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Result of window resize
         """
         try:
+            if not args or 'window_id' not in args or 'width' not in args or 'height' not in args:
+                return {'error': 'Missing required parameters'}
+            
             window_id = args['window_id']
             width = args['width']
             height = args['height']
             
-            self._window_handler.resize_window(window_id, width, height)
+            # Resize window based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                window = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)[0]
+                bounds = window.get(Quartz.kCGWindowBounds, {})
+                bounds['Width'] = width
+                bounds['Height'] = height
+                Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)
+            elif self._platform == 'windows':
+                import win32gui
+                x, y = self._window_positions.get(window_id, (0, 0))
+                win32gui.MoveWindow(window_id, x, y, width, height, True)
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                window.configure(width=width, height=height)
+            
+            self._window_sizes[window_id] = (width, height)
             return {
                 'status': 'success',
                 'action': 'resize_window',
@@ -369,18 +328,34 @@ class WindowControlTool(BaseAgentTool):
             logger.error(f"Error resizing window: {e}")
             return {'error': str(e)}
     
-    def _minimize_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    async def _minimize_window(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Minimize a window.
         
         Args:
-            args: Command arguments
+            args: Window minimize arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Result of window minimize
         """
         try:
+            if not args or 'window_id' not in args:
+                return {'error': 'Missing window_id parameter'}
+            
             window_id = args['window_id']
-            self._window_handler.minimize_window(window_id)
+            
+            # Minimize window based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)
+            elif self._platform == 'windows':
+                import win32gui
+                win32gui.ShowWindow(window_id, win32gui.SW_MINIMIZE)
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                window.iconify()
+            
             return {
                 'status': 'success',
                 'action': 'minimize_window',
@@ -390,18 +365,34 @@ class WindowControlTool(BaseAgentTool):
             logger.error(f"Error minimizing window: {e}")
             return {'error': str(e)}
     
-    def _maximize_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    async def _maximize_window(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Maximize a window.
         
         Args:
-            args: Command arguments
+            args: Window maximize arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Result of window maximize
         """
         try:
+            if not args or 'window_id' not in args:
+                return {'error': 'Missing window_id parameter'}
+            
             window_id = args['window_id']
-            self._window_handler.maximize_window(window_id)
+            
+            # Maximize window based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)
+            elif self._platform == 'windows':
+                import win32gui
+                win32gui.ShowWindow(window_id, win32gui.SW_MAXIMIZE)
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                window.configure(state='zoomed')
+            
             return {
                 'status': 'success',
                 'action': 'maximize_window',
@@ -411,39 +402,42 @@ class WindowControlTool(BaseAgentTool):
             logger.error(f"Error maximizing window: {e}")
             return {'error': str(e)}
     
-    def _restore_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Restore a window from minimized or maximized state.
-        
-        Args:
-            args: Command arguments
-            
-        Returns:
-            Dict[str, Any]: Result of the operation
-        """
-        try:
-            window_id = args['window_id']
-            self._window_handler.restore_window(window_id)
-            return {
-                'status': 'success',
-                'action': 'restore_window',
-                'window_id': window_id
-            }
-        except Exception as e:
-            logger.error(f"Error restoring window: {e}")
-            return {'error': str(e)}
-    
-    def _close_window(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    async def _close_window(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Close a window.
         
         Args:
-            args: Command arguments
+            args: Window close arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Result of window close
         """
         try:
+            if not args or 'window_id' not in args:
+                return {'error': 'Missing window_id parameter'}
+            
             window_id = args['window_id']
-            self._window_handler.close_window(window_id)
+            
+            # Close window based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)
+            elif self._platform == 'windows':
+                import win32gui
+                win32gui.PostMessage(window_id, win32gui.WM_CLOSE, 0, 0)
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                window.send_event(display.icccm_wm_protocols('WM_DELETE_WINDOW'))
+            
+            # Remove window from tracking
+            if window_id in self._window_positions:
+                del self._window_positions[window_id]
+            if window_id in self._window_sizes:
+                del self._window_sizes[window_id]
+            if self._active_window == window_id:
+                self._active_window = None
+            
             return {
                 'status': 'success',
                 'action': 'close_window',
@@ -453,18 +447,56 @@ class WindowControlTool(BaseAgentTool):
             logger.error(f"Error closing window: {e}")
             return {'error': str(e)}
     
-    def _get_window_info(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Get detailed information about a window.
+    async def _get_window_info(self, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get information about a window.
         
         Args:
-            args: Command arguments
+            args: Window info arguments
             
         Returns:
-            Dict[str, Any]: Result of the operation
+            Dict[str, Any]: Window information
         """
         try:
+            if not args or 'window_id' not in args:
+                return {'error': 'Missing window_id parameter'}
+            
             window_id = args['window_id']
-            info = self._window_handler.get_window_info(window_id)
+            
+            # Get window info based on platform
+            if self._platform == 'darwin':
+                import Quartz
+                window = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, window_id)[0]
+                info = {
+                    'id': window.get(Quartz.kCGWindowNumber, 0),
+                    'title': window.get(Quartz.kCGWindowName, ''),
+                    'owner': window.get(Quartz.kCGWindowOwnerName, ''),
+                    'bounds': window.get(Quartz.kCGWindowBounds, {}),
+                    'layer': window.get(Quartz.kCGWindowLayer, 0),
+                    'alpha': window.get(Quartz.kCGWindowAlpha, 1.0)
+                }
+            elif self._platform == 'windows':
+                import win32gui
+                info = {
+                    'id': window_id,
+                    'title': win32gui.GetWindowText(window_id),
+                    'owner': win32gui.GetClassName(window_id),
+                    'bounds': win32gui.GetWindowRect(window_id),
+                    'style': win32gui.GetWindowLong(window_id, win32gui.GWL_STYLE),
+                    'ex_style': win32gui.GetWindowLong(window_id, win32gui.GWL_EXSTYLE)
+                }
+            else:
+                import Xlib.display
+                display = Xlib.display.Display()
+                window = display.create_resource_object('window', window_id)
+                info = {
+                    'id': window.id,
+                    'title': window.get_wm_name(),
+                    'owner': window.get_wm_class()[0] if window.get_wm_class() else '',
+                    'bounds': window.get_geometry(),
+                    'state': window.get_wm_state(),
+                    'protocols': window.get_wm_protocols()
+                }
+            
             return {
                 'status': 'success',
                 'action': 'get_window_info',
