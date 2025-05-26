@@ -1,1 +1,0 @@
-- [x] Refactor InformationCollectorAgent to use FileTool for file operations instead of FileAndDocumentOrganizerTool. This fixes file listing and enables correct agent-to-agent workflows for graph generation. 
