@@ -1,7 +1,7 @@
 # System Information Function - Complete Documentation
 
 ## Overview
-The enhanced `get_system_info()` function in UaiBot's `ai_handler.py` provides comprehensive system information detection across a wide range of operating systems, virtualization environments, and edge cases. This function is used to give the AI context about the user's environment, enabling more accurate and relevant responses.
+The enhanced `get_system_info()` function in Labeeb's `ai_handler.py` provides comprehensive system information detection across a wide range of operating systems, virtualization environments, and edge cases. This function is used to give the AI context about the user's environment, enabling more accurate and relevant responses.
 
 ## Supported Operating Systems
 
