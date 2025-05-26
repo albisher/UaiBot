@@ -1,7 +1,7 @@
 """
-Configuration management module for UaiBot.
+Configuration management module for Labeeb.
 
-This module provides centralized configuration management for the UaiBot application.
+This module provides centralized configuration management for the Labeeb application.
 It handles loading, validating, and accessing configuration settings from various sources,
 including environment variables, configuration files, and command-line arguments.
 
@@ -35,7 +35,7 @@ T = TypeVar('T')
 class LoggingConfig:
     """Configuration for logging settings."""
     log_level: str = "INFO"
-    log_file: str = "log/uaibot.log"
+    log_file: str = "log/labeeb.log"
     log_errors: bool = True
     log_commands: bool = True
     last_updated: datetime = field(default_factory=datetime.now)
@@ -82,7 +82,7 @@ class Config:
 
 class ConfigManager:
     """
-    A class to manage configuration settings for UaiBot.
+    A class to manage configuration settings for Labeeb.
     
     This class provides a centralized way to manage configuration settings,
     supporting multiple configuration sources and validation. It handles:
@@ -99,7 +99,7 @@ class ConfigManager:
         config (Config): Current configuration settings
     """
     
-    def __init__(self, settings_file: str = 'config/settings.json'):
+    def __init__(self, settings_file: str = 'config/labeeb_config.json'):
         self.settings_file = settings_file
         self._ensure_config_file()
         self.config = self._load_config()
@@ -311,4 +311,12 @@ class ConfigManager:
     def reload(self) -> None:
         """Reload configuration from files."""
         self.config = self._load_config()
-        self._validate_config() 
+        self._validate_config()
+
+DEFAULT_CONFIG = {
+    "project_name": "Labeeb",
+    "log_level": "INFO",
+    "log_file": "log/labeeb.log",
+    "log_errors": True,
+    "log_commands": True
+} 

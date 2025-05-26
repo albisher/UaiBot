@@ -1,5 +1,5 @@
 """
-Audio processor module for UaiBot.
+Audio processor module for Labeeb.
 
 This module provides audio processing capabilities using Whisper Tiny.
 """
@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 import whisper
 import ffmpeg
-from uaibot.core.logging_config import get_logger
+from labeeb.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 

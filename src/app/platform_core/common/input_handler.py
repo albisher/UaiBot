@@ -1,4 +1,4 @@
-"""Base input handler for UaiBot."""
+"""Base input handler for Labeeb."""
 
 from abc import ABC, abstractmethod
 from typing import Tuple, List, Optional, Callable

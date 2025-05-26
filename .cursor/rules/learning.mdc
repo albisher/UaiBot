@@ -6,7 +6,7 @@ alwaysApply: false
 # Learning Mechanism Rules
 
 ## Overview
-UaiBot uses a learning mechanism to improve its performance over time. This document outlines the rules and best practices for using this mechanism.
+Labeeb uses a learning mechanism to improve its performance over time. This document outlines the rules and best practices for using this mechanism.
 
 ## Rules
 
@@ -15,7 +15,7 @@ UaiBot uses a learning mechanism to improve its performance over time. This docu
    - Include the capability, OS, action, and command pattern in the log.
 
 2. **Suggest Alternatives:**
-   - If a command fails, UaiBot must suggest reliable alternatives based on the knowledge base.
+   - If a command fails, Labeeb must suggest reliable alternatives based on the knowledge base.
    - Alternatives should be context-aware and relevant to the current OS.
 
 3. **Knowledge Base Structure:**
@@ -43,9 +43,9 @@ UaiBot uses a learning mechanism to improve its performance over time. This docu
    - Enhance the suggestion mechanism to provide more context-aware recommendations.
 
 ## Definitions
-- **Tool:** An atomic, reusable component that provides a specific skill or capability. Tools are the main way UaiBot learns new skills.
+- **Tool:** An atomic, reusable component that provides a specific skill or capability. Tools are the main way Labeeb learns new skills.
 - **Agent:** An orchestrator that plans and routes tasks to tools or other agents. Use new agents for complex workflows or agent-to-agent scenarios.
-- **Capability:** A skill or function UaiBot can perform, usually implemented as a Tool.
+- **Capability:** A skill or function Labeeb can perform, usually implemented as a Tool.
 
 ## Best Practice
 - Add new skills as Tools by default.

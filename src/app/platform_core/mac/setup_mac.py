@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
-"""
-Mac platform initialization script for UaiBot
-Checks for necessary dependencies and sets up Mac-specific components
+"""macOS platform setup and configuration module for the Labeeb system.
+
+This module provides functionality for:
+- System configuration and optimization
+- Dependency installation and management
+- Service setup and configuration
+- Security settings and permissions
+- Platform-specific customization
+
+The module handles the setup and configuration of macOS-specific components
+and ensures proper operation of the Labeeb platform on macOS systems.
+
+This module handles the initialization and setup of Labeeb on macOS systems. It performs
+essential checks and installations including:
+- Python version verification
+- Homebrew package manager installation
+- Required system dependencies
+- Python package dependencies
+- Ollama installation and model setup
+- Audio system dependencies
+
+The module ensures all necessary components are properly installed and configured
+for Labeeb to function correctly on macOS.
 """
 import os
 import sys
@@ -142,7 +162,7 @@ def main():
         print(f"Error: This script is for macOS only, but detected {platform.system()}")
         sys.exit(1)
         
-    print(f"Initializing UaiBot for macOS ({platform.mac_ver()[0]})")
+    print(f"Initializing Labeeb for macOS ({platform.mac_ver()[0]})")
     print(f"  Architecture: {platform.machine()}")
     
     # Check Python version
@@ -212,7 +232,7 @@ def main():
         print("Failed to verify/install required Ollama models.")
     
     print("\nMac platform initialization complete.")
-    print("You can now run the UaiBot application with: python main.py")
+    print("You can now run the Labeeb application with: python main.py")
 
 if __name__ == "__main__":
     main()

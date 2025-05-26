@@ -138,7 +138,7 @@ The system is designed for efficiency:
 
 ### Basic Usage
 ```python
-from uaibot.platform_core.platform_manager import get_platform_system_info_gatherer
+from labeeb.platform_core.platform_manager import get_platform_system_info_gatherer
 
 # Get the appropriate gatherer for current platform
 gatherer = get_platform_system_info_gatherer()

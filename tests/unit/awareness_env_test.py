@@ -1,9 +1,9 @@
-from uaibot.core.awareness.audio_awareness import AudioAwarenessManager
-from uaibot.core.awareness.bluetooth_awareness import BluetoothAwarenessManager
-from uaibot.core.awareness.sensor_awareness import SensorAwarenessManager
-from uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessManager
-from uaibot.core.awareness.app_awareness import AppAwarenessManager
-from uaibot.core.awareness.network_awareness import NetworkAwarenessManager
+from labeeb.core.awareness.audio_awareness import AudioAwarenessManager
+from labeeb.core.awareness.bluetooth_awareness import BluetoothAwarenessManager
+from labeeb.core.awareness.sensor_awareness import SensorAwarenessManager
+from labeeb.core.awareness.user_routine_awareness import UserRoutineAwarenessManager
+from labeeb.core.awareness.app_awareness import AppAwarenessManager
+from labeeb.core.awareness.network_awareness import NetworkAwarenessManager
 
 def print_section(title):
     print(f"\n{'='*10} {title} {'='*10}")

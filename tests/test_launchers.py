@@ -1,42 +1,44 @@
 #!/usr/bin/env python3
 """
-Tests for UaiBot CLI and GUI launchers.
+Labeeb Launcher Tests
+
+This module contains tests for the Labeeb launcher implementations.
 """
 import os
 import sys
 import pytest
 import asyncio
 from pathlib import Path
+from tkinter import Tk
 
 # Add src to Python path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.append(str(src_path))
 
-from scripts.launch import UaiBotCLI
-from scripts.launch_gui import UaiBotGUI, UaiBotApp
-import tkinter as tk
+from scripts.launch import LabeebCLI
+from scripts.launch_gui import LabeebGUI, LabeebApp
 
 @pytest.fixture
 def cli_agent():
     """Create a CLI agent instance."""
-    return UaiBotCLI()
+    return LabeebCLI()
 
 @pytest.fixture
 def gui_agent():
     """Create a GUI agent instance."""
-    return UaiBotGUI()
+    return LabeebGUI()
 
 @pytest.fixture
 def root():
     """Create a tkinter root window."""
-    root = tk.Tk()
+    root = Tk()
     yield root
     root.destroy()
 
 @pytest.fixture
 def app(root):
-    """Create a UaiBotApp instance."""
-    return UaiBotApp(root)
+    """Create a LabeebApp instance."""
+    return LabeebApp(root)
 
 @pytest.mark.asyncio
 async def test_cli_agent_execute_command(cli_agent):
@@ -86,3 +88,16 @@ def test_gui_app_input_handling(app):
     # Verify output contains user message
     output_text = app.output_text.get("1.0", tk.END)
     assert "You: test message" in output_text 
+
+def create_cli():
+    """Create a LabeebCLI instance."""
+    return LabeebCLI()
+
+def create_gui():
+    """Create a LabeebGUI instance."""
+    return LabeebGUI()
+
+def create_app():
+    """Create a LabeebApp instance."""
+    root = Tk()
+    return LabeebApp(root) 

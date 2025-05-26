@@ -23,7 +23,7 @@ class JetsonAudioHandler:
             self._has_pyaudio = False
         
         # Create recordings directory if it doesn't exist
-        from uaibot.utils import get_project_root
+        from labeeb.utils import get_project_root
         import os
         self.recordings_dir = os.path.join(get_project_root(), "audio", "recordings")
         if not os.path.exists(self.recordings_dir):

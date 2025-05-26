@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI-driven command interpreter for UaiBot.
+AI-driven command interpreter for Labeeb.
 This module replaces regex-based pattern matching with AI-driven command interpretation.
 """
 import logging
@@ -10,9 +10,9 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from uaibot.core.logging_config import get_logger
-from uaibot.core.file_operations import handle_file_operation
-from uaibot.core.tools.json_tools import JSONTool
+from labeeb.core.logging_config import get_logger
+from labeeb.core.file_operations import handle_file_operation
+from labeeb.core.tools.json_tools import JSONTool
 
 logger = get_logger(__name__)
 

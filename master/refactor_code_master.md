@@ -1,4 +1,4 @@
-# UaiBot Refactor & Corrections Master Plan (Reference for main.py)
+# Labeeb Refactor & Corrections Master Plan (Reference for main.py)
 
 ## Reference: Robust, Automation-Friendly main.py
 
@@ -11,7 +11,7 @@
 
 ### Mode Awareness
 - The app distinguishes between `interactive`, `command`, and `file` modes.
-- Mode is determined at startup and passed to all core components (UaiBot, PlatformManager, CommandProcessor, etc).
+- Mode is determined at startup and passed to all core components (Labeeb, PlatformManager, CommandProcessor, etc).
 - In non-interactive or fast mode, all blocking prompts (e.g., username, handler setup) are skipped.
 
 ### Handler Initialization & Error Handling

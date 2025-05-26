@@ -1,7 +1,7 @@
 """
-Test script for UaiBot system.
+Test script for Labeeb system.
 
-This script performs comprehensive testing of the UaiBot system,
+This script performs comprehensive testing of the Labeeb system,
 including initialization, health checks, and basic functionality tests.
 """
 
@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 
-from uaibot.core.config_manager import ConfigManager
-from uaibot.core.model_manager import ModelManager
-from uaibot.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
-from uaibot.core.ai.agent_tools.file_tool import FileTool
+from labeeb.core.config_manager import ConfigManager
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
+from labeeb.core.ai.agent_tools.file_tool import FileTool
 
 # Set up logging
 logging.basicConfig(
@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def initialize_system() -> Dict[str, Any]:
-    """Initialize the UaiBot system components (agentic core)."""
+    """Initialize the Labeeb system components (agentic core)."""
     try:
         # Initialize configuration
         config_manager = ConfigManager()

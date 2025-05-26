@@ -1,0 +1,58 @@
+# Arabic translations for Labeeb project.
+# Copyright (C) 2024 Labeeb
+# This file is distributed under the same license as the Labeeb package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Labeeb\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-03-19 12:00+0000\n"
+"PO-Revision-Date: 2024-03-19 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Arabic\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+# Common UI elements
+msgid "Welcome"
+msgstr "مرحباً"
+
+msgid "Settings"
+msgstr "الإعدادات"
+
+msgid "Help"
+msgstr "المساعدة"
+
+msgid "About"
+msgstr "حول"
+
+msgid "Exit"
+msgstr "خروج"
+
+# Agent-related messages
+msgid "Agent is ready"
+msgstr "الوكيل جاهز"
+
+msgid "Processing request"
+msgstr "جاري معالجة الطلب"
+
+msgid "Task completed"
+msgstr "تم إكمال المهمة"
+
+msgid "Error occurred"
+msgstr "حدث خطأ"
+
+# Screen control messages
+msgid "Screen capture successful"
+msgstr "تم التقاط الشاشة بنجاح"
+
+msgid "Screen capture failed"
+msgstr "فشل التقاط الشاشة"
+
+msgid "Image found on screen"
+msgstr "تم العثور على الصورة على الشاشة"
+
+msgid "Image not found on screen"
+msgstr "لم يتم العثور على الصورة على الشاشة" 

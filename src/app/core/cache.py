@@ -21,7 +21,7 @@ class Cache:
     
     def __init__(self, cache_dir: Optional[str] = None):
         self.memory_cache: Dict[str, CacheEntry] = {}
-        self.cache_dir = cache_dir or os.path.expanduser("~/Documents/uaibot/cache")
+        self.cache_dir = cache_dir or os.path.expanduser("~/Documents/labeeb/cache")
         os.makedirs(self.cache_dir, exist_ok=True)
         self.lock = threading.Lock()
         

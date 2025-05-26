@@ -1,7 +1,7 @@
 # Agentic Architecture: SmolAgents, A2A, MCP
 
 ## What is an Agent?
-An agent is a software entity that can perceive, reason, and act to achieve goals or complete tasks. In UaiBot, agents:
+An agent is a software entity that can perceive, reason, and act to achieve goals or complete tasks. In Labeeb, agents:
 - Encapsulate state, memory, and behavior
 - Use tools to interact with the environment
 - Orchestrate workflows (plan/execute loop)

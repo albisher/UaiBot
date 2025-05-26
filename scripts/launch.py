@@ -14,13 +14,13 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.append(str(src_path))
 
-from uaibot.core.ai.uaibot_agent import UaiAgent
-from uaibot.core.config_manager import ConfigManager
-from uaibot.core.model_manager import ModelManager
-from uaibot.core.cache import Cache
-from uaibot.core.auth_manager import AuthManager
-from uaibot.core.plugin_manager import PluginManager
-from uaibot.utils.output_style_manager import OutputStyleManager
+from labeeb.core.ai.Labeeb_agent import Labeeb
+from labeeb.core.config_manager import ConfigManager
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.cache import Cache
+from labeeb.core.auth_manager import AuthManager
+from labeeb.core.plugin_manager import PluginManager
+from labeeb.utils.output_style_manager import OutputStyleManager
 
 style_mgr = OutputStyleManager()
 
@@ -64,7 +64,7 @@ async def main():
     cache = Cache()
     auth_manager = AuthManager()
     plugin_manager = PluginManager()
-    agent = UaiAgent(
+    agent = Labeeb(
         config=config,
         model_manager=model_manager,
         cache=cache,

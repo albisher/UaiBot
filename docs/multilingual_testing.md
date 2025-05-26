@@ -1,10 +1,10 @@
-# UaiBot Multilingual Testing
+# Labeeb Multilingual Testing
 
-This document explains how to test UaiBot's multilingual capabilities, particularly for Arabic and English language support. UaiBot is designed to process and respond to commands in multiple languages, and these tests ensure that this functionality works as expected.
+This document explains how to test Labeeb's multilingual capabilities, particularly for Arabic and English language support. Labeeb is designed to process and respond to commands in multiple languages, and these tests ensure that this functionality works as expected.
 
 ## Testing Scripts
 
-UaiBot's multilingual testing framework includes several key scripts:
+Labeeb's multilingual testing framework includes several key scripts:
 
 1. **test_multilingual.py**: Main test script that runs a suite of tests in both Arabic and English
 2. **run_multilingual_tests.py**: A convenient runner script with additional options
@@ -64,7 +64,7 @@ The multilingual tests cover several key areas:
 
 1. **File Operations**: Creating, reading, and deleting files
 2. **System Information**: Querying OS information, disk space, etc.
-3. **Command Execution**: Running shell commands through UaiBot
+3. **Command Execution**: Running shell commands through Labeeb
 
 ## Test Results
 
@@ -77,7 +77,7 @@ These files are saved in the `tests/results` and `tests/reports` directories, wi
 
 ## Arabic Language Support
 
-UaiBot's Arabic language support includes:
+Labeeb's Arabic language support includes:
 
 1. Recognition of Arabic commands for file operations
 2. Ability to process Arabic text in system queries
@@ -114,7 +114,7 @@ To add new test cases:
 
 If tests fail:
 
-1. Check if UaiBot's dependencies are properly installed
+1. Check if Labeeb's dependencies are properly installed
 2. Verify that the AI provider (Ollama or Google) is correctly configured
 3. Look for error messages in the test output
 4. Check the detailed reports in the `tests/reports` directory

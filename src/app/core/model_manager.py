@@ -1,8 +1,8 @@
 """
-Model management module for UaiBot.
+Model management module for Labeeb.
 
 This module handles the initialization and configuration of different AI models
-used by UaiBot. It supports both local Ollama models and HuggingFace models,
+used by Labeeb. It supports both local Ollama models and HuggingFace models,
 providing a unified interface for model management and configuration.
 
 The module includes:

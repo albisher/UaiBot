@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 logger = logging.getLogger(__name__)
 
 class LearningManager:
-    """Manages UaiBot's learning and adaptation based on command execution results."""
+    """Manages Labeeb's learning and adaptation based on command execution results."""
 
     def __init__(self, knowledge_base_file: str = None):
         if knowledge_base_file is None:

@@ -89,7 +89,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'labeeb=app.start_uaibot:main',
+            'labeeb=app.start_Labeeb:main',
         ],
     },
     classifiers=[

@@ -1,32 +1,32 @@
 # System Files (Required for Core Functionality)
 system_files:
-  - src/uaibot/main.py
-  - src/uaibot/core/*.py
-  - src/uaibot/utils/*.py
-  - src/uaibot/config/*.py
-  - src/uaibot/health_check/*.py
-  - src/uaibot/platform_uai/*.py
-  - src/uaibot/command_processor/*.py
-  - src/uaibot/terminal_commands/*.py
-  - src/uaibot/screen_handler/*.py
-  - src/uaibot/input_control/*.py
-  - src/uaibot/device_manager/*.py
-  - src/uaibot/data/*.py
-  - src/uaibot/cache/*.py
-  - src/uaibot/documentation/*.py
+  - src/labeeb/main.py
+  - src/labeeb/core/*.py
+  - src/labeeb/utils/*.py
+  - src/labeeb/config/*.py
+  - src/labeeb/health_check/*.py
+  - src/labeeb/platform_uai/*.py
+  - src/labeeb/command_processor/*.py
+  - src/labeeb/terminal_commands/*.py
+  - src/labeeb/screen_handler/*.py
+  - src/labeeb/input_control/*.py
+  - src/labeeb/device_manager/*.py
+  - src/labeeb/data/*.py
+  - src/labeeb/cache/*.py
+  - src/labeeb/documentation/*.py
 
 # Setup Files (Run Once or During Health Check)
 setup_files:
-  - src/uaibot/setup/initial_config.py
-  - src/uaibot/setup/environment_check.py
-  - src/uaibot/setup/dependencies_check.py
-  - src/uaibot/setup/platform_setup.py
-  - src/uaibot/setup/security_setup.py
-  - src/uaibot/setup/database_setup.py
-  - src/uaibot/setup/cache_setup.py
-  - src/uaibot/setup/logging_setup.py
-  - src/uaibot/setup/ai_model_setup.py
-  - src/uaibot/setup/user_setup.py
+  - src/labeeb/setup/initial_config.py
+  - src/labeeb/setup/environment_check.py
+  - src/labeeb/setup/dependencies_check.py
+  - src/labeeb/setup/platform_setup.py
+  - src/labeeb/setup/security_setup.py
+  - src/labeeb/setup/database_setup.py
+  - src/labeeb/setup/cache_setup.py
+  - src/labeeb/setup/logging_setup.py
+  - src/labeeb/setup/ai_model_setup.py
+  - src/labeeb/setup/user_setup.py
 
 # Test Files (Development and CI Only)
 test_files:

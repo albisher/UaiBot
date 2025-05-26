@@ -1,4 +1,4 @@
-from uaibot.core.ai.tool_base import Tool
+from labeeb.core.ai.tool_base import Tool
 import psutil
 
 class SystemResourceTool(Tool):

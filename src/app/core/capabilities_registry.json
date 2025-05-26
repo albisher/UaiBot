@@ -6,7 +6,7 @@
     "is_tested": true,
     "test_coverage": 95.0,
     "last_tested": "2025-05-24T14:37:19.176664",
-    "implementation_path": "uaibot.core.input.mouse",
+    "implementation_path": "labeeb.core.input.mouse",
     "dependencies": [
       "screen_reading"
     ],
@@ -20,7 +20,7 @@
     "is_tested": false,
     "test_coverage": 0.0,
     "last_tested": "2025-05-24T14:37:19.176819",
-    "implementation_path": "uaibot.core.input.keyboard",
+    "implementation_path": "labeeb.core.input.keyboard",
     "dependencies": [],
     "status": "experimental",
     "version": "0.1.0"
@@ -32,7 +32,7 @@
     "is_tested": false,
     "test_coverage": 0.0,
     "last_tested": "2025-05-24T14:37:19.176971",
-    "implementation_path": "uaibot.core.input.screen",
+    "implementation_path": "labeeb.core.input.screen",
     "dependencies": [],
     "status": "experimental",
     "version": "0.1.0"
@@ -44,7 +44,7 @@
     "is_tested": false,
     "test_coverage": 0.0,
     "last_tested": "2025-05-24T14:37:19.177119",
-    "implementation_path": "uaibot.core.output.speech",
+    "implementation_path": "labeeb.core.output.speech",
     "dependencies": [],
     "status": "experimental",
     "version": "0.1.0"

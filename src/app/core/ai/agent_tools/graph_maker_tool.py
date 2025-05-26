@@ -2,10 +2,10 @@
 GraphMakerTool: Generates graphs from folder data using InformationCollectorAgent and matplotlib.
 Outputs are saved in a dedicated work folder under Documents.
 """
-from uaibot.core.ai.agent import Agent
+from labeeb.core.ai.agent import Agent
 import os
 import matplotlib.pyplot as plt
-from uaibot.core.ai.agents.information_collector import InformationCollectorAgent
+from labeeb.core.ai.agents.information_collector import InformationCollectorAgent
 
 class GraphMakerAgent(Agent):
     """

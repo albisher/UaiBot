@@ -1,5 +1,5 @@
 import pytest
-from uaibot.core.command_processor import CommandProcessor, CommandResult
+from labeeb.core.command_processor import CommandProcessor, CommandResult
 
 @pytest.fixture
 def command_processor():

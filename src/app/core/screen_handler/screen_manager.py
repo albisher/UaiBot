@@ -1,5 +1,5 @@
 """
-Screen session management module for UaiBot.
+Screen session management module for Labeeb.
 Handles sending commands to screen sessions and detecting active sessions.
 """
 import subprocess

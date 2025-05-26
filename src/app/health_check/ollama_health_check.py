@@ -1,3 +1,8 @@
+"""Ollama health check module.
+
+This module checks the status of the Ollama server and verifies the availability of required models. It can update the configuration to use a selected model and provides interactive selection if multiple models are available.
+"""
+
 import requests
 import sys
 import os

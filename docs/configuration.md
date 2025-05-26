@@ -1,14 +1,14 @@
-# UaiBot Configuration Guide
+# Labeeb Configuration Guide
 
 ## Overview
 
-UaiBot uses a flexible configuration system that combines JSON configuration files with environment variables. This allows for both persistent configuration and runtime overrides.
+Labeeb uses a flexible configuration system that combines JSON configuration files with environment variables. This allows for both persistent configuration and runtime overrides.
 
 ## Configuration Files
 
 ### Main Configuration (`config/settings.json`)
 
-The main configuration file contains all core settings for UaiBot. It supports environment variable interpolation using the `${VAR:-default}` syntax.
+The main configuration file contains all core settings for Labeeb. It supports environment variable interpolation using the `${VAR:-default}` syntax.
 
 ```json
 {
@@ -36,7 +36,7 @@ The main configuration file contains all core settings for UaiBot. It supports e
   },
   "logging": {
     "log_level": "${LOG_LEVEL:-INFO}",
-    "log_file": "${LOG_FILE:-log/uaibot.log}",
+    "log_file": "${LOG_FILE:-log/labeeb.log}",
     "log_errors": true,
     "log_commands": true
   }
@@ -63,7 +63,7 @@ User-specific settings are stored in a separate file:
 
 ## Environment Variables
 
-UaiBot supports the following environment variables:
+Labeeb supports the following environment variables:
 
 ### AI Provider Settings
 - `GOOGLE_API_KEY`: API key for Google AI services
@@ -74,7 +74,7 @@ UaiBot supports the following environment variables:
 
 ### Logging Settings
 - `LOG_LEVEL`: Logging verbosity (default: INFO)
-- `LOG_FILE`: Log file location (default: log/uaibot.log)
+- `LOG_FILE`: Log file location (default: log/labeeb.log)
 
 ## Configuration Loading Process
 

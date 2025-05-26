@@ -1,25 +1,31 @@
+"""
+Labeeb AI Handler
+
+This module handles AI model interactions for Labeeb.
+Provides a unified interface for processing prompts and handling responses from Ollama.
+"""
+
 # core/ai_handler.py
 import os
 import json
-import platform
 import subprocess
 import re
 import time
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from datetime import datetime
-from uaibot.core.model_manager import ModelManager
-from uaibot.core.config_manager import ConfigManager
-from uaibot.core.logging_config import get_logger
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.config_manager import ConfigManager
+from labeeb.core.logging_config import get_logger
 logger = get_logger(__name__)
-from uaibot.core.cache_manager import CacheManager
-from uaibot.core.exceptions import AIError, ConfigurationError
-from uaibot.core.ai_performance_tracker import AIPerformanceTracker
-from uaibot.core.model_config_manager import ModelConfigManager
-from uaibot.core.key_manager import KeyManager
-from uaibot.typing import SystemInfo
-from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
-from uaibot.platform_core.platform_manager import get_platform_system_info_gatherer
+from labeeb.core.cache_manager import CacheManager
+from labeeb.core.exceptions import AIError, ConfigurationError
+from labeeb.core.ai_performance_tracker import AIPerformanceTracker
+from labeeb.core.model_config_manager import ModelConfigManager
+from labeeb.core.key_manager import KeyManager
+from labeeb.typing import SystemInfo
+from labeeb.core.command_processor.ai_command_extractor import AICommandExtractor
+from labeeb.platform_core.platform_manager import get_platform_system_info_gatherer
 
 @dataclass
 class PromptConfig:
@@ -36,7 +42,7 @@ class ResponseInfo:
 
 class AIHandler:
     """
-    Handles Ollama model interactions for UaiBot.
+    Handles Ollama model interactions for Labeeb.
     Provides a unified interface for processing prompts and handling responses from Ollama.
     """
     def __init__(self, model_manager: ModelManager) -> None:
@@ -69,7 +75,7 @@ class AIHandler:
 
     def format_ai_prompt(self, prompt: str, system_info: str) -> str:
         """Format the prompt for the AI model with standardized instructions."""
-        return f"""You are UaiBot, an AI assistant that helps users with tasks. Follow these guidelines:
+        return f"""You are Labeeb, an AI assistant that helps users with tasks. Follow these guidelines:
 
 1. Command Processing:
    - Focus on executing commands, not providing feedback
@@ -147,46 +153,11 @@ Remember:
             raise
 
 def get_system_info() -> SystemInfo:
-    """Get system information.
+    """Get system information using the platform-specific gatherer.
 
     Returns:
         A dictionary containing system information
     """
-    return {
-        'platform': {
-            'system': platform.system(),
-            'release': platform.release(),
-            'version': platform.version(),
-            'machine': platform.machine(),
-            'processor': platform.processor(),
-        },
-        'cpu': {
-            'physical_cores': psutil.cpu_count(logical=False),
-            'total_cores': psutil.cpu_count(logical=True),
-            'max_frequency': psutil.cpu_freq().max if psutil.cpu_freq() else None,
-            'min_frequency': psutil.cpu_freq().min if psutil.cpu_freq() else None,
-            'current_frequency': psutil.cpu_freq().current if psutil.cpu_freq() else None,
-            'cpu_usage_per_core': [x for x in psutil.cpu_percent(percpu=True, interval=1)],
-            'total_cpu_usage': psutil.cpu_percent(interval=1),
-        },
-        'memory': {
-            'total': psutil.virtual_memory().total,
-            'available': psutil.virtual_memory().available,
-            'used': psutil.virtual_memory().used,
-            'percentage': psutil.virtual_memory().percent,
-        },
-        'disk': {
-            'total': psutil.disk_usage('/').total,
-            'used': psutil.disk_usage('/').used,
-            'free': psutil.disk_usage('/').free,
-            'percentage': psutil.disk_usage('/').percent,
-        },
-        'network': {
-            'bytes_sent': psutil.net_io_counters().bytes_sent,
-            'bytes_received': psutil.net_io_counters().bytes_recv,
-            'packets_sent': psutil.net_io_counters().packets_sent,
-            'packets_received': psutil.net_io_counters().packets_recv,
-        },
-    }
+    return get_platform_system_info_gatherer().get_system_info()
 
 __all__ = ['get_system_info']

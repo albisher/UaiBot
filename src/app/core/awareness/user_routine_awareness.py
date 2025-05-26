@@ -1,3 +1,10 @@
+"""
+Labeeb User Routine Awareness
+
+This module provides user routine awareness functionality for Labeeb.
+It tracks and analyzes user patterns and behaviors to provide context-aware assistance.
+"""
+
 import time
 import logging
 from typing import Dict, Any, Optional, List
@@ -18,18 +25,31 @@ class UserActivity:
     last_window_change: Optional[float] = None
 
 class UserRoutineAwarenessTool:
+    """Tool for tracking and analyzing user routines and patterns.
+    
+    This tool provides functionality for:
+    - Monitoring user activity patterns
+    - Identifying common routines and workflows
+    - Suggesting optimizations based on usage patterns
+    - Adapting to user preferences over time
+    
+    Attributes:
+        routines (Dict[str, Any]): Dictionary of tracked user routines
+        patterns (Dict[str, Any]): Dictionary of identified usage patterns
     """
-    Tool for tracking user routines and activity patterns.
-    """
+
     name = 'user_routine_awareness'
     description = "Track user routines and activity patterns"
 
     def __init__(self):
+        """Initialize the user routine awareness tool."""
         self.activity = self._init_activity()
         self.logger = logging.getLogger("UserRoutineAwarenessTool")
         self.platform_manager = PlatformManager()
         self.platform_info = self.platform_manager.get_platform_info()
         self.handlers = self.platform_manager.get_handlers()
+        self.routines = {}
+        self.patterns = {}
 
     def _init_activity(self):
         return {
@@ -189,7 +209,14 @@ class UserRoutineAwarenessTool:
         }
 
     def _get_default_routines(self) -> Dict[str, Any]:
-        """Get default routines for unknown platforms"""
+        """Get default routines for unknown platforms.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing default routines organized by category:
+                - system: System-level routines (startup, shutdown)
+                - apps: Application-specific routines
+                - shortcuts: Common keyboard shortcuts
+        """
         return {
             'system': {
                 'startup': ['Login', 'Desktop', 'File Manager'],

@@ -1,0 +1,25 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Labeeb Agent Architecture (MDC)
+
+This document outlines the architecture and design principles for Labeeb's agent system.
+
+## Core Components
+
+### Agent
+- The primary interface for Labeeb's AI capabilities
+- Manages tool selection and execution
+- Handles context and state management
+
+### Tools
+- Atomic, reusable components that provide specific capabilities
+- The main way to extend Labeeb's functionality
+- Must be well-documented and tested
+
+### Capabilities
+- Skills or functions that Labeeb can perform
+- Usually implemented as Tools
+- Must be discoverable and composable

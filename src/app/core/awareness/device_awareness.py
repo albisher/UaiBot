@@ -1,6 +1,8 @@
 """
-DEPRECATED: Device awareness logic has been moved to platform_core/platform_manager.py.
-Use PlatformManager for all device awareness logic.
+Labeeb Device Awareness
+
+This module provides device awareness functionality for Labeeb.
+It monitors and manages device-related information and capabilities.
 """
 
 # Deprecated stub for backward compatibility

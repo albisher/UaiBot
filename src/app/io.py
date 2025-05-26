@@ -1,4 +1,4 @@
-"""I/O utilities for UaiBot."""
+"""I/O utilities for Labeeb."""
 
 from io import StringIO, BytesIO
 from typing import Union, Optional

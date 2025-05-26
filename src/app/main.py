@@ -26,7 +26,7 @@ project_root = os.path.dirname(os.path.dirname(current_dir))
 sys.path.append(project_root)
 
 from app.logging_config import setup_logging, get_logger
-from app.core.exceptions import UaiBotError, AIError, ConfigurationError, CommandError
+from app.core.exceptions import LabeebError, AIError, ConfigurationError, CommandError
 from app.core.cache_manager import CacheManager
 from app.platform_core.platform_manager import PlatformManager
 from app.core.command_processor.command_processor import CommandProcessor
@@ -52,12 +52,12 @@ warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWar
 warnings.filterwarnings("ignore", category=urllib3.exceptions.NotOpenSSLWarning)
 urllib3.disable_warnings()
 
-class UaiBot:
-    """Main UaiBot class that handles user interaction."""
+class Labeeb:
+    """Main Labeeb class that handles user interaction."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None, debug: bool = False, mode: str = 'interactive', fast_mode: bool = False):
         """
-        Initialize UaiBot with configuration.
+        Initialize Labeeb with configuration.
         
         Args:
             config: Optional configuration dictionary

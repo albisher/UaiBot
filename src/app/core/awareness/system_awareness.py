@@ -1,6 +1,9 @@
 """
-DEPRECATED: System awareness logic has been moved to platform_core/platform_manager.py.
-Use PlatformManager for all system awareness logic.
+Labeeb System Awareness
+
+This module provides system awareness functionality for Labeeb.
+It monitors and analyzes system resources, performance metrics, and platform-specific
+capabilities to optimize Labeeb's operation and resource usage.
 """
 
 # Deprecated stub for backward compatibility

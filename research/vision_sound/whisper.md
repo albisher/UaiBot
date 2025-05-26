@@ -1,7 +1,7 @@
 # Whisper Tiny Speech-to-Text Integration
 
 ## Overview
-Whisper Tiny is a lightweight speech recognition model that can run 100% locally. It's ideal for UaiBot's speech capabilities due to its small size and offline capabilities.
+Whisper Tiny is a lightweight speech recognition model that can run 100% locally. It's ideal for Labeeb's speech capabilities due to its small size and offline capabilities.
 
 ## Implementation Details
 

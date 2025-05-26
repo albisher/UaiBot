@@ -1,5 +1,5 @@
 """
-Command handlers for UaiBot.
+Command handlers for Labeeb.
 These functions process user commands and return formatted responses.
 """
 import os

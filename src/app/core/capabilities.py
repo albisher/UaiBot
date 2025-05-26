@@ -1,9 +1,9 @@
 """
 Capabilities Management Module
 
-This module manages UaiBot's capabilities, tracking which features have been tested
+This module manages Labeeb's capabilities, tracking which features have been tested
 and are available for use in production. It provides a centralized way to register,
-validate, and utilize UaiBot's capabilities.
+validate, and utilize Labeeb's capabilities.
 """
 
 from typing import Dict, List, Optional, Any, Callable
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Capability:
-    """Represents a single UaiBot capability."""
+    """Represents a single Labeeb capability."""
     name: str
     description: str
     category: str
@@ -30,7 +30,7 @@ class Capability:
     version: str
 
 class CapabilitiesManager:
-    """Manages UaiBot's capabilities and their lifecycle."""
+    """Manages Labeeb's capabilities and their lifecycle."""
     
     def __init__(self, capabilities_file: Optional[str] = None):
         """Initialize the capabilities manager.

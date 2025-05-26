@@ -1,1 +1,1 @@
-"""Core functionality for UaiBot."""
+"""Core functionality for Labeeb."""

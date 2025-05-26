@@ -1,6 +1,6 @@
-# UaiBot Output System
+# Labeeb Output System
 
-This document describes the unified output system for UaiBot, providing a consistent approach to terminal output formatting and display.
+This document describes the unified output system for Labeeb, providing a consistent approach to terminal output formatting and display.
 
 ## Output Philosophy & Flow
 

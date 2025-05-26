@@ -1,3 +1,8 @@
+"""System information health check module.
+
+This module provides functionality to check and report the health status of the system, including CPU, memory, disk, and network information, using platform-specific managers.
+"""
+
 import logging
 import psutil
 from typing import Dict, Any

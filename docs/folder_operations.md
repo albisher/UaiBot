@@ -1,10 +1,10 @@
-# Folder Operations in UaiBot
+# Folder Operations in Labeeb
 
-This document describes how UaiBot handles folder-related queries and operations.
+This document describes how Labeeb handles folder-related queries and operations.
 
 ## Supported Queries
 
-UaiBot supports the following types of folder-related queries:
+Labeeb supports the following types of folder-related queries:
 
 ### Current Directory Queries
 
@@ -32,7 +32,7 @@ UaiBot supports the following types of folder-related queries:
 
 ## Arabic Support
 
-UaiBot also supports directory operations in Arabic:
+Labeeb also supports directory operations in Arabic:
 
 | Operation | Arabic Query |
 |-----------|-------------|

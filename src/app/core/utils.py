@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 class Utils:
     def __init__(self):
         # Set up logging
-        self.logger = logging.getLogger('UaiBot')
+        self.logger = logging.getLogger('Labeeb')
         self.logger.setLevel(logging.INFO)  # Default to INFO
         
         # Create a custom handler to capture log records

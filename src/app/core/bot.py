@@ -1,7 +1,7 @@
 """
-UaiBot Core Implementation
+Labeeb Core Implementation
 
-This module contains the core UaiBot implementation, including capabilities management
+This module contains the core Labeeb implementation, including capabilities management
 and command processing.
 """
 
@@ -16,15 +16,19 @@ from .learning import LearningManager
 
 logger = logging.getLogger(__name__)
 
-class UaiBot:
-    """Main UaiBot class that manages capabilities and processes commands."""
+class Labeeb:
+    """
+    Main bot class for Labeeb.
+    Handles core functionality and coordination of different components.
+    """
     
     def __init__(self, capabilities_file: Optional[str] = None):
-        """Initialize UaiBot with capabilities management.
+        """Initialize Labeeb with capabilities management.
         
         Args:
             capabilities_file: Path to the capabilities registry file
         """
+        self.name = "Labeeb"
         self.capabilities = CapabilitiesManager(capabilities_file)
         self.capabilities.update_mouse_control_status()
         self._initialize_capabilities()
@@ -37,7 +41,7 @@ class UaiBot:
             name="mouse_control",
             description="Control mouse movements and clicks with precise positioning and click simulation",
             category="input",
-            implementation_path="uaibot.core.input.mouse",
+            implementation_path="labeeb.core.input.mouse",
             dependencies=["screen_reading"],  # Mouse control often needs screen reading for context
             status="active",  # Changed from experimental to active since tests passed
             version="1.0.0"   # Updated version to reflect production readiness
@@ -55,7 +59,7 @@ class UaiBot:
             name="keyboard_input",
             description="Simulate keyboard input",
             category="input",
-            implementation_path="uaibot.core.input.keyboard",
+            implementation_path="labeeb.core.input.keyboard",
             status="experimental"
         )
         
@@ -63,7 +67,7 @@ class UaiBot:
             name="screen_reading",
             description="Read and analyze screen content",
             category="input",
-            implementation_path="uaibot.core.input.screen",
+            implementation_path="labeeb.core.input.screen",
             status="experimental"
         )
         
@@ -72,7 +76,7 @@ class UaiBot:
             name="text_to_speech",
             description="Convert text to speech",
             category="output",
-            implementation_path="uaibot.core.output.speech",
+            implementation_path="labeeb.core.output.speech",
             status="experimental"
         )
     

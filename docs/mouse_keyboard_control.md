@@ -1,16 +1,16 @@
-# Mouse and Keyboard Control in UaiBot
+# Mouse and Keyboard Control in Labeeb
 
-This document provides comprehensive guidance on using UaiBot's mouse and keyboard control functionality in different environments, including those without a display server.
+This document provides comprehensive guidance on using Labeeb's mouse and keyboard control functionality in different environments, including those without a display server.
 
 ## Overview
 
-UaiBot's `MouseKeyboardHandler` class provides cross-platform mouse and keyboard control using PyAutoGUI as the primary library, with optional support for the keyboard and mouse libraries for advanced features.
+Labeeb's `MouseKeyboardHandler` class provides cross-platform mouse and keyboard control using PyAutoGUI as the primary library, with optional support for the keyboard and mouse libraries for advanced features.
 
 The handler supports two main operational modes:
 1. **Normal mode**: Controls actual mouse and keyboard in a graphical environment
 2. **Simulation mode**: Simulates actions without requiring a display server
 
-These libraries allow UaiBot to programmatically simulate mouse movements, clicks, and keyboard input from scripts or the command line interface.
+These libraries allow Labeeb to programmatically simulate mouse movements, clicks, and keyboard input from scripts or the command line interface.
 
 ## Installation Requirements
 
@@ -109,9 +109,9 @@ events = mouse.record(until=5)  # Record for 5 seconds
 mouse.play(events)
 ```
 
-## UaiBot's MouseKeyboardHandler Class
+## Labeeb's MouseKeyboardHandler Class
 
-UaiBot provides a `MouseKeyboardHandler` class that wraps these libraries for easy use within the application.
+Labeeb provides a `MouseKeyboardHandler` class that wraps these libraries for easy use within the application.
 
 ### Basic Usage
 
@@ -127,7 +127,7 @@ handler.right_click()
 handler.double_click()
 
 # Keyboard operations
-handler.type_text("Hello, UaiBot!")
+handler.type_text("Hello, Labeeb!")
 handler.press_key('enter')
 handler.hotkey('ctrl', 'c')
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Output Style Manager for UaiBot
+Output Style Manager for Labeeb
 
 Handles loading and applying output formatting styles based on user preferences
 and system capabilities. This provides a centralized way to manage appearance
@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from app.platform_core.platform_manager import PlatformManager
 
 class OutputStyleManager:
-    """Manages output styling preferences for UaiBot."""
+    """Manages output styling preferences for Labeeb."""
     
     def __init__(self, config_path=None, theme="default", auto_detect=True):
         """

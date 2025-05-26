@@ -1,10 +1,14 @@
 """
-Logging configuration for UaiBot.
-Provides centralized logging setup and utilities.
+Labeeb Logging Configuration
+
+This module configures logging for the Labeeb project.
 """
 import logging
 import os
 from pathlib import Path
+
+DEFAULT_LOG_FILE = "log/labeeb.log"
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 def setup_logging(log_level: str = "INFO", log_dir: str = "logs", quiet_mode: bool = False) -> None:
     """Set up the basic logging configuration."""
@@ -18,7 +22,7 @@ def setup_logging(log_level: str = "INFO", log_dir: str = "logs", quiet_mode: bo
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         handlers=[
-            logging.FileHandler(str(log_dir / "uaibot.log")),
+            logging.FileHandler(str(log_dir / "labeeb.log")),
             logging.StreamHandler() if not quiet_mode else logging.NullHandler()
         ]
     )

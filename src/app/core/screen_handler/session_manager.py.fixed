@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-UaiBot Screen Session Manager
+Labeeb Screen Session Manager
 Handles screen sessions for remote command execution
 """
 import os
@@ -11,7 +11,7 @@ import re
 
 class SessionManager:
     """
-    Handles screen sessions for UaiBot
+    Handles screen sessions for Labeeb
     """
     
     def __init__(self, quiet_mode=False):

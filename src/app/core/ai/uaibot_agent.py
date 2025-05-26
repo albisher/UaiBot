@@ -1,5 +1,5 @@
 """
-Labeeb Agent implementation.
+Labeeb AI Agent
 
 This module provides the main Labeeb agent implementation, which:
 - Manages tools and plugins
@@ -16,18 +16,18 @@ from pathlib import Path
 import platform
 
 from app.core.ai.agent import Agent, MultiStepPlan, PlanStep
-from uaibot.core.config_manager import ConfigManager
-from uaibot.core.model_manager import ModelManager
-from uaibot.core.cache import Cache
-from uaibot.core.auth_manager import AuthManager
-from uaibot.core.plugin_manager import PluginManager
-from uaibot.core.learning import LearningManager
-from uaibot.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
-from uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessTool
-from uaibot.core.awareness.device_awareness import DeviceAwarenessTool
-from uaibot.core.awareness.speech_tool import SpeechTool
-from uaibot.core.awareness.display_tool import DisplayTool
-from uaibot.core.tools.json_tools import JSONTool
+from labeeb.core.config_manager import ConfigManager
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.cache import Cache
+from labeeb.core.auth_manager import AuthManager
+from labeeb.core.plugin_manager import PluginManager
+from labeeb.core.learning import LearningManager
+from labeeb.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
+from labeeb.core.awareness.user_routine_awareness import UserRoutineAwarenessTool
+from labeeb.core.awareness.device_awareness import DeviceAwarenessTool
+from labeeb.core.awareness.speech_tool import SpeechTool
+from labeeb.core.awareness.display_tool import DisplayTool
+from labeeb.core.tools.json_tools import JSONTool
 
 class DefaultTool:
     """Fallback tool for unknown or unsupported actions."""

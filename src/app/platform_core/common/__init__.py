@@ -1,3 +1,3 @@
 """
-Common platform-agnostic implementations for UaiBot.
+Common platform-agnostic implementations for Labeeb.
 """

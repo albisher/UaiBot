@@ -2,7 +2,7 @@
 import unittest
 
 try:
-    from src.app.core.ai.agent_tools.keyboard_control_tool import ... # TODO: Import specific classes/functions
+    from src.app.core.ai.agent_tools.keyboard_control_tool import KeyboardControlTool
 except ImportError:
     pass # Handle if module itself has issues or direct import isn't desired for test structure
 

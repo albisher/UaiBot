@@ -191,13 +191,13 @@ This format is used for providing information without executing commands.
 ```json
 {
   "info_type": "help",
-  "response": "You can use UaiBot to perform file operations, execute commands, and get information.",
+  "response": "You can use Labeeb to perform file operations, execute commands, and get information.",
   "related_commands": [
     {"command": "uai help", "description": "Display general help information"},
     {"command": "uai examples", "description": "Show example commands"},
     {"command": "uai version", "description": "Show version information"}
   ],
-  "explanation": "Provides help information about UaiBot",
+  "explanation": "Provides help information about Labeeb",
   "requires_implementation": false
 }
 ```

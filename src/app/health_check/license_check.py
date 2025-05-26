@@ -1,3 +1,8 @@
+"""License health check module.
+
+This module checks the validity and health of the application's license file, ensuring required fields are present and reporting license status.
+"""
+
 import logging
 import json
 import os

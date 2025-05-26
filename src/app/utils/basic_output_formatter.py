@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Basic Output Formatter for UaiBot
+Basic Output Formatter for Labeeb
 
 This is a simplified version of the output formatting system that provides
 basic styling capabilities without complex dependencies.

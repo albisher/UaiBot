@@ -1,5 +1,5 @@
 """
-Authentication manager for UaiBot.
+Authentication manager for Labeeb.
 
 This module provides user authentication and authorization functionality.
 """
@@ -29,7 +29,7 @@ class AuthManager:
         self.secret_key = secret_key
         self.token_expiry = token_expiry
         self.users: Dict[str, User] = {}
-        self.logger = logging.getLogger("UaiBot.Auth")
+        self.logger = logging.getLogger("Labeeb.Auth")
         
         # Create users directory if it doesn't exist
         self.users_dir = Path("data/users")

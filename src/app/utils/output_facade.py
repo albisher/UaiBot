@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Output Facade for UaiBot
+Output Facade for Labeeb
 
 A singleton implementation of the Facade pattern for all output operations
 that unifies and standardizes the app's output handling system.
@@ -16,23 +16,24 @@ Output Philosophy & Flow:
 import sys
 import os
 from typing import Optional, Any, Dict, Union, List
-from uaibot.core.logging_config import get_logger
+from labeeb.core.logging_config import get_logger
 from pathlib import Path
 
 # Import the OutputHandler as our implementation class
-from uaibot.utils.output_handler import OutputHandler
+from labeeb.utils.output_handler import OutputHandler
 
 logger = get_logger(__name__)
 
 class OutputFacade:
-    """
-    Singleton facade for all UaiBot output operations.
+    """Facade for handling different types of output in the application.
     
-    This class:
-    1. Provides a single, global access point for output
-    2. Enforces the output flow (thinking → command → result → explanation)
-    3. Prevents duplicate outputs
-    4. Centralizes output styling and format decisions
+    This class provides a unified interface for displaying various types of output
+    including commands, results, explanations, and status messages. It supports
+    different output handlers and formats while maintaining a consistent interface.
+    
+    Attributes:
+        _handler: The current output handler instance
+        _formatter: The output formatter instance
     """
     
     # Singleton instance
@@ -178,15 +179,39 @@ class OutputFacade:
         return self._handler.status(message, status_key)
     
     def warning(self, message: str) -> str:
-        """Display a warning message."""
+        """
+        Display a warning message.
+        
+        Args:
+            message: The warning message to display
+            
+        Returns:
+            str: The formatted warning output
+        """
         return self._handler.status(message, "warning")
     
     def error(self, message: str) -> str:
-        """Display an error message."""
+        """
+        Display an error message.
+        
+        Args:
+            message: The error message to display
+            
+        Returns:
+            str: The formatted error output
+        """
         return self._handler.status(message, "error")
     
     def success(self, message: str) -> str:
-        """Display a success message."""
+        """
+        Display a success message.
+        
+        Args:
+            message: The success message to display
+            
+        Returns:
+            str: The formatted success output
+        """
         return self._handler.status(message, "success")
     
     def info(self, message: str) -> str:

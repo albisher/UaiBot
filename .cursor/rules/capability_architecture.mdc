@@ -1,0 +1,25 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Labeeb Capability Architecture (MDC)
+
+This document outlines the architecture and design principles for Labeeb's capability system.
+
+## Core Principles
+
+1. **Composability**
+   - Capabilities should be built from atomic tools
+   - Capabilities should be composable to build complex workflows
+   - Capabilities should be independent and self-contained
+
+2. **Discoverability**
+   - Capabilities must be well-documented
+   - Capabilities should be easily discoverable by Labeeb
+   - Capabilities should have clear input/output specifications
+
+3. **Reliability**
+   - Capabilities must handle errors gracefully
+   - Capabilities should provide meaningful error messages
+   - Capabilities should be thoroughly tested

@@ -1,8 +1,8 @@
 """
-TerminalTool: CLI output tool for Labeeb.
+Labeeb Terminal Tool
 
-This tool provides capabilities to display text and formatted output
-in the terminal interface.
+This module provides terminal-related functionality for Labeeb.
+It handles terminal output, formatting, and command execution capabilities.
 """
 import logging
 from typing import Optional, Dict, Any
@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import sys
 import os
 from colorama import init, Fore, Back, Style
-from uaibot.utils.output_style_manager import OutputStyleManager
+from labeeb.utils.output_style_manager import OutputStyleManager
 from pathlib import Path
 
 # Initialize colorama

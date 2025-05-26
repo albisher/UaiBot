@@ -1,5 +1,5 @@
 """
-USB device detection and management for UaiBot.
+USB device detection and management for Labeeb.
 Provides functions to detect and list USB devices on different platforms.
 """
 import platform

@@ -1,5 +1,5 @@
 """
-Utility functions for UaiBot.
+Utility functions for Labeeb.
 Shared across different modules.
 
 This package provides various utility functions for:

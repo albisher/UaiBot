@@ -2,7 +2,26 @@ import json
 import os
 import warnings
 
-warnings.warn("ai_json_tools.py is deprecated. Use JSONTool from src/uaibot/core/tools/json_tools.py instead.")
+"""
+AI JSON Tools for Labeeb
+
+This module provides utilities for processing and handling JSON output from AI models,
+particularly for generating import statements and building AI prompts. It includes
+functions for parsing AI-generated JSON responses and constructing prompts using
+templates.
+
+Note: This module is deprecated. Use JSONTool from src/labeeb/core/tools/json_tools.py instead.
+
+Key features:
+- JSON output processing and validation
+- Import statement generation from AI responses
+- AI prompt template management
+- Error handling for malformed JSON
+
+See also: src/labeeb/core/tools/json_tools.py for the current implementation
+"""
+
+warnings.warn("ai_json_tools.py is deprecated. Use JSONTool from src/labeeb/core/tools/json_tools.py instead.")
 
 def process_ai_json_output(ai_json_str):
     """

@@ -1,7 +1,7 @@
 import pytest
 import os
 from pathlib import Path
-from uaibot.core.plugins import PluginManager, PluginInfo
+from labeeb.core.plugins import PluginManager, PluginInfo
 
 def create_test_plugin(plugin_dir: Path, name: str, dependencies: list = None) -> Path:
     """Create a test plugin file."""

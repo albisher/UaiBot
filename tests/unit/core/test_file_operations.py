@@ -1,7 +1,7 @@
 import pytest
 import os
 import tempfile
-from uaibot.core.file_operations import FileOperations
+from labeeb.core.file_operations import FileOperations
 
 @pytest.fixture
 def temp_dir():

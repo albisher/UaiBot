@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 """
-Script to update the find_files method in shell_handler.py
+This module provides functionality to update and enhance the find_files method in the shell handler.
+It implements an improved version of file searching with better error handling, metadata support,
+and formatted output. The module can be run as a script to automatically update the find_files
+method in shell_handler.py, creating a backup of the original file before making changes.
+
+Key features:
+- Enhanced file search with metadata support (size, modification time)
+- Improved error handling and user feedback
+- Formatted output with emojis and clear organization
+- Automatic backup of original files before modification
+- Support for maximum result limits and metadata toggling
+
+See also: core/shell_handler.py for the target file being modified
 """
 import os
 

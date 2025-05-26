@@ -1,25 +1,25 @@
-# UaiBot Class Architecture Roadmap
+# Labeeb Class Architecture Roadmap
 
 ## Overview
-This document outlines the class architecture, relationships, and responsibilities of the UaiBot system. The architecture follows a modular design pattern with clear separation of concerns and well-defined interfaces between components.
+This document outlines the class architecture, relationships, and responsibilities of the Labeeb system. The architecture follows a modular design pattern with clear separation of concerns and well-defined interfaces between components.
 
 ## Main Flow
 ```mermaid
 sequenceDiagram
     participant Human
     participant InputHandler
-    participant UaiBot
+    participant Labeeb
     participant AI
     participant Executor
     participant OutputHandler
     
     Human->>InputHandler: Input (text/voice/image/video)
-    InputHandler->>UaiBot: Processed Input
-    UaiBot->>AI: Forward Input
-    AI->>UaiBot: Formatted Response
-    UaiBot->>Executor: Execute if needed
-    Executor->>UaiBot: Execution Result
-    UaiBot->>OutputHandler: Format Output
+    InputHandler->>Labeeb: Processed Input
+    Labeeb->>AI: Forward Input
+    AI->>Labeeb: Formatted Response
+    Labeeb->>Executor: Execute if needed
+    Executor->>Labeeb: Execution Result
+    Labeeb->>OutputHandler: Format Output
     OutputHandler->>Human: Display Result
 ```
 
@@ -394,12 +394,12 @@ class OutputProcessingInterface:
 
 1. **Input Flow**
    ```
-   Human Input -> Input Handler -> Input Validation -> Input Normalization -> UaiBot
+   Human Input -> Input Handler -> Input Validation -> Input Normalization -> Labeeb
    ```
 
 2. **Processing Flow**
    ```
-   UaiBot -> AI Processing -> Command Interpretation -> Command Validation -> Execution
+   Labeeb -> AI Processing -> Command Interpretation -> Command Validation -> Execution
    ```
 
 3. **Output Flow**

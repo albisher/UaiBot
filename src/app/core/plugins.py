@@ -26,7 +26,7 @@ class PluginManager:
     """Manages plugin loading, unloading, and lifecycle."""
     
     def __init__(self, plugins_dir: Optional[str] = None):
-        self.plugins_dir = plugins_dir or os.path.expanduser("~/Documents/uaibot/plugins")
+        self.plugins_dir = plugins_dir or os.path.expanduser("~/Documents/labeeb/plugins")
         self.config_file = os.path.join(self.plugins_dir, "plugins.json")
         self.plugins: Dict[str, PluginInfo] = {}
         self.loaded_modules: Dict[str, Any] = {}
@@ -161,7 +161,7 @@ class PluginManager:
                     
             # Load the plugin module
             spec = importlib.util.spec_from_file_location(
-                f"uaibot.plugins.{name}",
+                f"labeeb.plugins.{name}",
                 os.path.join(self.plugins_dir, plugin.entry_point)
             )
             if not spec:
@@ -193,7 +193,7 @@ class PluginManager:
             
         try:
             # Remove the module from sys.modules
-            module_name = f"uaibot.plugins.{name}"
+            module_name = f"labeeb.plugins.{name}"
             if module_name in sys.modules:
                 del sys.modules[module_name]
                 

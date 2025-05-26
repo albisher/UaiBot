@@ -1,6 +1,6 @@
-# filepath: /Users/amac/Documents/code/UaiBot/requirements.txt
+# filepath: /Users/amac/Documents/code/Labeeb/requirements.txt
 
-# UaiBot requirements are now managed in setup.py
+# Labeeb requirements are now managed in setup.py
 # Please install using:
 #   pip install .
 # For development tools:
@@ -22,6 +22,10 @@ transformers>=4.40.0
 pyjwt>=2.8.0
 bcrypt>=4.1.2
 orjson>=3.9.10
+requests>=2.31.0
+urllib3>=2.0.0
+cryptography>=41.0.0
+toml>=0.10.2
 
 # Development dependencies
 pytest>=7.4.0
@@ -49,7 +53,7 @@ pywin32>=306; platform_system == "Windows"
 python-xlib>=0.33; platform_system == "Linux"
 pyobjc-framework-Quartz>=9.2; platform_system == "Darwin"
 
-# UaiBot requirements (Ubuntu 24.04+)
+# Labeeb requirements (Ubuntu 24.04+)
 # GUI and audio dependencies
 PyQt5>=5.15.11
 PyQt5-sip>=12.17.0
@@ -81,3 +85,43 @@ numpy>=1.24.0
 pandas>=2.0.0
 scikit-learn>=1.0.0
 colorama>=0.4.6
+
+# Web and browser automation
+selenium>=4.15.0
+playwright>=1.40.0
+bs4>=0.0.1
+beautifulsoup4>=4.12.0
+
+# System and hardware interaction
+pynput>=1.7.6
+keyboard>=0.13.5
+pygetwindow>=0.0.9
+pyudev>=23.2.1
+usb>=2.0.0
+sounddevice>=0.4.6
+
+# Data processing and visualization
+matplotlib>=3.8.0
+networkx>=3.2.0
+torch>=2.1.0
+spacy>=3.7.0
+langdetect>=1.0.9
+distro>=1.9.0
+
+# Platform specific
+# macOS
+pyobjc-framework-AVFoundation>=9.2
+pyobjc-framework-CoreAudio>=9.2
+pyobjc-framework-Foundation>=9.2
+pyobjc-framework-IOBluetooth>=9.2
+pyobjc-framework-IOKit>=9.2
+
+# Windows
+pywin32>=306; platform_system == "Windows"
+wmi>=1.5.1; platform_system == "Windows"
+
+# FFmpeg
+ffmpeg-python>=0.2.0
+
+# Agent frameworks
+smolagents>=0.1.0

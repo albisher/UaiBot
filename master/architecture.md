@@ -1,12 +1,12 @@
-# UaiBot Architecture and Best Practices
+# Labeeb Architecture and Best Practices
 
 ## 1. Project Overview
-UaiBot is a modular, extensible AI-powered automation and command processing system. The architecture is designed to be platform-agnostic, maintainable, and scalable.
+Labeeb is a modular, extensible AI-powered automation and command processing system. The architecture is designed to be platform-agnostic, maintainable, and scalable.
 
 ## 2. Core Directory Structure
 
 ```
-uaibot/
+labeeb/
 ├── core/                    # Core functionality modules
 │   ├── ai/                  # AI-related components
 │   ├── command_processor/   # Command processing system
@@ -92,8 +92,8 @@ import requests
 import numpy as np
 
 # Local imports
-from uaibot.core import ai_handler
-from uaibot.utils import file_utils
+from labeeb.core import ai_handler
+from labeeb.utils import file_utils
 ```
 
 ### 4.3 Error Handling

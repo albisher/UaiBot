@@ -1,6 +1,6 @@
 # System & Platform Health Checks
 
-This document describes the health check scripts for system and platform information in UaiBot.
+This document describes the health check scripts for system and platform information in Labeeb.
 
 ## 1. System Information Health Check
 
@@ -29,7 +29,7 @@ This document describes the health check scripts for system and platform informa
 
 ## 3. Usage & Integration
 
-- Use these scripts to quickly diagnose the environment UaiBot is running on.
+- Use these scripts to quickly diagnose the environment Labeeb is running on.
 - Integrate them into automated health checks or troubleshooting workflows.
 
 ## 4. Extending

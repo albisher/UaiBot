@@ -5,11 +5,20 @@ import logging
 from typing import Dict, Any, List, Optional
 
 class PluginManager:
+    """Manages the loading, unloading, and lifecycle of plugins in the application.
+    
+    This class is responsible for:
+    - Discovering and loading plugins from specified directories
+    - Managing plugin dependencies and initialization order
+    - Providing access to loaded plugins
+    - Handling plugin lifecycle events
+    
+    Attributes:
+        plugins (Dict[str, Any]): Dictionary of loaded plugins keyed by plugin name
     """
-    Minimal plugin manager for UaiBot.
-    Handles registration, loading, and management of plugins.
-    """
+
     def __init__(self, plugin_dir: str = "plugins"):
+        """Initialize the plugin manager."""
         self.plugin_dir = plugin_dir
         self.plugins: Dict[str, Any] = {}
         self.logger = logging.getLogger("PluginManager")
@@ -53,10 +62,31 @@ class PluginManager:
                 sys.path.remove(self.plugin_dir)
 
     def get_plugins(self) -> List[Any]:
+        """Get a list of all loaded plugins.
+        
+        Returns:
+            List[Any]: List of all currently loaded plugin instances
+        """
         return list(self.plugins.values())
 
     def get_plugin(self, name: str) -> Optional[Any]:
+        """Get a specific plugin by name.
+        
+        Args:
+            name (str): The name of the plugin to retrieve
+            
+        Returns:
+            Optional[Any]: The plugin instance if found, None otherwise
+        """
         return self.plugins.get(name)
 
     def get_plugin_module(self, name: str) -> Optional[Any]:
+        """Get the module object for a specific plugin.
+        
+        Args:
+            name (str): The name of the plugin whose module to retrieve
+            
+        Returns:
+            Optional[Any]: The plugin's module object if found, None otherwise
+        """
         return self.get_plugin(name) 

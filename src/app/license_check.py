@@ -1,10 +1,10 @@
 """
-UaiBot license verification module.
+Labeeb license verification module.
 
 This module checks if the application is being used according to its license terms.
 For commercial environments, it verifies if a valid commercial license is present.
 
-Copyright (c) 2025 UaiBot Team
+Copyright (c) 2025 Labeeb Team
 License: Custom license - free for personal and educational use.
 Commercial use requires a paid license. See LICENSE file for details.
 """

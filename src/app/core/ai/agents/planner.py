@@ -1,6 +1,6 @@
-from uaibot.core.ai.agent import Agent, MultiStepPlan, PlanStep
-from uaibot.core.ai.agents.researcher import ResearcherAgent
-from uaibot.core.ai.agents.information_collector import InformationCollectorAgent
+from labeeb.core.ai.agent import Agent, MultiStepPlan, PlanStep
+from labeeb.core.ai.agents.researcher import ResearcherAgent
+from labeeb.core.ai.agents.information_collector import InformationCollectorAgent
 from typing import Dict, Any, Optional, Union
 
 class PlannerAgent(Agent):

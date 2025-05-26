@@ -1,4 +1,4 @@
-# UaiBot File Operations API
+# Labeeb File Operations API
 
 ## Overview
 
@@ -6,7 +6,7 @@ The File Operations API (-f flag) provides a human-friendly interface for perfor
 
 ## Usage
 
-To use the File Operations API, run UaiBot with the `-f` flag followed by the `-c` flag and your file operation request:
+To use the File Operations API, run Labeeb with the `-f` flag followed by the `-c` flag and your file operation request:
 
 ```bash
 python main.py -f -c "create a new file called example.txt with content 'This is a test file'"

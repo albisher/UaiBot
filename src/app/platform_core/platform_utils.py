@@ -83,13 +83,13 @@ def get_audio_handler() -> Optional[Any]:
     system = platform.system()
     try:
         if system == 'Darwin':
-            from uaibot.platform_uai.mac.audio_handler import MacAudioHandler
+            from labeeb.platform_uai.mac.audio_handler import MacAudioHandler
             return MacAudioHandler()
         # elif system == 'Linux':
-        #     from uaibot.platform_uai.linux.audio_handler import LinuxAudioHandler
+        #     from labeeb.platform_uai.linux.audio_handler import LinuxAudioHandler
         #     return LinuxAudioHandler()
         elif system == 'Windows':
-            # from uaibot.platform_uai.windows.audio_handler import WindowsAudioHandler
+            # from labeeb.platform_uai.windows.audio_handler import WindowsAudioHandler
             pass
     except ImportError as e:
         logger.warning(f"Failed to import audio handler for {system}: {e}")
@@ -104,13 +104,13 @@ def get_usb_handler() -> Optional[Any]:
     system = platform.system()
     try:
         if system == 'Darwin':
-            from uaibot.platform_uai.mac.usb_handler import MacUSBHandler
+            from labeeb.platform_uai.mac.usb_handler import MacUSBHandler
             return MacUSBHandler()
         # elif system == 'Linux':
-        #     from uaibot.platform_uai.linux.usb_handler import LinuxUSBHandler
+        #     from labeeb.platform_uai.linux.usb_handler import LinuxUSBHandler
         #     return LinuxUSBHandler()
         elif system == 'Windows':
-            # from uaibot.platform_uai.windows.usb_handler import WindowsUSBHandler
+            # from labeeb.platform_uai.windows.usb_handler import WindowsUSBHandler
             pass
     except ImportError as e:
         logger.warning(f"Failed to import USB handler for {system}: {e}")
@@ -125,13 +125,13 @@ def get_input_handler() -> Optional[Any]:
     system = platform.system()
     try:
         if system == 'Darwin':
-            from uaibot.platform_uai.mac.input_handler import MacInputHandler
+            from labeeb.platform_uai.mac.input_handler import MacInputHandler
             return MacInputHandler()
         # elif system == 'Linux':
-        #     from uaibot.platform_uai.linux.input_handler import LinuxInputHandler
+        #     from labeeb.platform_uai.linux.input_handler import LinuxInputHandler
         #     return LinuxInputHandler()
         elif system == 'Windows':
-            # from uaibot.platform_uai.windows.input_handler import WindowsInputHandler
+            # from labeeb.platform_uai.windows.input_handler import WindowsInputHandler
             pass
     except ImportError as e:
         logger.warning(f"Failed to import input handler for {system}: {e}")

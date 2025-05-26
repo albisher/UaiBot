@@ -1,6 +1,6 @@
 ## Systematic Workflow for Topic-Based Web Research Automation
 
-To enable a bot (like uaibot) to systematically become more aware of external information on topics you provide (e.g., systems, OS, IoT, threats, MITRE ATT&CK), you can establish a structured process that leverages AI-powered web scraping and data extraction. Here’s a step-by-step approach:
+To enable a bot (like labeeb) to systematically become more aware of external information on topics you provide (e.g., systems, OS, IoT, threats, MITRE ATT&CK), you can establish a structured process that leverages AI-powered web scraping and data extraction. Here’s a step-by-step approach:
 
 **1. Topic and URL Input**
 

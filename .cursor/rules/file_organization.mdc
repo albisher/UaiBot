@@ -8,7 +8,7 @@ alwaysApply: true
 ## Directory Structure
 ```
 src/
-├── uaibot/
+├── labeeb/
 │   ├── core/
 │   │   ├── ai/
 │   │   │   ├── models/
@@ -146,8 +146,8 @@ src/
 - Placement rules:
   - Test artifacts: `tests/fixtures/` or `tests/outputs/`
   - Logs: `log/`
-  - State/context: `src/uaibot/state/`
-  - Registry/config: `src/uaibot/core/`
+  - State/context: `src/labeeb/state/`
+  - Registry/config: `src/labeeb/core/`
   - Scripts/entry-points: `scripts/`
   - License: project root
 - All contributors must follow these rules for every commit.

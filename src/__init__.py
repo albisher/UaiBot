@@ -1,3 +1,3 @@
 """
-UaiBot source package.
+Labeeb source package.
 """ 

@@ -1,5 +1,5 @@
 """
-Query processing module for UaiBot.
+Query processing module for Labeeb.
 
 This module handles the processing of AI queries and responses, providing a unified
 interface for interacting with Ollama models. It manages conversation history,

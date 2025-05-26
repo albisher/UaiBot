@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import spacy
 from transformers import pipeline
 import networkx as nx
-from uaibot.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_uai.platform_utils import get_input_handler
 
 logger = logging.getLogger(__name__)
 
@@ -153,9 +153,9 @@ class ResearchManager:
         try:
             topic_dir = self.research_dir / topic.lower().replace(" ", "_")
             if topic_dir.exists():
-                resp = input(f"[UaiBot] Topic '{topic}' already exists. Overwrite? (y/n): ").strip().lower()
+                resp = input(f"[Labeeb] Topic '{topic}' already exists. Overwrite? (y/n): ").strip().lower()
                 if resp != 'y':
-                    print("[UaiBot] Topic creation cancelled.")
+                    print("[Labeeb] Topic creation cancelled.")
                     return False
             topic_dir.mkdir(exist_ok=True)
             topic_file = topic_dir / "topic.txt"
@@ -194,12 +194,12 @@ class ResearchManager:
                 url = lines[1].strip()
 
             # Start with fallback workflow (now includes recursive link following)
-            print(f"[UaiBot] Starting comprehensive research for '{topic_name}'...")
+            print(f"[Labeeb] Starting comprehensive research for '{topic_name}'...")
             summary['fallback_used'] = True
             paper_content = self._fallback_human_like_browsing(url, topic_name)
 
             if not paper_content:
-                print(f"[UaiBot] Research did not produce an excellent paper. Not learning as a capability.")
+                print(f"[Labeeb] Research did not produce an excellent paper. Not learning as a capability.")
                 summary['result'] = "Research did not produce an excellent paper."
                 self._print_summary(summary)
                 return False
@@ -243,9 +243,9 @@ class ResearchManager:
             f"Reply with a single word (excellent, good, fair, poor) and a confidence score (0-100) in this format: 'Rating: <word>, Confidence: <number>'.\n\nContent:\n{content[:4000]}"
         )
         try:
-            from uaibot.core.ai_handler import AIHandler
-            from uaibot.core.model_manager import ModelManager
-            from uaibot.core.config_manager import ConfigManager
+            from labeeb.core.ai_handler import AIHandler
+            from labeeb.core.model_manager import ModelManager
+            from labeeb.core.config_manager import ConfigManager
             ai_handler = AIHandler(model_manager=ModelManager(ConfigManager()))
             response = ai_handler.process_prompt(prompt)
             import re
@@ -262,7 +262,7 @@ class ResearchManager:
 
     def _fallback_human_like_browsing(self, url: str, topic: str) -> str:
         """Robust, never-stopping, capability-executing research with full link traversal, focus filtering, and max 20 iterations."""
-        print(f"[UaiBot] Fallback: Robust, never-stopping research for '{topic}' at {url}...")
+        print(f"[Labeeb] Fallback: Robust, never-stopping research for '{topic}' at {url}...")
         try:
             import difflib
             from urllib.parse import urlparse
@@ -281,7 +281,7 @@ class ResearchManager:
             summary['CapabilityTests']['Mouse'] = mouse.move_and_click(10, 10)
             summary['CapabilityTests']['Keyboard'] = keyboard.type_and_enter('test')
             try:
-                from uaibot.platform_uai.platform_utils import get_input_handler
+                from labeeb.platform_uai.platform_utils import get_input_handler
                 handler = get_input_handler()
                 summary['CapabilityTests']['Screen'] = handler.get_screen_size() is not None
             except Exception as e:
@@ -291,7 +291,7 @@ class ResearchManager:
             summary['AppControl'] = app.launch_browser(url)
             screen_width, screen_height = 1920, 1080
             try:
-                from uaibot.platform_uai.platform_utils import get_input_handler
+                from labeeb.platform_uai.platform_utils import get_input_handler
                 screen_width, screen_height = get_input_handler().get_screen_size()
             except Exception:
                 pass
@@ -461,7 +461,7 @@ class ResearchManager:
                 step += 1
                 time.sleep(2)  # Delay between links
             # Aggregate all step files for the final report
-            print("\n[UaiBot] Aggregating all step files for the final research paper...")
+            print("\n[Labeeb] Aggregating all step files for the final research paper...")
             all_step_content = []
             for step_file in sorted(topic_dir.glob('step*.md')):
                 try:
@@ -482,7 +482,7 @@ class ResearchManager:
                 f"- A clear, descriptive title\n"
                 f"- The date of research: {research_date}\n"
                 f"- A well-structured summary of the findings, written in natural language\n"
-                f"- A signature line: 'Researched by UaiBot {research_date[:4]}'\n"
+                f"- A signature line: 'Researched by Labeeb {research_date[:4]}'\n"
                 f"- At the end, include: 'AI Rating: <percent>%' (leave <percent> as a placeholder to be filled in)\n"
                 f"Here are the research notes and findings from all steps:\n\n{all_content_str[:12000]}\n\n"
                 f"Format the paper in Markdown, but do not include any links."
@@ -506,7 +506,7 @@ class ResearchManager:
             if rating_match:
                 rating = rating_match.group(1)
                 confidence = float(rating_match.group(2))
-                print(f"\n[UaiBot] Final paper rated as '{rating}' with confidence {confidence}%")
+                print(f"\n[Labeeb] Final paper rated as '{rating}' with confidence {confidence}%")
                 # Patch the paper to include the actual rating percent and color
                 with open(paper_file, 'r') as pf:
                     content = pf.read()
@@ -517,20 +517,20 @@ class ResearchManager:
             else:
                 rating = 'unknown'
                 confidence = 0
-                print("\n[UaiBot] Could not parse final paper rating")
-            print("\n[UaiBot] === Mini-Capability Usage Summary ===")
+                print("\n[Labeeb] Could not parse final paper rating")
+            print("\n[Labeeb] === Mini-Capability Usage Summary ===")
             for k, v in summary.items():
                 print(f"{k}: {v}")
-            print("[UaiBot] =====================================\n")
+            print("[Labeeb] =====================================\n")
             return paper_content if rating.lower() == 'excellent' and confidence > 90 else ''
         except Exception as e:
-            print(f"[UaiBot] Fallback browsing failed: {str(e)}")
+            print(f"[Labeeb] Fallback browsing failed: {str(e)}")
             return ''
 
     def _get_ai_handler(self):
-        from uaibot.core.ai_handler import AIHandler
-        from uaibot.core.model_manager import ModelManager
-        from uaibot.core.config_manager import ConfigManager
+        from labeeb.core.ai_handler import AIHandler
+        from labeeb.core.model_manager import ModelManager
+        from labeeb.core.config_manager import ConfigManager
         return AIHandler(model_manager=ModelManager(ConfigManager()))
     
     def _generate_awareness_patterns(self, doc) -> List[str]:
@@ -608,13 +608,13 @@ class ResearchManager:
                 logger.error(f"Failed to save image {img['src']}: {str(e)}")
 
     def _print_summary(self, summary: dict):
-        print("\n[UaiBot] === Research Process Summary ===")
+        print("\n[Labeeb] === Research Process Summary ===")
         for k, v in summary.items():
             print(f"{k}: {v}")
-        print("[UaiBot] ===============================\n")
+        print("[Labeeb] ===============================\n")
 
 class AwarenessIntegrator:
-    """Integrates research findings into UaiBot's awareness system."""
+    """Integrates research findings into Labeeb's awareness system."""
     
     def __init__(self, research_manager: ResearchManager):
         self.research_manager = research_manager
@@ -639,7 +639,7 @@ class AwarenessIntegrator:
                 # Delete the invalid file and show a user-friendly error
                 latest_capability.unlink(missing_ok=True)
                 logger.error(f"Failed to integrate topic {topic}: {e}")
-                print(f"[UaiBot] Error: The generated capability file for '{topic}' was invalid and has been removed. Please try again with a different topic name or contact support if this persists.")
+                print(f"[Labeeb] Error: The generated capability file for '{topic}' was invalid and has been removed. Please try again with a different topic name or contact support if this persists.")
                 return False
             # Find the class (should end with 'Capability')
             class_name = None
@@ -649,14 +649,14 @@ class AwarenessIntegrator:
                     break
             if not class_name:
                 logger.error(f"No valid capability class found in {latest_capability}")
-                print(f"[UaiBot] Error: No valid capability class found in the generated file for '{topic}'. Please try again.")
+                print(f"[Labeeb] Error: No valid capability class found in the generated file for '{topic}'. Please try again.")
                 return False
             capability_class = getattr(module, class_name)
             self.awareness_managers[topic] = capability_class()
             return True
         except Exception as e:
             logger.error(f"Failed to integrate topic {topic}: {str(e)}")
-            print(f"[UaiBot] Error: Could not integrate topic '{topic}': {str(e)}")
+            print(f"[Labeeb] Error: Could not integrate topic '{topic}': {str(e)}")
             return False
     
     def get_awareness_patterns(self, topic: str) -> List[str]:
@@ -698,7 +698,7 @@ class AppControlCapability:
 class MouseControlCapability:
     def move_and_click(self, x: int, y: int) -> bool:
         try:
-            from uaibot.platform_uai.platform_utils import get_input_handler
+            from labeeb.platform_uai.platform_utils import get_input_handler
             handler = get_input_handler()
             handler.move_mouse(x, y)
             time.sleep(1)
@@ -712,7 +712,7 @@ class MouseControlCapability:
 class KeyboardControlCapability:
     def type_and_enter(self, text: str) -> bool:
         try:
-            from uaibot.platform_uai.platform_utils import get_input_handler
+            from labeeb.platform_uai.platform_utils import get_input_handler
             handler = get_input_handler()
             for c in text:
                 handler.type_text(c)

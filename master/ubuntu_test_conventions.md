@@ -3,8 +3,8 @@
 ## Test Run Summary
 - All tests were run using `pytest` on Ubuntu.
 - **Main Issue:**
-  - `ModuleNotFoundError: No module named 'uaibot'` occurred in `tests/conftest.py`.
-  - This prevented tests from running and is likely due to import path issues or missing the `uaibot` package/module in the current environment.
+  - `ModuleNotFoundError: No module named 'labeeb'` occurred in `tests/conftest.py`.
+  - This prevented tests from running and is likely due to import path issues or missing the `labeeb` package/module in the current environment.
 - **Other Observations:**
   - Some tests or plugins expect a certain project structure or installed package.
   - There are warnings about permissions for mouse/keyboard libraries (expected on Linux without root).

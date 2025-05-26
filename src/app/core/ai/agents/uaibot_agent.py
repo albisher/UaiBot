@@ -1,3 +1,9 @@
+"""
+Labeeb Agent Implementation
+
+This module implements the main Labeeb agent class.
+"""
+
 import logging
 from typing import Dict, Any, List
 from app.platform_core.platform_manager import PlatformManager
@@ -5,9 +11,12 @@ from app.core.ai.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-class UaiBotAgent(BaseAgent):
-    def __init__(self):
+class LabeebAgent(BaseAgent):
+    """Main Labeeb agent implementation."""
+    
+    def __init__(self, name: str = "Labeeb"):
         super().__init__()
+        self.name = name
         self.platform_manager = PlatformManager()
         self.platform_info = self.platform_manager.get_platform_info()
         self.handlers = self.platform_manager.get_handlers()
@@ -32,7 +41,7 @@ class UaiBotAgent(BaseAgent):
                 'paths': self.platform_info['paths']
             })
 
-            logger.info(f"Initialized UaiBot agent for {self.platform_info['name']}")
+            logger.info(f"Initialized Labeeb agent for {self.platform_info['name']}")
 
         except Exception as e:
             logger.error(f"Error initializing agent: {str(e)}")
@@ -74,10 +83,19 @@ class UaiBotAgent(BaseAgent):
                 'error': str(e)
             }
 
+    def get_info(self) -> Dict[str, Any]:
+        """Get detailed agent information"""
+        return {
+            'name': self.name,
+            'platform': self.platform_info['name'],
+            'version': self.platform_info['version'],
+            'capabilities': self.capabilities
+        }
+
     def get_agent_info(self) -> Dict[str, Any]:
         """Get detailed agent information"""
         return {
-            'name': 'UaiBot',
+            'name': self.name,
             'platform': self.platform_info['name'],
             'version': self.platform_info['version'],
             'features': self.platform_info['features'],

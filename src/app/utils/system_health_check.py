@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-System Health Check for UaiBot
+System Health Check for Labeeb
 - Detects OS and environment
 - Checks for Ollama installation and path
 - Verifies required Ollama models (e.g., gemma3:4b)
@@ -112,7 +112,7 @@ def check_system_health():
     return health_status
 
 def main():
-    print("\n=== UaiBot System Health Check ===\n")
+    print("\n=== Labeeb System Health Check ===\n")
     os_name = detect_os()
     print(f"Detected OS: {os_name}")
 
@@ -160,7 +160,7 @@ def main():
     else:
         print("\nNo issues found.")
 
-    print("\nSystem health check complete. UaiBot is ready to use!\n")
+    print("\nSystem health check complete. Labeeb is ready to use!\n")
 
 if __name__ == "__main__":
     main() 

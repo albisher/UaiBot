@@ -4,6 +4,22 @@ import json
 import datetime
 from pathlib import Path
 
+"""
+This module manages and updates command patterns used for natural language processing and intent recognition.
+It provides functionality to maintain and enhance the command_patterns.json file, which contains regular expressions
+and patterns for matching user intents across different categories like system information, file operations,
+search queries, and application control. The module supports both English and Arabic language patterns.
+
+Key features:
+- Updates command patterns for better intent recognition
+- Supports both incremental updates and complete replacements
+- Maintains patterns for multiple command categories
+- Includes bilingual support (English and Arabic)
+- Handles file system operations for pattern storage
+
+See also: config/command_patterns.json for the actual pattern definitions
+"""
+
 def update_command_patterns(add_patterns=True):
     """
     Update the command_patterns.json file with enhanced patterns for better intent recognition.
@@ -11,7 +27,7 @@ def update_command_patterns(add_patterns=True):
     If add_patterns=False, it will replace the file with a comprehensive set of new patterns.
     """
     # Path to the command_patterns.json file
-    patterns_file = Path(os.path.expanduser("~/Documents/code/UaiBot/config/command_patterns.json"))
+    patterns_file = Path(os.path.expanduser("~/Documents/code/Labeeb/config/command_patterns.json"))
     
     # Create the directory if it doesn't exist
     os.makedirs(patterns_file.parent, exist_ok=True)
@@ -248,4 +264,4 @@ def update_command_patterns(add_patterns=True):
 
 if __name__ == "__main__":
     update_command_patterns(add_patterns=True)
-    print("Pattern update complete. This will improve UaiBot's intent recognition capability.")
+    print("Pattern update complete. This will improve Labeeb's intent recognition capability.")

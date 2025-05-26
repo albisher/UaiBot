@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
-"""
-UaiBot Mac Initialization Script
-This script sets up UaiBot on macOS, specifically optimized for Apple Silicon (M4)
+"""macOS platform initialization module for the Labeeb system.
+
+This module provides functionality for:
+- System requirements verification
+- Permission setup and management
+- Service initialization
+- Environment configuration
+- Platform-specific setup
+
+The module handles the initialization of macOS-specific components and
+ensures proper setup of the Labeeb platform on macOS systems.
 """
 import os
 import sys
@@ -139,7 +147,7 @@ def setup_platform_specific():
 
 def main():
     """Main function"""
-    print("UaiBot Mac M4 Setup")
+    print("Labeeb Mac M4 Setup")
     print("===================")
     
     # Check if running on macOS
@@ -155,7 +163,7 @@ def main():
     setup_platform_specific()
     
     print("\nSetup complete!")
-    print("\nTo run UaiBot:")
+    print("\nTo run Labeeb:")
     print("1. Terminal mode: python3 main.py")
     print("2. GUI mode: python3 gui_launcher.py")
 

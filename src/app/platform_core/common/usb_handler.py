@@ -1,5 +1,5 @@
 """
-Common USB handler base class for UaiBot.
+Common USB handler base class for Labeeb.
 Provides USB device detection and interaction.
 """
 from abc import ABC, abstractmethod

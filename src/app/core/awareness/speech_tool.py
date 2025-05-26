@@ -1,5 +1,8 @@
 """
-SpeechTool: Cross-platform Text-to-Speech (TTS) and Speech-to-Text (STT) tool for UaiBot.
+Labeeb Speech Tool
+
+This module provides speech-related functionality for Labeeb.
+It handles speech recognition, synthesis, and voice interaction capabilities.
 
 - TTS: Uses pyttsx3 (offline, cross-platform) or system TTS as fallback.
 - STT: Uses whisper (offline, cross-platform, local model).

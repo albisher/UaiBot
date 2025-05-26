@@ -1,8 +1,8 @@
-# UaiBot Multilingual Support
+# Labeeb Multilingual Support
 
 ## Overview
 
-UaiBot supports multiple languages, including Arabic, to make it accessible to users from different regions. This document outlines how multilingual support is implemented and how to extend it.
+Labeeb supports multiple languages, including Arabic, to make it accessible to users from different regions. This document outlines how multilingual support is implemented and how to extend it.
 
 ## Current Language Support
 
@@ -28,20 +28,20 @@ Arabic command parsing follows these steps:
 1. Detect Arabic command indicators in the user input
 2. Extract relevant parameters (filename, content, etc.)
 3. Generate an equivalent shell command
-4. Execute the shell command through UaiBot's command processor
+4. Execute the shell command through Labeeb's command processor
 
 ### Testing Arabic Support
 
 You can run the Arabic command support tests using:
 
 ```bash
-python /home/a/Documents/Projects/UaiBot/fix/verify_arabic_commands.py
+python /home/a/Documents/Projects/Labeeb/fix/verify_arabic_commands.py
 ```
 
 For comprehensive testing of all multilingual features:
 
 ```bash
-python /home/a/Documents/Projects/UaiBot/tests/run_multilingual_tests.py --language arabic
+python /home/a/Documents/Projects/Labeeb/tests/run_multilingual_tests.py --language arabic
 ```
 
 ## Extending Language Support

@@ -1,3 +1,11 @@
+"""Common system information gathering module.
+
+This module provides platform-agnostic functionality for gathering system information
+such as CPU, memory, disk, and network statistics. It defines a base abstract class
+that can be extended by platform-specific implementations to provide detailed system
+information while maintaining a consistent interface across different operating systems.
+"""
+
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 import psutil

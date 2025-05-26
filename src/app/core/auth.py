@@ -23,7 +23,7 @@ class AuthManager:
     """Manages user authentication and authorization."""
     
     def __init__(self, config_dir: Optional[str] = None):
-        self.config_dir = config_dir or os.path.expanduser("~/Documents/uaibot/config")
+        self.config_dir = config_dir or os.path.expanduser("~/Documents/labeeb/config")
         self.users_file = os.path.join(self.config_dir, "users.json")
         self.secret_key = self._load_or_generate_secret_key()
         os.makedirs(self.config_dir, exist_ok=True)

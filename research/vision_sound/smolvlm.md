@@ -1,7 +1,7 @@
 # SmolVLM-256M Vision-Language Model Integration
 
 ## Overview
-SmolVLM-256M is a lightweight vision-language model that can run 100% locally. It's perfect for UaiBot's vision capabilities due to its small size and local execution capabilities.
+SmolVLM-256M is a lightweight vision-language model that can run 100% locally. It's perfect for Labeeb's vision capabilities due to its small size and local execution capabilities.
 
 ## Implementation Details
 

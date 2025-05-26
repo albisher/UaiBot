@@ -2,14 +2,14 @@
 
 ## Overview
 
-The input control module provides functions to programmatically control the mouse and keyboard using PyAutoGUI and other libraries. It allows UaiBot to perform automated input operations across different operating systems.
+The input control module provides functions to programmatically control the mouse and keyboard using PyAutoGUI and other libraries. It allows Labeeb to perform automated input operations across different operating systems.
 
 ## Organization
 
 The input control functionality follows a clear organization structure:
 
 ```
-/src/uaibot/
+/src/labeeb/
     /platform_uai/           # System files for platform-specific implementations
         /common/
             /input_control/
@@ -45,12 +45,12 @@ The input control functionality follows a clear organization structure:
 ## File Naming Conventions
 
 1. **System Files**: Core functionality files that are required for the system to operate
-   - Located in `/src/uaibot/platform_uai/`
+   - Located in `/src/labeeb/platform_uai/`
    - Named descriptively (e.g., `ubuntu_input_handler.py`, `mac_input_handler.py`)
    - No "test" in production filenames
 
 2. **Setup Files**: One-time initialization or health check files
-   - Located in `/src/uaibot/setup/`
+   - Located in `/src/labeeb/setup/`
    - Named with `_setup.py` suffix
    - Run during initial setup or health checks
 
@@ -64,7 +64,7 @@ The input control functionality follows a clear organization structure:
 ### Recommended Import Method
 
 ```python
-from uaibot.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_uai.platform_utils import get_input_handler
 
 # Get the platform-specific handler automatically
 handler = get_input_handler()
@@ -79,11 +79,11 @@ handler.type_text("Hello, world!")
 
 ```python
 # Method 1: Import specific implementation (if you know the platform)
-from uaibot.platform_uai.ubuntu.input_control import UbuntuInputHandler
+from labeeb.platform_uai.ubuntu.input_control import UbuntuInputHandler
 handler = UbuntuInputHandler()
 
 # Method 2: Legacy import (backwards compatibility)
-from uaibot.platform_uai.common.input_control import MouseKeyboardHandler
+from labeeb.platform_uai.common.input_control import MouseKeyboardHandler
 handler = MouseKeyboardHandler()
 ```
 
@@ -107,7 +107,7 @@ To force simulation mode for testing:
 ```python
 import os
 os.environ['DISPLAY'] = ''  # Set before importing the handler
-from uaibot.platform_uai.platform_utils import get_input_handler
+from labeeb.platform_uai.platform_utils import get_input_handler
 ```
 
 ## Available Methods

@@ -1,5 +1,5 @@
 """
-Weather Plugin for UaiBot
+Weather Plugin for Labeeb
 This plugin provides weather-related functionality.
 """
 
@@ -12,7 +12,7 @@ PLUGIN_INFO = {
     'name': 'weather',
     'version': '1.0.0',
     'description': 'Provides weather information and forecasts',
-    'author': 'UaiBot Team',
+    'author': 'Labeeb Team',
     'dependencies': [],
     'entry_point': 'weather_plugin.py'
 }

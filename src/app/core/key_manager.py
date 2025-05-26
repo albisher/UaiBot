@@ -1,5 +1,5 @@
 """
-Secure key management for UaiBot.
+Secure key management for Labeeb.
 """
 import os
 import json

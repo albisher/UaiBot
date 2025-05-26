@@ -1,8 +1,8 @@
-# UaiBot Platform Support Architecture
+# Labeeb Platform Support Architecture
 
 ## Overview
 
-UaiBot is designed to work seamlessly across multiple platforms, including:
+Labeeb is designed to work seamlessly across multiple platforms, including:
 
 - **macOS** (both Intel and Apple Silicon)
 - **Ubuntu** (and other Linux distributions)
@@ -31,10 +31,10 @@ The `PlatformManager` class serves as the central coordinator for platform-speci
 
 ### Platform-Specific Modules
 
-Each supported platform has its own directory under `platform_uai/`:
+Each supported platform has its own directory under `platform_labeeb/`:
 
 ```
-platform_uai/
+platform_labeeb/
 ├── common/            # Common implementations and base classes
 ├── mac/               # macOS specific implementations
 ├── ubuntu/            # Ubuntu specific implementations
@@ -46,7 +46,7 @@ platform_uai/
 
 ### Handler Types
 
-UaiBot provides several types of platform-specific handlers:
+Labeeb provides several types of platform-specific handlers:
 
 1. **Audio Handler**: For platform-specific audio recording and playback
 2. **USB Handler**: For USB device detection and interaction
@@ -54,7 +54,7 @@ UaiBot provides several types of platform-specific handlers:
 
 ### Fallback Mechanism
 
-If a platform-specific implementation is not available, UaiBot will:
+If a platform-specific implementation is not available, Labeeb will:
 
 1. First try to load the specific platform implementation
 2. If not available, fall back to the common implementation
@@ -90,7 +90,7 @@ The `platform_utils.py` module provides functions to obtain the appropriate hand
 
 To add support for a new platform:
 
-1. Create a new directory under `platform_uai/` (e.g., `platform_uai/new_platform/`)
+1. Create a new directory under `platform_labeeb/` (e.g., `platform_labeeb/new_platform/`)
 2. Implement the necessary handlers (audio_handler.py, usb_handler.py, input_control.py)
 3. Update `detect_platform()` in `platform_utils.py` to recognize the new platform
 4. Add any special initialization or cleanup logic to `PlatformManager`

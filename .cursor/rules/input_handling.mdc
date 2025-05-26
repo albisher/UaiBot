@@ -80,7 +80,7 @@ class InputProcessor:
 - Maintain input history
 
 - Core Philosophy:
-  * UaiBot acts as an expert system with unlimited capabilities
+  * Labeeb acts as an expert system with unlimited capabilities
   * No predefined limitations on what tasks can be performed
   * Treat each request as a unique expert task
   * Adapt to any domain or task the user requests

@@ -1,3 +1,8 @@
+"""Update folder health check module.
+
+This module checks the health and accessibility of update folders configured for the platform, ensuring paths exist, are directories, and have proper permissions.
+"""
+
 import logging
 import os
 from typing import Dict, Any, List

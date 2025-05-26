@@ -8,10 +8,10 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import test fixtures and utilities
-from uaibot.core.ai.uaibot_agent import UaiAgent
-from uaibot.core.cache import Cache
-from uaibot.core.auth import AuthManager
-from uaibot.core.plugins import PluginManager
+from labeeb.core.ai.Labeeb_agent import Labeeb
+from labeeb.core.cache import Cache
+from labeeb.core.auth import AuthManager
+from labeeb.core.plugins import PluginManager
 
 @pytest.fixture
 def test_config():
@@ -26,15 +26,15 @@ def test_config():
 @pytest.fixture
 def mock_ai_handler(test_config):
     """Provide a mock AI handler for testing."""
-    from uaibot.core.ai_handler import AIHandler
+    from labeeb.core.ai_handler import AIHandler
     handler = AIHandler()
     handler.config = test_config
     return handler
 
 @pytest.fixture
-def uaibot_agent():
-    """Create a UaiAgent instance for testing."""
-    return UaiAgent(debug=True)
+def Labeeb_agent():
+    """Create a Labeeb instance for testing."""
+    return Labeeb(debug=True)
 
 @pytest.fixture
 def cache():

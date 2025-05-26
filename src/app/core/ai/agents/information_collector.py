@@ -1,7 +1,7 @@
-from uaibot.core.ai.agent import Agent
-from uaibot.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
-from uaibot.core.ai.agent_tools.web_searching_tool import WebSearchingTool
-from uaibot.core.ai.agent_tools.file_tool import FileTool
+from labeeb.core.ai.agent import Agent
+from labeeb.core.ai.agent_tools.system_awareness_tool import SystemAwarenessTool
+from labeeb.core.ai.agent_tools.web_searching_tool import WebSearchingTool
+from labeeb.core.ai.agent_tools.file_tool import FileTool
 
 class InformationCollectorAgent(Agent):
     """

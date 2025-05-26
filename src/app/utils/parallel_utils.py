@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Parallel Processing Utilities for UaiBot
+Parallel Processing Utilities for Labeeb
 
-This module provides utilities for parallel processing in UaiBot,
+This module provides utilities for parallel processing in Labeeb,
 including thread pools for I/O-bound operations and process pools
 for CPU-intensive operations.
 """

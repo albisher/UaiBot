@@ -8,20 +8,23 @@ import tempfile
 import whisper
 import keyboard
 import time
-from uaibot.core.logging_config import setup_logging, get_logger
-from uaibot.core.exceptions import UaiBotError, AIError, ConfigurationError, CommandError
-from uaibot.core.cache_manager import CacheManager
-from uaibot.core.model_manager import ModelManager
-from uaibot.core.config_manager import ConfigManager
-from uaibot.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
-from uaibot.core.ai.agent_tools.file_tool import FileTool
+from labeeb.core.logging_config import setup_logging, get_logger
+from labeeb.core.exceptions import LabeebError, AIError, ConfigurationError, CommandError
+from labeeb.core.cache_manager import CacheManager
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.config_manager import ConfigManager
+from labeeb.core.ai.agent import Agent, ToolRegistry, EchoTool, safe_path
+from labeeb.core.ai.agent_tools.file_tool import FileTool
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class UaiBot:
-    """Main class for UaiBot."""
+PROJECT_NAME = "Labeeb"
+VERSION = "1.0.0"
+
+class Labeeb:
+    """Main class for Labeeb."""
     
     def __init__(self, debug=False):
         config_manager = ConfigManager()
@@ -33,8 +36,8 @@ class UaiBot:
         self.debug = debug
     
     def initialize(self):
-        """Initialize UaiBot."""
-        logger.info("UaiBot initialized")
+        """Initialize Labeeb."""
+        logger.info("Labeeb initialized")
     
     def process_command(self, command: str) -> dict:
         """Process a command."""
@@ -162,10 +165,10 @@ def setup_logging(settings):
     )
 
 def main():
-    """Main entry point for UaiBot."""
+    """Main entry point for Labeeb."""
     import sys
     import argparse
-    parser = argparse.ArgumentParser(description='UaiBot - AI-powered command processor')
+    parser = argparse.ArgumentParser(description='Labeeb - AI-powered command processor')
     parser.add_argument('--debug', '-d', action='store_true', help='Enable debug mode')
     parser.add_argument('--fast', action='store_true', help='Enable fast mode')
     parser.add_argument('--mic', action='store_true', help='Enable microphone streaming mode')
@@ -173,19 +176,19 @@ def main():
     args = parser.parse_args()
 
     try:
-        # Initialize UaiBot
-        uaibot = UaiBot(debug=args.debug)
-        uaibot.initialize()
+        # Initialize Labeeb
+        labeeb = Labeeb(debug=args.debug)
+        labeeb.initialize()
 
         # If --mic flag is provided, start microphone mode and exit
         if args.mic:
-            uaibot.start_microphone_mode()
+            labeeb.start_microphone_mode()
             return
 
         # If a command is provided as an argument, process it and exit
         if args.command:
             command_str = ' '.join(args.command)
-            result = uaibot.process_command(command_str)
+            result = labeeb.process_command(command_str)
             logger.debug(f"Result dictionary: {result}")
             if 'message' not in result:
                 logger.warning("Result dictionary missing 'message' key, using default message.")
@@ -197,14 +200,14 @@ def main():
         while True:
             try:
                 user_input = input("Enter command: ")
-                result = uaibot.process_command(user_input)
+                result = labeeb.process_command(user_input)
                 logger.debug(f"Result dictionary: {result}")
                 if 'message' not in result:
                     logger.warning("Result dictionary missing 'message' key, using default message.")
                     result['message'] = "An error occurred"
                 print(result['message'])
             except KeyboardInterrupt:
-                logger.info("UaiBot shutting down")
+                logger.info("Labeeb shutting down")
                 break
             except Exception as e:
                 logger.error(f"An error occurred: {str(e)}")

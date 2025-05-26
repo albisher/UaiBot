@@ -1,7 +1,7 @@
 # Regex to AI Transition Initiative
 
 ## Overview
-This document tracks the systematic transition from regex-based command interpretation to AI-driven natural language understanding in UaiBot. The goal is to make the system more intelligent, flexible, and aligned with its design philosophy of human-like interaction.
+This document tracks the systematic transition from regex-based command interpretation to AI-driven natural language understanding in Labeeb. The goal is to make the system more intelligent, flexible, and aligned with its design philosophy of human-like interaction.
 
 ## Key Areas for Transition
 

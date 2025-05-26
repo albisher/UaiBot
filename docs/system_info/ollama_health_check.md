@@ -1,6 +1,6 @@
 # Ollama Health Check
 
-This document explains how to verify that the Ollama AI backend is running and ready for use with UaiBot.
+This document explains how to verify that the Ollama AI backend is running and ready for use with Labeeb.
 
 ## 1. Starting Ollama
 
@@ -38,4 +38,4 @@ python3 app/health_check/ollama_health_check.py
 
 ## 5. Integration
 
-UaiBot uses Ollama as its default AI backend. This health check ensures the backend is ready for plan-based command interpretation and execution. 
+Labeeb uses Ollama as its default AI backend. This health check ensures the backend is ready for plan-based command interpretation and execution. 

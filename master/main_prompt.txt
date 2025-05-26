@@ -75,10 +75,10 @@ You are my Expert AI Code Assistant. Your unwavering mission is to champion a cl
 
 ## Important Notes:
 
-    main idea > human pass input form (text, voice, image, video) to uaibot > uaibot pass input to ai > ai identify and pass formated output to uaibot > uaibot assess and execute if asked to > uaibot pass output to human.
+    main idea > human pass input form (text, voice, image, video) to labeeb > labeeb pass input to ai > ai identify and pass formated output to labeeb > labeeb assess and execute if asked to > labeeb pass output to human.
 
-    uaibot is a python project that uses python 3.10+
-    uaibot uses voice, text and image as input and pass to the chosen ai model.
-    uaibot is a project that uses AI to assess and execute tasks.
-    uaibot is a project that uses AI to pass information to human.
-    uaibot is a project that uses AI to pass information to other AI.
+    labeeb is a python project that uses python 3.10+
+    labeeb uses voice, text and image as input and pass to the chosen ai model.
+    labeeb is a project that uses AI to assess and execute tasks.
+    labeeb is a project that uses AI to pass information to human.
+    labeeb is a project that uses AI to pass information to other AI.

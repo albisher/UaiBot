@@ -1,7 +1,7 @@
-# UaiBot Research Automation Workflow
+# Labeeb Research Automation Workflow
 
 ## Overview
-This document outlines the systematic approach for UaiBot to gather, process, and maintain awareness of external information through automated web research.
+This document outlines the systematic approach for Labeeb to gather, process, and maintain awareness of external information through automated web research.
 
 ## Research Topics Structure
 
@@ -34,7 +34,7 @@ Last Updated: [YYYY-MM-DD]
 [Detailed technical information]
 
 ## Implementation Notes
-[How this information can be used by UaiBot]
+[How this information can be used by Labeeb]
 
 ## Related Topics
 - [Related Topic 1]
@@ -155,7 +155,7 @@ research_system.process_new_topic(topic, url)
 # 1. Scrape the content
 # 2. Process and structure the information
 # 3. Generate new awareness patterns
-# 4. Update UaiBot's awareness capabilities
+# 4. Update Labeeb's awareness capabilities
 # 5. Create a research entry in the appropriate folder
 ```
 

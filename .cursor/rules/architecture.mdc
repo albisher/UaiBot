@@ -114,7 +114,7 @@ alwaysApply: false
 
 ### Tool
 - A Tool is an atomic, reusable component that provides a specific skill or capability (e.g., file operations, system info, calculator, OCR, translation).
-- Tools are the primary way to add new skills to UaiBot.
+- Tools are the primary way to add new skills to Labeeb.
 - Tools should be implemented as classes, registered in the ToolRegistry, and exposed to the agent for planning and execution.
 - Use a Tool for any new feature that can be described as a single action or API.
 
@@ -124,7 +124,7 @@ alwaysApply: false
 - Most features do not require a new Agent; extend the main agent with new tools instead.
 
 ### Capability
-- A Capability is a skill or function that UaiBot can perform, typically implemented as a Tool.
+- A Capability is a skill or function that Labeeb can perform, typically implemented as a Tool.
 - Capabilities are surfaced to the agent via tool registration and prompt/context updates.
 
 ### Best Practice

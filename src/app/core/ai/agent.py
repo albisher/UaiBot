@@ -1,5 +1,7 @@
 """
-Base agent class and tool registry for agentic architecture.
+Labeeb AI Agent
+
+This module defines the base agent class for Labeeb's AI system.
 
 This module implements the core agent functionality following:
 - SmolAgents pattern for minimal, efficient agent implementation
@@ -62,8 +64,8 @@ def safe_path(filename: str, category: str = "test") -> str:
     base_dirs = {
         "test": "tests/fixtures/",
         "log": "log/",
-        "state": "src/uaibot/state/",
-        "core": "src/uaibot/core/"
+        "state": "src/labeeb/state/",
+        "core": "src/labeeb/core/"
     }
     if category in base_dirs:
         os.makedirs(base_dirs[category], exist_ok=True)
@@ -222,26 +224,15 @@ class EchoTool(Tool):
             return params.get("text", "")
         raise ValueError(f"Unknown action: {action}")
 
-class Agent(SmolAgent):
-    """
-    Base agent class for Labeeb.
+class BaseAgent:
+    """Base class for Labeeb AI agents."""
     
-    This class provides core functionality for:
-    - Tool management (A2A, MCP compliant)
-    - Command planning and execution
-    - Memory management
-    - Logging and error handling
-    
-    Implements SmolAgents pattern for minimal, efficient agent implementation.
-    """
-    
-    def __init__(self, name: str = "BaseAgent", state_dir: Optional[str] = None):
-        """Initialize the agent."""
-        super().__init__(name, state_dir)
-        self.name = name
+    def __init__(self):
+        self.name = "Labeeb Agent"
+        self.capabilities = []
         self.tools = ToolRegistry()
         self.memory = AgentMemory()
-        self.logger = logging.getLogger(f"LabeebAgent.{name}")
+        self.logger = logging.getLogger(f"LabeebAgent.{self.name}")
         self._a2a_protocol = A2AProtocol()
         self._mcp_protocol = MCPProtocol()
     
@@ -318,7 +309,7 @@ class Agent(SmolAgent):
 
 # Minimal test agent usage
 if __name__ == "__main__":
-    agent = Agent("TestAgent")
+    agent = BaseAgent()
     agent.register_tool(EchoTool())
     result = agent.plan_and_execute("echo", text="Hello, agent world!")
     print(f"Result: {result}")

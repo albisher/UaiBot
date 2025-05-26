@@ -1,5 +1,5 @@
 """
-File utility functions for UaiBot.
+File utility functions for Labeeb.
 Provides file search capabilities with proper path expansion and cross-platform compatibility.
 """
 import os

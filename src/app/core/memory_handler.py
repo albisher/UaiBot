@@ -7,10 +7,10 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class MemoryHandler:
-    """Handles UaiBot's memory and state management."""
+    """Handles Labeeb's memory and state management."""
     
     def __init__(self):
-        self.memory_file = "uaibot/data/uaibot_memory.json"
+        self.memory_file = "labeeb/data/Labeeb_memory.json"
         self.memory = self._load_memory()
     
     def _load_memory(self) -> Dict[str, Any]:

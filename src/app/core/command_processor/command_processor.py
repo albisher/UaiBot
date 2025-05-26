@@ -1,6 +1,6 @@
 from typing import Dict, Callable, Any, Optional
 from dataclasses import dataclass, field
-from uaibot.core.logging_config import get_logger
+from labeeb.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -12,7 +12,7 @@ class CommandResult:
 
 class CommandProcessor:
     """
-    Handles command registration and execution for UaiBot.
+    Handles command registration and execution for Labeeb.
     Provides a unified interface for processing and executing commands.
     """
     def __init__(self):

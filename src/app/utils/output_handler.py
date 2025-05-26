@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OutputHandler for UaiBot
+OutputHandler for Labeeb
 
 A unified facade for output operations that enforces the output flow and
 prevents duplicate outputs. Acts as the central component of the output system.
@@ -21,14 +21,14 @@ from typing import List, Dict, Any, Optional, Union, Tuple
 from pathlib import Path
 
 # Import the style manager
-from uaibot.utils.output_style_manager import OutputStyleManager
-from uaibot.core.logging_config import get_logger
+from labeeb.utils.output_style_manager import OutputStyleManager
+from labeeb.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 class OutputHandler:
     """
-    The central facade for all UaiBot output operations.
+    The central facade for all Labeeb output operations.
     
     This class:
     1. Enforces the output flow (thinking → command → result)

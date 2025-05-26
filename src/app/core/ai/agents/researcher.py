@@ -1,5 +1,5 @@
-from uaibot.core.ai.agent import Agent
-from uaibot.core.ai.agents.information_collector import InformationCollectorAgent
+from labeeb.core.ai.agent import Agent
+from labeeb.core.ai.agents.information_collector import InformationCollectorAgent
 
 class ResearcherAgent(Agent):
     """

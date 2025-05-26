@@ -1,5 +1,5 @@
 """
-Base input control handler for UaiBot.
+Base input control handler for Labeeb.
 
 This module provides the base class for platform-specific input control handlers.
 It defines the interface that all input handlers must implement.

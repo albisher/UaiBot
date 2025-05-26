@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File operations module for UaiBot.
+File operations module for Labeeb.
 Handles natural language file operations.
 """
 import os
@@ -11,9 +11,9 @@ from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
-from uaibot.utils.file_utils import search_files, expand_path, find_cv_files
-from uaibot.core.logging_config import get_logger
-from uaibot.utils.file_utils import FileUtils
+from labeeb.utils.file_utils import search_files, expand_path, find_cv_files
+from labeeb.core.logging_config import get_logger
+from labeeb.utils.file_utils import FileUtils
 
 logger = get_logger(__name__)
 

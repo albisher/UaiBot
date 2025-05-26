@@ -1,8 +1,8 @@
-# UaiBot Project Structure
+# Labeeb Project Structure
 
 ## Core Components
 
-### Main Application (`uaibot/`)
+### Main Application (`labeeb/`)
 - `main.py` - Application entry point
 - `ai_command_interpreter.py` - AI-driven command interpretation
 - `ai_handler.py` - AI interaction handling
@@ -11,7 +11,7 @@
 - `browser_handler.py` - Browser automation
 - `system_info_gatherer.py` - System information collection
 
-### Core Functionality (`uaibot/core/`)
+### Core Functionality (`labeeb/core/`)
 - `command_processor/` - Command processing and execution
   - `ai_command_extractor.py` - AI-based command extraction
   - `ai_driven_processor.py` - AI-driven command processing
@@ -23,7 +23,7 @@
 - `multilingual_commands.py` - Multilingual command support
 - `system_commands.py` - System-level commands
 
-### Configuration (`uaibot/config/`)
+### Configuration (`labeeb/config/`)
 - `config.json` - Main configuration
 - `output_paths.py` - Output path configuration
 - `output_styles.json` - Output styling configuration
@@ -31,7 +31,7 @@
 - `settings.json` - Application settings
 - `user_settings.json` - User-specific settings
 
-### Utilities (`uaibot/utils/`)
+### Utilities (`labeeb/utils/`)
 - `output_facade.py` - Output formatting facade
 - `output_formatter.py` - Output formatting utilities
 - `output_handler.py` - Output handling
@@ -40,14 +40,14 @@
 - `parallel_utils.py` - Parallel processing utilities
 - `system_health_check.py` - System health monitoring
 
-### GUI Components (`uaibot/gui/`)
+### GUI Components (`labeeb/gui/`)
 - `basic_interface.py` - Basic GUI interface
 - `dual_window_emoji.py` - Dual window emoji interface
 - `emoji_avatar.py` - Emoji-based avatar
 - `gui_launcher.py` - GUI launcher
 - `ui/` - UI resource files
 
-### Demo Applications (`uaibot/demo/`)
+### Demo Applications (`labeeb/demo/`)
 - Various demo applications showcasing features
 - Example implementations and usage patterns
 
@@ -66,7 +66,7 @@
 - Usage examples
 
 ## Logs (`logs/`)
-- `uaibot/` - Application logs
+- `labeeb/` - Application logs
 - `tests/` - Test execution logs
 
 ## Human Instructions (`human_instructions/`)
@@ -87,7 +87,7 @@
 The project follows a strict directory structure to maintain organization and clarity:
 
 ```
-uaibot/
+labeeb/
 ├── demo/           # Demonstration code
 ├── test/           # All testing code and related assets
 │   ├── unit/       # Unit tests

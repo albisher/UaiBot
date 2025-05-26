@@ -2,7 +2,7 @@
 Argument Parser Module
 
 This module provides a unified approach to parsing command-line arguments
-throughout the UaiBot application, eliminating duplication.
+throughout the Labeeb application, eliminating duplication.
 """
 
 import argparse
@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 class ArgumentParser:
     """
-    Handles command-line argument parsing for the UaiBot application.
+    Handles command-line argument parsing for the Labeeb application.
     Consolidates all argument parsing logic in one place.
     """
     
@@ -26,8 +26,8 @@ class ArgumentParser:
             Configured argument parser
         """
         parser = argparse.ArgumentParser(
-            description='UaiBot: AI-powered shell assistant',
-            epilog='For more information, visit https://github.com/uaibot/uaibot'
+            description='Labeeb: AI-powered shell assistant',
+            epilog='For more information, visit https://github.com/labeeb/labeeb'
         )
         
         # Add basic arguments

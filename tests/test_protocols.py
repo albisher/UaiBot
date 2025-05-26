@@ -5,13 +5,13 @@ import pytest
 import asyncio
 from datetime import datetime
 from typing import Any, Dict
-from src.uaibot.core.ai.smol_agent import SmolAgent, AgentResult
-from src.uaibot.core.ai.a2a_protocol import (
+from src.labeeb.core.ai.smol_agent import SmolAgent, AgentResult
+from src.labeeb.core.ai.a2a_protocol import (
     A2AProtocol, Message, TextContent, FileContent, StructuredContent,
     MessageRole, AgentCapability, AgentCard, A2AServer
 )
-from src.uaibot.core.ai.mcp_protocol import MCPProtocol, MCPRequest, MCPResponse, MCPTool
-from src.uaibot.core.ai.channels.websocket_channel import WebSocketTool
+from src.labeeb.core.ai.mcp_protocol import MCPProtocol, MCPRequest, MCPResponse, MCPTool
+from src.labeeb.core.ai.channels.websocket_channel import WebSocketTool
 
 class TestAgent(SmolAgent):
     """Test agent implementation."""

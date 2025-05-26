@@ -1,8 +1,9 @@
 """
-Interaction awareness module for UaiBot.
+Labeeb Interaction Awareness
 
-This module provides cross-platform tools for monitoring and interacting with
-the user interface, system resources, and input devices.
+This module provides interaction awareness functionality for Labeeb.
+It tracks and analyzes user interactions, preferences, and communication patterns
+to provide context-aware assistance and personalized responses.
 """
 import logging
 import platform

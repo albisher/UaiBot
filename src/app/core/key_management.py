@@ -1,5 +1,5 @@
 """
-Key management utility for UaiBot.
+Key management utility for Labeeb.
 """
 import os
 import sys
@@ -11,7 +11,7 @@ from typing import List, Optional
 # Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from uaibot.core.key_manager import KeyManager
+from labeeb.core.key_manager import KeyManager
 
 class KeyManagement:
     """Utility for managing API keys."""
@@ -116,7 +116,7 @@ def main():
     km = KeyManagement()
     
     while True:
-        print("\n=== UaiBot Key Management ===")
+        print("\n=== Labeeb Key Management ===")
         print("1. List all keys")
         print("2. Show key info")
         print("3. Add new key")

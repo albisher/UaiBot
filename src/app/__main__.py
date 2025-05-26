@@ -1,7 +1,7 @@
 """Labeeb: Main entry point."""
 
-# uaibot/__main__.py
-from uaibot.main import main
+# labeeb/__main__.py
+from labeeb.main import main
 
 if __name__ == "__main__":
     main() 

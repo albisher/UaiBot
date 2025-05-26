@@ -1,6 +1,6 @@
 # Output Formatting Migration Guide
 
-This guide explains how to migrate from the current output formatting approach to the enhanced, theme-aware formatting system that provides consistent output styling across UaiBot.
+This guide explains how to migrate from the current output formatting approach to the enhanced, theme-aware formatting system that provides consistent output styling across Labeeb.
 
 ## 1. Overview of the New System
 
@@ -165,4 +165,4 @@ def get_legacy_output(self, data):
 
 ## 6. Conclusion
 
-By following this migration guide, you'll have a consistent, themeable output formatting system throughout UaiBot. This improves readability, user experience, and maintainability of the codebase.
+By following this migration guide, you'll have a consistent, themeable output formatting system throughout Labeeb. This improves readability, user experience, and maintainability of the codebase.

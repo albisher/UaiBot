@@ -1,5 +1,5 @@
 """
-Audio module for UaiBot.
+Audio module for Labeeb.
 
 This module provides audio processing capabilities using Whisper Tiny.
 """

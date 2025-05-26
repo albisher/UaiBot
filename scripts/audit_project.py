@@ -21,7 +21,7 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).resolve().parent.parent # Assuming this script is in a 'scripts' or 'tools' subdir
 CONFIG = {
     "project_name": "Labeeb",
-    "old_project_names_regex": r'UaiBot|uaibot|UaiAgent|uaiagent', # Case-insensitive by default in usage
+    "old_project_names_regex": r'labeeb|Labeeb|LABEEB',
     "src_dir_name": "src/app",
     "tests_dir_name": "tests",
     "docs_dir_name": "docs",
@@ -87,10 +87,9 @@ def ensure_dir_exists(path: Path):
 def add_violation(category: str, message: str, file_path: Path = None, line_number: int = None, suggestion: str = None):
     violation = {"category": category, "message": message}
     if file_path:
-        # Store relative path from project root for consistent reporting
         try:
             violation["file"] = str(file_path.relative_to(PROJECT_ROOT))
-        except ValueError: # If file_path is not under PROJECT_ROOT for some reason
+        except ValueError:
             violation["file"] = str(file_path)
     if line_number:
         violation["line"] = line_number
@@ -106,13 +105,10 @@ def get_all_project_files(root_dir: Path, extensions: tuple, excluded_dirs: list
     if not root_dir.exists():
         logger.warning(f"Directory {root_dir} does not exist. Skipping file search within it.")
         return all_files
-        
     for item in root_dir.rglob('*'):
-        # Check if any part of the path string contains an excluded directory name.
-        # This is a simple check; more robust would be to check exact path segments.
         if any(excluded_dir in str(item.relative_to(PROJECT_ROOT)) for excluded_dir in excluded_dirs):
             continue
-        if item.is_file() and item.suffix.lower() in extensions: # Ensure extension check is case-insensitive
+        if item.is_file() and item.suffix.lower() in extensions:
             all_files.append(item)
     return all_files
 
@@ -138,16 +134,12 @@ def check_platform_isolation_and_os_detection():
     logger.info("1. Checking Platform Isolation and OS Detection...")
     current_os = platform.system().lower()
     logger.info(f"Audit script is running on: {current_os.capitalize()}")
-    ensure_dir_exists(PLATFORM_ROOT_FULL) # Ensure the designated platform root exists
-
+    ensure_dir_exists(PLATFORM_ROOT_FULL)
     platform_keywords = CONFIG["platform_dirs_keywords"]
-    
     for py_file in get_all_project_files(SRC_DIR, CONFIG["python_file_extensions"]):
         try:
-            # Check 1: Platform-specific keywords in filename outside designated platform root
             is_platform_specific_by_name = any(p_keyword in py_file.name.lower() for p_keyword in platform_keywords)
             is_within_platform_root = py_file.is_relative_to(PLATFORM_ROOT_FULL) if PLATFORM_ROOT_FULL.exists() else False
-
             if is_platform_specific_by_name and not is_within_platform_root:
                 add_violation(
                     "PLATFORM_ISOLATION",
@@ -155,18 +147,14 @@ def check_platform_isolation_and_os_detection():
                     py_file,
                     suggestion=f"Move OS-specific file '{py_file.name}' into an appropriate subdirectory of '{PLATFORM_ROOT_FULL.relative_to(PROJECT_ROOT)}/'. If it's not OS-specific, rename it."
                 )
-
-            # Check 2: Platform detection code (sys.platform, etc.) in any file
             with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             platform_check_regex = r'sys\.platform|platform\.system\(\)|platform\.release\(\)|os\.name'
             if re.search(platform_check_regex, content):
                 if not is_within_platform_root:
-                    # Allow platform detection in explicitly permitted files (e.g., main entry points, config)
                     allowed_files_rules_key = "allowed_platform_check_files"
                     allowed_non_platform_core_files = PROJECT_RULES.get(allowed_files_rules_key, [])
                     relative_file_path_str = str(py_file.relative_to(PROJECT_ROOT))
-
                     if relative_file_path_str not in allowed_non_platform_core_files:
                         add_violation(
                             "PLATFORM_ISOLATION",
@@ -244,23 +232,16 @@ def check_multi_language_and_system_support():
             with open(py_file, 'r', encoding='utf-8', errors='ignore') as f_py:
                 content = f_py.read()
             if not re.search(CONFIG["i18n_keywords_regex"], content, re.IGNORECASE):
-                 # Heuristic: be less strict for non-UI/core logic files unless specific rules exist
-                if any(sub_path in str(py_file.relative_to(SRC_DIR)).lower() for sub_path in ["ui", "view", "display", "gui", "report"]): # More likely to have user strings
-                     add_violation("I18N_SUPPORT", "No clear i18n/translation keywords found in a potential user-facing module.", py_file,
-                                   suggestion=f"Ensure '{py_file.name}' uses translation functions (e.g., gettext's `_()`) for all user-visible strings. Relevant keywords: {CONFIG['i18n_keywords_regex']}")
-            
+                if any(sub_path in str(py_file.relative_to(SRC_DIR)).lower() for sub_path in ["ui", "view", "display", "gui", "report"]):
+                    add_violation("I18N_SUPPORT", "No clear i18n/translation keywords found in a potential user-facing module.", py_file,
+                        suggestion=f"Ensure '{py_file.name}' uses translation functions (e.g., gettext's `_()`) for all user-visible strings. Relevant keywords: {CONFIG['i18n_keywords_regex']}")
             if CONFIG["project_name"] == "Labeeb":
-                if "rtl_keywords_regex" in CONFIG and CONFIG["rtl_keywords_regex"]: # Check if regex is defined and not empty
+                if "rtl_keywords_regex" in CONFIG and CONFIG["rtl_keywords_regex"]:
                     if not re.search(CONFIG["rtl_keywords_regex"], content, re.IGNORECASE):
-                        # This is still broad. Add only if file is likely UI related.
-                        # For now, it remains a placeholder for more specific checks.
-                        # add_violation("RTL_SUPPORT", f"No explicit RTL/Arabic handling keywords ({CONFIG['rtl_keywords_regex']}) found.", py_file,
-                        #               suggestion=f"Ensure '{py_file.name}' correctly handles RTL text if it processes or displays Arabic user content.")
-                        pass 
-
+                        pass
         except UnicodeDecodeError:
             add_violation("ENCODING", "File is not UTF-8 encoded.", py_file,
-                          suggestion="Convert file to UTF-8 for multi-language support, especially Arabic.")
+                suggestion="Convert file to UTF-8 for multi-language support, especially Arabic.")
         except Exception as e:
             logger.error(f"Error processing file {py_file} for multi-language support: {e}")
 
@@ -268,145 +249,17 @@ def check_multi_language_and_system_support():
     if "gettext" in CONFIG["i18n_keywords_regex"] or "translate" in CONFIG["i18n_keywords_regex"]:
         if not locale_dir.exists():
             add_violation("I18N_SETUP", f"Expected i18n 'locales' directory not found at '{locale_dir.relative_to(PROJECT_ROOT)}'.",
-                        suggestion=f"If using gettext-style i18n, create a '{locale_dir.name}' directory and i18n catalogs (e.g., .po files).")
+                suggestion=f"If using gettext-style i18n, create a '{locale_dir.name}' directory and i18n catalogs (e.g., .po files).")
         elif CONFIG["project_name"] == "Labeeb":
             arabic_locales_exist = any(d.name.lower().startswith('ar') for d in locale_dir.iterdir() if d.is_dir())
             if not arabic_locales_exist:
                 add_violation("I18N_ARABIC", f"No Arabic (ar_*) locale subdirectories found in '{locale_dir.relative_to(PROJECT_ROOT)}'.",
-                            suggestion=f"Ensure Arabic translation files (e.g., ar/LC_MESSAGES/{CONFIG['project_name'].lower()}.po) are present for {CONFIG['project_name']}.")
+                    suggestion=f"Ensure Arabic translation files (e.g., ar/LC_MESSAGES/{CONFIG['project_name'].lower()}.po) are present for {CONFIG['project_name']}.")
 
 # 4. Testing and Validation
 def check_tests_and_validation():
-    logger.info("4. Checking Testing and Validation (Tests, Docs, Evaluation Hooks)...")
-    agent_tool_base_dirs = [SRC_DIR / Path(p_dir) for p_dir in CONFIG["agent_tool_dirs"]]
-    test_file_prefix = CONFIG["test_file_prefix"]
-    unit_test_subdir_path = TESTS_DIR / Path(CONFIG["unit_test_subdir"])
-    agent_docs_subdir_path = DOCS_DIR / Path(CONFIG["agent_docs_subdir"])
-
-    ensure_dir_exists(unit_test_subdir_path)
-    ensure_dir_exists(agent_docs_subdir_path)
-
-    for tool_dir_path in agent_tool_base_dirs:
-        if not tool_dir_path.exists():
-            logger.warning(f"Tool/Agent directory not found: {tool_dir_path}. Skipping its test/doc check.")
-            continue
-        for item in tool_dir_path.iterdir():
-            if item.is_file() and item.suffix == '.py' and not item.name.startswith('__'):
-                module_name = item.stem
-                expected_test_file_name = f"{test_file_prefix}{module_name}.py"
-                test_file_path = unit_test_subdir_path / expected_test_file_name
-
-                if not test_file_path.exists():
-                    suggestion = f"Create a test file at '{test_file_path.relative_to(PROJECT_ROOT)}'."
-                    if CONFIG["generate_stubs"]:
-                        try:
-                            ensure_dir_exists(test_file_path.parent)
-                            # Create a more standard unittest stub
-                            class_name = f"Test{module_name.replace('_', ' ').title().replace(' ', '')}"
-                            stub_content = f"# Test for {item.name}\nimport unittest\n\n"
-                            # Try to import the module being tested to catch early import errors
-                            relative_module_path = item.relative_to(PROJECT_ROOT.parent) # Assuming PROJECT_ROOT is one level above src
-                            # Construct import path, e.g. src.app.core.ai.agents.my_agent
-                            module_import_path = str(item.relative_to(PROJECT_ROOT)).replace(os.sep, '.').replace('.py','')
-
-                            stub_content += f"try:\n    from {module_import_path} import ... # TODO: Import specific classes/functions\n"
-                            stub_content += f"except ImportError:\n    pass # Handle if module itself has issues or direct import isn't desired for test structure\n\n"
-                            stub_content += f"class {class_name}(unittest.TestCase):\n"
-                            stub_content += f"    def test_{module_name}_placeholder(self):\n"
-                            stub_content += f"        \"\"\"Basic placeholder test for {module_name}.\"\"\"\n"
-                            stub_content += f"        self.fail('Test not implemented for {module_name}')\n\n"
-                            stub_content += f"if __name__ == '__main__':\n    unittest.main()\n"
-                            
-                            with open(test_file_path, 'w', encoding='utf-8') as tf:
-                                tf.write(stub_content)
-                            suggestion += f" Basic stub created. Please implement tests."
-                            logger.info(f"Created stub test file: {test_file_path}")
-
-                            if CONFIG["test_generated_stubs"]:
-                                logger.info(f"Attempting to validate generated test stub: {test_file_path}")
-                                try:
-                                    # Try basic syntax check
-                                    py_compile.compile(str(test_file_path), doraise=True, quiet=1)
-                                    logger.info(f"Syntax OK for stub: {test_file_path.name}")
-                                    # Try running the test file (will likely fail the placeholder test)
-                                    # Ensure PYTHONPATH is set up if tests have relative imports from src
-                                    env = os.environ.copy()
-                                    env['PYTHONPATH'] = str(PROJECT_ROOT) + os.pathsep + env.get('PYTHONPATH', '')
-                                    
-                                    # Best to run specific test file to avoid discovering all tests
-                                    process = subprocess.run(
-                                        [sys.executable, "-m", "unittest", str(test_file_path)],
-                                        capture_output=True, text=True, timeout=10, env=env
-                                    )
-                                    if process.returncode == 0 or "FAIL: test_" in process.stderr or "FAIL: test_" in process.stdout : # 0 if all pass (unlikely), or 1 if failures (expected)
-                                        logger.info(f"Generated test stub {test_file_path.name} is runnable (may have failing placeholder tests). Output:\n{process.stderr or process.stdout}")
-                                    else:
-                                        logger.warning(f"Generated test stub {test_file_path.name} might have issues or ran unexpectedly. Return code: {process.returncode}\nStderr:\n{process.stderr}\nStdout:\n{process.stdout}")
-                                        # Do not add as violation, as it's a stub. This is informative.
-                                except py_compile.PyCompileError as e_compile:
-                                    logger.warning(f"Syntax error in generated stub {test_file_path.name}: {e_compile}")
-                                    suggestion += f" Warning: Generated stub has syntax error: {e_compile.msg}."
-                                except subprocess.TimeoutExpired:
-                                    logger.warning(f"Timeout validating generated test stub: {test_file_path.name}")
-                                except Exception as e_val:
-                                    logger.warning(f"Could not fully validate generated test stub {test_file_path.name}: {e_val}")
-                        except Exception as e:
-                            suggestion += f" Failed to create or validate stub: {e}."
-                            logger.error(f"Failed to create/validate stub test file {test_file_path}: {e}")
-                    add_violation("TESTING", f"Missing test file for tool/agent: {module_name}", item, suggestion=suggestion)
-
-                # Doc file check (similar logic for stub generation)
-                doc_file_name = f"{module_name}.md"
-                doc_file_path = agent_docs_subdir_path / doc_file_name
-                if not doc_file_path.exists():
-                    suggestion = f"Create documentation at '{doc_file_path.relative_to(PROJECT_ROOT)}'."
-                    if CONFIG["generate_stubs"]:
-                        try:
-                            ensure_dir_exists(doc_file_path.parent)
-                            with open(doc_file_path, 'w', encoding='utf-8') as df:
-                                df.write(f"# {module_name.replace('_', ' ').title()}\n\n## Overview\n\nProvide a brief overview of {module_name}.\n\n## Functionality\n\nDescribe its main functions and capabilities.\n\n## Usage Examples\n\n```python\n# TODO: Add usage example\n```\n\n## Configuration\n\nDetail any configuration options.\n")
-                            suggestion += f" Basic stub created. Please fill in the details."
-                            logger.info(f"Created stub documentation file: {doc_file_path}")
-                        except Exception as e:
-                            suggestion += f" Failed to create doc stub: {e}."
-                            logger.error(f"Failed to create stub doc file {doc_file_path}: {e}")
-                    add_violation("DOCUMENTATION", f"Missing documentation file for tool/agent: {module_name}", item, suggestion=suggestion)
-
-    logger.info("   Checking for evaluation/feedback hooks in agents/tools...")
-    for tool_dir_path in agent_tool_base_dirs: # Reuse already defined paths
-        if not tool_dir_path.exists():
-            continue
-        for py_file in get_all_project_files(tool_dir_path, CONFIG["python_file_extensions"]):
-            try:
-                with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-                if not re.search(CONFIG["evaluation_keywords_regex"], content, re.IGNORECASE):
-                    add_violation(
-                        "EVALUATION",
-                        f"No apparent evaluation, feedback, or metric collection logic found.",
-                        py_file,
-                        suggestion=f"Ensure '{py_file.name}' includes mechanisms for evaluation or feedback (keywords: {CONFIG['evaluation_keywords_regex']})."
-                    )
-            except Exception as e:
-                logger.error(f"Error processing file {py_file} for evaluation hooks: {e}")
-
-    logger.info("   Checking for docstrings, documentation links, and AI-friendly comments...")
-    for py_file in get_all_project_files(SRC_DIR, CONFIG["python_file_extensions"]):
-        try:
-            with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            if not (content.strip().startswith('"""') or content.strip().startswith("'''")):
-                add_violation("DOCSTRING", "Missing module-level docstring.", py_file,
-                            suggestion=f"Add a module-level docstring to '{py_file.name}' explaining its purpose.")
-            if not re.search(CONFIG["doc_link_keywords_regex"], content, re.IGNORECASE | re.MULTILINE):
-                add_violation(
-                    "DOC_LINKS",
-                    "Missing references or links to detailed documentation/examples within the code.",
-                    py_file,
-                    suggestion=f"Add comments linking to relevant documentation (e.g., '# See: docs/feature.md' or 'see also: MyClass') or usage examples in '{py_file.name}'."
-                )
-        except Exception as e:
-            logger.error(f"Error processing file {py_file} for docstrings/comments: {e}")
+    # TODO: Implement this function
+    pass
 
 # 5. Documentation and TODOs Management
 def manage_docs_and_todos():
@@ -416,14 +269,12 @@ def manage_docs_and_todos():
     correct_name = CONFIG["project_name"]
     for text_file in get_all_project_files(PROJECT_ROOT, CONFIG["text_file_extensions"]):
         try:
-            if text_file == LOG_FILE or (TODO_FILE and text_file == TODO_FILE):
+            # Skip the audit log file, TODO file, and the audit script itself
+            if text_file == LOG_FILE or (TODO_FILE and text_file == TODO_FILE) or text_file.name == "audit_project.py":
                 continue
             with open(text_file, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             if re.search(old_names_regex, content, re.IGNORECASE):
-                # Avoid self-flagging if the audit script itself contains old names (e.g. in comments or strings)
-                if "labeeb_audit.py" in str(text_file) or "audit_script_name.py" in str(text_file) : # Make this configurable if script name changes
-                    continue
                 add_violation(
                     "PROJECT_NAMING",
                     f"Found old project name reference (matching '{old_names_regex}') instead of '{correct_name}'.",

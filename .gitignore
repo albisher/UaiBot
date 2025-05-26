@@ -1,4 +1,4 @@
-# UaiBot .gitignore (Enforced File Organization)
+# Labeeb .gitignore (Enforced File Organization)
 
 # Root-level enforcement: Only LICENSE, README, and config allowed in root
 !/LICENSE
@@ -12,7 +12,7 @@
 # Ignore misplaced test outputs, logs, state, and scripts in root
 /test_*.txt
 /test_*
-/uaibot.log
+/labeeb.log
 /context.json
 /execution_state.json
 /capabilities_registry.json
@@ -35,11 +35,11 @@ log/
 /tests/fixtures/
 /test_files/
 
-# Ignore state/context outside src/uaibot/state
+# Ignore state/context outside src/labeeb/state
 /context.json
 /execution_state.json
 
-# Ignore registry/config outside src/uaibot/core
+# Ignore registry/config outside src/labeeb/core
 /capabilities_registry.json
 
 # Ignore scripts outside scripts/
@@ -161,8 +161,8 @@ htmlcov/
 
 # Cache
 .cache/
-uaibot/cache/
-uaibot/data/
+labeeb/cache/
+labeeb/data/
 
 # Temporary files
 *.tmp

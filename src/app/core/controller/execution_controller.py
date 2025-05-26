@@ -14,11 +14,11 @@ from pathlib import Path
 import shlex
 import subprocess
 
-from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
-from uaibot.core.command_processor.error_handler import error_handler, ErrorCategory
-from uaibot.core.parallel_utils import ParallelTaskManager
-from uaibot.core.browser_controller import BrowserController
-from uaibot.core.controller.macos_calendar_controller import MacOSCalendarController
+from labeeb.core.command_processor.ai_command_extractor import AICommandExtractor
+from labeeb.core.command_processor.error_handler import error_handler, ErrorCategory
+from labeeb.core.parallel_utils import ParallelTaskManager
+from labeeb.core.browser_controller import BrowserController
+from labeeb.core.controller.macos_calendar_controller import MacOSCalendarController
 
 logger = logging.getLogger(__name__)
 

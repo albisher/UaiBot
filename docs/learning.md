@@ -1,6 +1,6 @@
-# UaiBot Learning Mechanism
+# Labeeb Learning Mechanism
 
-UaiBot uses a learning mechanism to improve its performance over time. This document explains how it works and how it can be extended.
+Labeeb uses a learning mechanism to improve its performance over time. This document explains how it works and how it can be extended.
 
 ## How It Works
 
@@ -13,7 +13,7 @@ UaiBot uses a learning mechanism to improve its performance over time. This docu
    - **Success/Failure Counts**
 
 2. **Adaptation:**  
-   If a command fails, UaiBot checks the knowledge base for reliable alternatives on the current OS. It suggests alternative actions or command patterns that have historically worked well.
+   If a command fails, Labeeb checks the knowledge base for reliable alternatives on the current OS. It suggests alternative actions or command patterns that have historically worked well.
 
 3. **Knowledge Base Structure:**  
    ```json
@@ -36,7 +36,7 @@ UaiBot uses a learning mechanism to improve its performance over time. This docu
 
 ## Embeddings and Vector Databases
 
-UaiBot now uses **Milvus** and **Sentence Transformers** for advanced learning:
+Labeeb now uses **Milvus** and **Sentence Transformers** for advanced learning:
 
 - **Sentence Transformers:**  
   Generates high-quality embeddings for commands, capturing semantic meaning.
@@ -44,7 +44,7 @@ UaiBot now uses **Milvus** and **Sentence Transformers** for advanced learning:
 - **Milvus:**  
   A scalable vector database that stores and retrieves embeddings efficiently, supporting cross-platform deployment (Windows, Mac, Ubuntu, ARM).
 
-This allows UaiBot to suggest alternatives based on semantic similarity, not just exact patterns.
+This allows Labeeb to suggest alternatives based on semantic similarity, not just exact patterns.
 
 ## Future Improvements
 

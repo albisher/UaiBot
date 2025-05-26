@@ -1,5 +1,5 @@
 """
-Logging configuration for UaiBot.
+Logging configuration for Labeeb.
 Sets up proper logging to avoid duplicate logs and maintain consistent output.
 """
 import logging

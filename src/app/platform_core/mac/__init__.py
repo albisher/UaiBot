@@ -1,3 +1,3 @@
 """
-Mac-specific implementations for UaiBot.
+Mac-specific implementations for Labeeb.
 """

@@ -1,4 +1,4 @@
-from uaibot.core.ai.agent import Agent
+from labeeb.core.ai.agent import Agent
 
 class ResearchEvaluatorAgent(Agent):
     """

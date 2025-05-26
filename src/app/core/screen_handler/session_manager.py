@@ -1,6 +1,7 @@
 """
-Screen Session Handler Module
-Provides functionality for detecting, interacting with, and managing screen sessions
+Labeeb Screen Session Manager
+
+Handles screen sessions for Labeeb
 """
 import re
 import subprocess

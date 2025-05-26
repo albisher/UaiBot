@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Output formatter for UaiBot.
-Provides consistent formatting for all UaiBot outputs.
+Output formatter for Labeeb.
+Provides consistent formatting for all Labeeb outputs.
 
 Output Philosophy & Flow:
 - Show 'thinking' only if no direct command is found or user asks for explanation.

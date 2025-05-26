@@ -1,7 +1,7 @@
 import pytest
-from uaibot.core.ai_handler import AIHandler
-from uaibot.core.model_manager import ModelManager
-from uaibot.core.config_manager import ConfigManager
+from labeeb.core.ai_handler import AIHandler
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.config_manager import ConfigManager
 
 @pytest.fixture
 def model_manager():

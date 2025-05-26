@@ -10,9 +10,9 @@ from datetime import datetime
 src_path = Path(__file__).parent.parent.parent
 sys.path.append(str(src_path))
 
-from uaibot.core.tools.system_tools import SystemTools
-from uaibot.platform_uai.platform_utils import get_input_handler
-from uaibot.core.tools.json_tools import JSONTool
+from labeeb.core.tools.system_tools import SystemTools
+from labeeb.platform_uai.platform_utils import get_input_handler
+from labeeb.core.tools.json_tools import JSONTool
 
 class LabeebAgent:
     """Master agent that coordinates tasks and tools for Labeeb."""
@@ -34,7 +34,7 @@ class LabeebAgent:
         log_dir.mkdir(exist_ok=True)
         
         # File handler
-        log_file = log_dir / f'uaibot_{datetime.now().strftime("%Y%m%d")}.log'
+        log_file = log_dir / f'Labeeb_{datetime.now().strftime("%Y%m%d")}.log'
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.INFO)
         

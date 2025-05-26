@@ -1,20 +1,20 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from uaibot.core.ai.uaibot_agent import UaiAgent
-from uaibot.core.plugins import PluginManager
+from labeeb.core.ai.Labeeb_agent import Labeeb
+from labeeb.core.plugins import PluginManager
 
 @pytest.fixture
-def weather_agent(uaibot_agent, weather_plugin_manager):
-    """Create a UaiAgent instance with the weather plugin loaded."""
+def weather_agent(Labeeb_agent, weather_plugin_manager):
+    """Create a Labeeb instance with the weather plugin loaded."""
     # Initialize the weather plugin with a test API key
     module = weather_plugin_manager.get_plugin_module("weather")
     plugin = module.initialize({"api_key": "test_key"})
     
     # Add the plugin to the agent's plugin manager
-    uaibot_agent.plugin_manager = weather_plugin_manager
+    Labeeb_agent.plugin_manager = weather_plugin_manager
     
-    return uaibot_agent
+    return Labeeb_agent
 
 @patch('requests.get')
 def test_weather_command_execution(mock_get, weather_agent):

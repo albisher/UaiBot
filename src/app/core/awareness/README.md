@@ -1,6 +1,6 @@
-# UaiBot System Awareness Module
+# Labeeb System Awareness Module
 
-This module provides comprehensive system awareness capabilities for UaiBot, allowing it to monitor and understand various aspects of the system environment.
+This module provides comprehensive system awareness capabilities for Labeeb, allowing it to monitor and understand various aspects of the system environment.
 
 ## Overview
 
@@ -37,7 +37,7 @@ The awareness module is divided into several sub-capabilities, each focusing on 
 ### Audio Awareness
 
 ```python
-from uaibot.core.awareness.audio_awareness import AudioAwarenessManager
+from labeeb.core.awareness.audio_awareness import AudioAwarenessManager
 
 audio_mgr = AudioAwarenessManager()
 devices = audio_mgr.get_audio_devices()
@@ -48,7 +48,7 @@ output_devices = audio_mgr.get_output_devices()
 ### Bluetooth Awareness
 
 ```python
-from uaibot.core.awareness.bluetooth_awareness import BluetoothAwarenessManager
+from labeeb.core.awareness.bluetooth_awareness import BluetoothAwarenessManager
 
 bt_mgr = BluetoothAwarenessManager()
 devices = bt_mgr.get_bluetooth_devices()
@@ -58,7 +58,7 @@ connected_devices = bt_mgr.get_connected_devices()
 ### Sensor Awareness
 
 ```python
-from uaibot.core.awareness.sensor_awareness import SensorAwarenessManager
+from labeeb.core.awareness.sensor_awareness import SensorAwarenessManager
 
 sensor_mgr = SensorAwarenessManager()
 brightness = sensor_mgr.get_screen_brightness()
@@ -70,7 +70,7 @@ all_sensors = sensor_mgr.get_all_sensors()
 ### User Routine Awareness
 
 ```python
-from uaibot.core.awareness.user_routine_awareness import UserRoutineAwarenessManager
+from labeeb.core.awareness.user_routine_awareness import UserRoutineAwarenessManager
 
 routine_mgr = UserRoutineAwarenessManager()
 activity = routine_mgr.get_user_routine()

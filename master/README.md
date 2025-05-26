@@ -1,12 +1,12 @@
-# UaiBot Processing Stages and AI Prompt Template
+# Labeeb Processing Stages and AI Prompt Template
 
-## UaiBot Main Processing Stages
+## Labeeb Main Processing Stages
 
-1. **Human Input**: The user provides input to UaiBot (text, voice, image, or video).
-2. **AI Prompt Construction**: UaiBot passes the user input to an AI model. At this stage, the app constructs a prompt for the AI using a template.
+1. **Human Input**: The user provides input to Labeeb (text, voice, image, or video).
+2. **AI Prompt Construction**: Labeeb passes the user input to an AI model. At this stage, the app constructs a prompt for the AI using a template.
 3. **AI Analysis**: The AI analyzes the input and returns a structured, formatted JSON output describing the user's intent and required actions.
-4. **Execution**: UaiBot assesses the AI's output and executes actions if required.
-5. **Output to Human**: UaiBot returns the result or information to the user.
+4. **Execution**: Labeeb assesses the AI's output and executes actions if required.
+5. **Output to Human**: Labeeb returns the result or information to the user.
 
 ## About `app/utils/template_prompt.txt`
 
@@ -24,7 +24,7 @@
 
 ## Command-Line Usage & Automation
 
-UaiBot now supports clear, automation-friendly CLI flags and modes:
+Labeeb now supports clear, automation-friendly CLI flags and modes:
 
 - `-c`, `--command` : Run a single command and exit (non-interactive mode)
 - `-f`, `--file`    : Run commands from a file and exit (non-interactive mode)
@@ -36,7 +36,7 @@ UaiBot now supports clear, automation-friendly CLI flags and modes:
 python3 app/main.py --command "list files in current directory" --fast
 ```
 
-- In non-interactive or fast mode, UaiBot will not prompt for username or block on missing handlers.
+- In non-interactive or fast mode, Labeeb will not prompt for username or block on missing handlers.
 - All prompts and interactive flows are only triggered in interactive mode.
 
 ---

@@ -1,5 +1,5 @@
 """
-Common audio handler base class for UaiBot.
+Common audio handler base class for Labeeb.
 Provides audio recording and playback functionality.
 """
 from abc import ABC, abstractmethod

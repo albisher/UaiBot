@@ -34,13 +34,13 @@ Python implementation for command-line interface with:
 ## Example Usage
 ```python
 def main():
-    parser = argparse.ArgumentParser(description="UaiBot: AI-powered shell assistant")
+    parser = argparse.ArgumentParser(description="Labeeb: AI-powered shell assistant")
     parser.add_argument("-f", "--fast", action="store_true", help="Enable fast execution mode")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
     parser.add_argument("command", nargs="?", help="Command to execute")
     args = parser.parse_args()
     
-    bot = UaiBot(debug=args.debug, fast_mode=args.fast)
+    bot = Labeeb(debug=args.debug, fast_mode=args.fast)
     if args.command:
         result = bot.process_single_command(args.command)
         output.info(result)

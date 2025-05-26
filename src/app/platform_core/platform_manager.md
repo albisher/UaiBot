@@ -69,7 +69,7 @@ def get_handler(self, handler_name: str) -> Optional[Any]:
 
 ### Basic Platform Detection
 ```python
-from uaibot.platform_core.platform_manager import PlatformManager
+from labeeb.platform_core.platform_manager import PlatformManager
 
 # Create manager instance
 manager = PlatformManager()

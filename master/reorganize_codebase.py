@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to reorganize the UaiBot codebase according to the new architecture.
+Script to reorganize the Labeeb codebase according to the new architecture.
 This script will:
 1. Create necessary directories
 2. Move files to their correct locations
@@ -19,7 +19,7 @@ from typing import Dict, List, Set, Optional
 from datetime import datetime
 
 class CodebaseReorganizer:
-    def __init__(self, root_dir: str = "uaibot", dry_run: bool = False):
+    def __init__(self, root_dir: str = "labeeb", dry_run: bool = False):
         self.root_dir = Path(root_dir)
         self.dry_run = dry_run
         self.moved_files: Set[str] = set()
@@ -265,7 +265,7 @@ class CodebaseReorganizer:
         # Define templates for new files
         self.file_templates = {
             "core/input/input_handler.py": '''"""
-Input Handler module for UaiBot.
+Input Handler module for Labeeb.
 Handles all types of input processing.
 """
 from typing import Dict, Any, Optional
@@ -287,7 +287,7 @@ class InputHandler:
         pass
 ''',
             "core/output/output_handler.py": '''"""
-Output Handler module for UaiBot.
+Output Handler module for Labeeb.
 Handles all types of output processing.
 """
 from typing import Dict, Any, Optional
@@ -437,7 +437,7 @@ class OutputHandler:
             return
             
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.backup_dir = self.root_dir.parent / f"uaibot_backup_{timestamp}"
+        self.backup_dir = self.root_dir.parent / f"Labeeb_backup_{timestamp}"
         
         if self.root_dir.exists():
             shutil.copytree(self.root_dir, self.backup_dir)
@@ -528,13 +528,13 @@ class OutputHandler:
         """Update import paths in file content."""
         # Define import path mappings
         import_mappings = {
-            r'from uaibot\.core\.command_processor import': 'from app.core.command_processor import',
-            r'from uaibot\.core\.ai import': 'from app.core.ai import',
-            r'from uaibot\.core\.device_manager import': 'from app.core.device_manager import',
-            r'from uaibot\.core\.screen_handler import': 'from app.core.screen_handler import',
-            r'from uaibot\.utils import': 'from app.utils import',
-            r'from uaibot\.core\.utils import': 'from app.core.utils import',
-            r'from uaibot\.platform_uai import': 'from app.platform_uai import'
+            r'from labeeb\.core\.command_processor import': 'from app.core.command_processor import',
+            r'from labeeb\.core\.ai import': 'from app.core.ai import',
+            r'from labeeb\.core\.device_manager import': 'from app.core.device_manager import',
+            r'from labeeb\.core\.screen_handler import': 'from app.core.screen_handler import',
+            r'from labeeb\.utils import': 'from app.utils import',
+            r'from labeeb\.core\.utils import': 'from app.core.utils import',
+            r'from labeeb\.platform_uai import': 'from app.platform_uai import'
         }
         
         for old_pattern, new_pattern in import_mappings.items():
@@ -595,9 +595,9 @@ class OutputHandler:
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Reorganize UaiBot codebase")
+    parser = argparse.ArgumentParser(description="Reorganize Labeeb codebase")
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without making them")
-    parser.add_argument("--root-dir", default="uaibot", help="Root directory of the codebase")
+    parser.add_argument("--root-dir", default="labeeb", help="Root directory of the codebase")
     
     args = parser.parse_args()
     

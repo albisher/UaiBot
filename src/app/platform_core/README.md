@@ -1,6 +1,6 @@
 # Platform Core
 
-The Platform Core module provides platform-specific functionality and abstractions for UaiBot, ensuring consistent behavior across different operating systems while maintaining platform-specific optimizations.
+The Platform Core module provides platform-specific functionality and abstractions for Labeeb, ensuring consistent behavior across different operating systems while maintaining platform-specific optimizations.
 
 ## Overview
 
@@ -86,7 +86,7 @@ Platform-specific handlers provide consistent interfaces for:
 ### Basic Usage
 
 ```python
-from uaibot.platform_core.platform_manager import PlatformManager
+from labeeb.platform_core.platform_manager import PlatformManager
 
 # Initialize platform manager
 platform_manager = PlatformManager()
@@ -102,7 +102,7 @@ input_handler = platform_manager.get_handler('input')
 ### Internationalization
 
 ```python
-from uaibot.platform_core.i18n import gettext, is_rtl
+from labeeb.platform_core.i18n import gettext, is_rtl
 
 # Get translated text
 text = gettext('platform_info', 'ar')  # Arabic
@@ -174,4 +174,4 @@ pytest tests/unit/platform_core/
 
 ## License
 
-This module is part of UaiBot and is subject to the project's license terms. 
+This module is part of Labeeb and is subject to the project's license terms. 

@@ -3,7 +3,7 @@ description:
 globs:
 alwaysApply: false
 ---
-# UaiBot Technology Stack (MDC)
+# Labeeb Technology Stack (MDC)
 
 ## Core Principles
 - **Minimalism:** Only use libraries that are essential, robust, and cross-platform.

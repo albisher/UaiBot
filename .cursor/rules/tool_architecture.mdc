@@ -1,0 +1,25 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Labeeb Tool Architecture (MDC)
+
+This document outlines the architecture and design principles for Labeeb's tool system.
+
+## Core Principles
+
+1. **Atomicity**
+   - Each tool should do one thing well
+   - Tools should be composable to build complex capabilities
+   - Tools should be independent and self-contained
+
+2. **Discoverability**
+   - Tools must be well-documented
+   - Tools should be easily discoverable by Labeeb
+   - Tools should have clear input/output specifications
+
+3. **Reliability**
+   - Tools must handle errors gracefully
+   - Tools should provide meaningful error messages
+   - Tools should be thoroughly tested

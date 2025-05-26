@@ -1,7 +1,7 @@
 """
-Logging management module for UaiBot.
+Logging management module for Labeeb.
 
-This module provides centralized logging configuration and management for the UaiBot application.
+This module provides centralized logging configuration and management for the Labeeb application.
 It handles log file creation, log level configuration, and module-specific logger setup.
 The module supports both file and console logging, with the ability to toggle console output
 through quiet mode.
@@ -47,7 +47,7 @@ class LoggingConfig:
 
 class LoggingManager:
     """
-    A class to manage logging configuration and operations for UaiBot.
+    A class to manage logging configuration and operations for Labeeb.
     
     This class provides a centralized way to configure and manage logging across
     the application. It supports:
@@ -99,7 +99,7 @@ class LoggingManager:
         
         # Generate log filename with timestamp
         timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file: Path = log_dir / f"uaibot_{timestamp}.log"
+        log_file: Path = log_dir / f"Labeeb_{timestamp}.log"
         
         # Configure root logger
         logging.basicConfig(
@@ -133,7 +133,7 @@ class LoggingManager:
         """
         Set up loggers for specific modules in the application.
         
-        This method configures loggers for all major components of UaiBot,
+        This method configures loggers for all major components of Labeeb,
         ensuring consistent logging behavior across the application.
         Each logger is set to the configured log level.
         """

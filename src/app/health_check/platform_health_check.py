@@ -1,3 +1,8 @@
+"""Platform health check module.
+
+This module checks the health status of platform-specific handlers and requirements, providing detailed information for macOS, Windows, and Ubuntu platforms.
+"""
+
 import sys
 import logging
 from typing import Dict, Any

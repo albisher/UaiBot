@@ -1,5 +1,5 @@
 """
-Command help module for UaiBot.
+Command help module for Labeeb.
 Provides descriptions and examples for common commands from enhancements2.txt.
 """
 

@@ -1,8 +1,8 @@
 """
-DisplayTool: GUI output tool for Labeeb.
+Labeeb Display Tool
 
-This tool provides capabilities to display visual elements (emojis, images, text)
-in a GUI window using PyQt5. It is separate from the CLI interface.
+This module provides display-related functionality for Labeeb.
+It handles screen management, display settings, and visual output capabilities.
 """
 import logging
 from typing import Optional, Tuple, Dict, Any
