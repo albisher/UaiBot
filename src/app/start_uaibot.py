@@ -5,10 +5,13 @@ This script automatically chooses the best way to start Labeeb based on your env
 """
 import os
 import sys
-import platform
-import subprocess
-import traceback
+import logging
 from pathlib import Path
+from app.platform_core.platform_manager import PlatformManager
+from app.health_check.platform_health_check import PlatformHealthCheck
+from app.health_check.system_info_health_check import SystemInfoHealthCheck
+from app.health_check.license_check import LicenseHealthCheck
+from app.health_check.update_find_folders import UpdateFolderHealthCheck
 
 # Add project root to sys.path to enable imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,7 +20,6 @@ sys.path.append(project_root)
 
 try:
     from app.utils import load_config, get_platform_name
-    from app.platform_core.platform_manager import PlatformManager
 except ImportError as e:
     print(f"Error importing Labeeb modules: {e}")
     print(f"Make sure you're running from the project root directory.")
@@ -32,86 +34,49 @@ def check_gui_available():
         return False
 
 def main():
-    """Main entry point for the launcher"""
-    print("Labeeb Launcher")
-    print("--------------")
-    
+    """Main entry point for the application"""
     try:
-        # Initialize platform manager for better platform detection
+        # Initialize platform manager
         platform_manager = PlatformManager()
         platform_info = platform_manager.get_platform_info()
-        print(f"Detected platform: {platform_info['name']}")
         
-        # Load configuration
-        config = load_config()
-        if not config:
-            print("Warning: Failed to load configuration. Using default settings.")
-            config = {"use_gui": False}
+        logger.info(f"Starting Labeeb on {platform_info['name']} {platform_info['version']}")
         
-        # Check if GUI is available and preferred
-        gui_available = check_gui_available()
-        use_gui = False
+        # Run health checks
+        health_checks = [
+            PlatformHealthCheck(),
+            SystemInfoHealthCheck(),
+            LicenseHealthCheck(),
+            UpdateFolderHealthCheck()
+        ]
         
-        if gui_available:
-            print("GUI components available.")
-            # Check config setting
-            if config and config.get("use_gui", False):
-                print("GUI mode enabled in configuration.")
-                use_gui = True
-            
-            # On macOS, always prefer GUI if available
-            if platform.system() == "Darwin":
-                print("macOS detected - preferring GUI mode.")
-                use_gui = True
-                
-            # Check if we have a display server (Linux)
-            if not os.environ.get('DISPLAY') and platform.system() != "Darwin":
-                print("No display detected. Falling back to command-line mode.")
-                use_gui = False
-        else:
-            print("GUI components not available. Running in command-line mode.")
-            use_gui = False
+        for check in health_checks:
+            try:
+                health_status = check.check_health()
+                if health_status['status'] != 'healthy':
+                    logger.error(f"Health check failed: {health_status}")
+                    sys.exit(1)
+            except Exception as e:
+                logger.error(f"Error running health check: {str(e)}")
+                sys.exit(1)
         
-        # Parse command-line arguments
-        args = sys.argv[1:]
+        # Initialize platform-specific handlers
+        handlers = platform_manager.get_handlers()
+        for handler_name, handler in handlers.items():
+            try:
+                handler.initialize()
+                logger.info(f"Initialized {handler_name} handler")
+            except Exception as e:
+                logger.error(f"Error initializing {handler_name} handler: {str(e)}")
+                sys.exit(1)
         
-        # Override detection if specific flags are present
-        if "--gui" in args or "-g" in args:
-            if not gui_available:
-                print("Error: GUI requested but PyQt5 is not installed.")
-                print("Please install PyQt5: pip install PyQt5")
-                return 1
-            use_gui = True
-            # Remove the GUI flag to avoid duplication
-            if "--gui" in args:
-                args.remove("--gui")
-            if "-g" in args:
-                args.remove("-g")
-        
-        if "--no-gui" in args:
-            use_gui = False
-            # Remove the no-GUI flag to avoid duplication
-            if "--no-gui" in args:
-                args.remove("--no-gui")
-        
-        # Build the command
-        if use_gui:
-            print("Starting in GUI mode...")
-            cmd = [sys.executable, "gui/gui_launcher.py"]
-            cmd.extend(args)
-        else:
-            print("Starting in command-line mode...")
-            cmd = [sys.executable, "main.py"]
-            cmd.extend(args)
-        
-        # Execute the command
-        print(f"Executing: {' '.join(cmd)}")
-        return subprocess.run(cmd).returncode
+        # Start the application
+        logger.info("All health checks passed, starting application...")
+        # TODO: Start the main application
         
     except Exception as e:
-        print(f"Error starting Labeeb: {e}")
-        print(traceback.format_exc())
-        return 1
-    
+        logger.error(f"Error starting application: {str(e)}")
+        sys.exit(1)
+
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

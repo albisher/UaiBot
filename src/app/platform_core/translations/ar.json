@@ -1,0 +1,51 @@
+{
+    "platform_info": "معلومات النظام",
+    "cpu_info": "معلومات المعالج",
+    "memory_info": "معلومات الذاكرة",
+    "disk_info": "معلومات القرص",
+    "network_info": "معلومات الشبكة",
+    
+    "system": "النظام",
+    "release": "الإصدار",
+    "version": "النسخة",
+    "machine": "الجهاز",
+    "processor": "المعالج",
+    
+    "physical_cores": "النوى الفيزيائية",
+    "total_cores": "إجمالي النوى",
+    "max_frequency": "التردد الأقصى",
+    "min_frequency": "التردد الأدنى",
+    "current_frequency": "التردد الحالي",
+    "cpu_usage_per_core": "استخدام المعالج لكل نواة",
+    "total_cpu_usage": "إجمالي استخدام المعالج",
+    
+    "total_memory": "إجمالي الذاكرة",
+    "available_memory": "الذاكرة المتاحة",
+    "used_memory": "الذاكرة المستخدمة",
+    "memory_percentage": "نسبة استخدام الذاكرة",
+    
+    "total_disk": "إجمالي مساحة القرص",
+    "used_disk": "مساحة القرص المستخدمة",
+    "free_disk": "مساحة القرص الحرة",
+    "disk_percentage": "نسبة استخدام القرص",
+    
+    "bytes_sent": "البايتات المرسلة",
+    "bytes_received": "البايتات المستلمة",
+    "packets_sent": "الحزم المرسلة",
+    "packets_received": "الحزم المستلمة",
+    
+    "macos_version": "إصدار نظام macOS",
+    "kernel_version": "إصدار النواة",
+    "boot_time": "وقت بدء التشغيل",
+    "hostname": "اسم الجهاز",
+    
+    "windows_version": "إصدار نظام Windows",
+    "edition": "الإصدار",
+    "build_number": "رقم البناء",
+    
+    "ubuntu_version": "إصدار نظام Ubuntu",
+    
+    "unknown": "غير معروف",
+    "error": "خطأ",
+    "not_available": "غير متوفر"
+} 

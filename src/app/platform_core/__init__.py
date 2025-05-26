@@ -1,5 +1,9 @@
-"""Platform-specific functionality for Labeeb (platform_labeeb)."""
+"""
+Platform core module for Labeeb.
 
-from uaibot.platform_labeeb.platform_manager import PlatformManager, PlatformInfo
+This module provides platform-specific functionality and isolation.
+"""
+from .platform_manager import platform_manager
+from .common.base_handler import BaseHandler
 
-__all__ = ['PlatformManager', 'PlatformInfo']
+__all__ = ['platform_manager', 'BaseHandler']

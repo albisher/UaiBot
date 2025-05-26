@@ -1,352 +1,257 @@
 """
-Platform-specific USB handling for macOS (Apple Silicon M4)
-Implements the BaseUSBHandler interface.
+macOS USB handler for Labeeb.
+
+This module provides platform-specific USB handling for macOS,
+including device detection, management, and control.
 """
 import os
-import subprocess
-import json
-import time
-from uaibot.platform_uai.common.usb_handler import BaseUSBHandler, SimulatedUSBHandler
-import usb.core
-import usb.util
-from typing import List, Dict, Optional, Any
-import logging
-from ..common.usb_handler import USBHandler
+import sys
+from typing import Dict, Any, Optional, List
+from ..common.base_handler import BaseHandler
+from ..platform_manager import platform_manager
 
-logger = logging.getLogger(__name__)
-
-class MacUSBHandler(USBHandler):
-    """macOS-specific USB handler implementation."""
+class MacUSBHandler(BaseHandler):
+    """Handler for macOS USB devices."""
     
-    def __init__(self):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the macOS USB handler."""
-        self.devices = {}
-        super().__init__()
+        super().__init__(config)
+        self._usb_enabled = False
+        self._devices = []
+        self._device_manager = None
     
-    def _platform_specific_init(self) -> None:
-        """Initialize USB functionality for macOS."""
-        try:
-            # Find all USB devices
-            self.devices = {str(dev.idVendor) + ':' + str(dev.idProduct): dev 
-                          for dev in usb.core.find(find_all=True)}
-        except Exception as e:
-            logger.error(f"Failed to initialize USB: {e}")
-            raise
-    
-    def list_devices(self) -> List[Dict[str, Any]]:
-        """List connected USB devices on macOS.
+    def initialize(self) -> bool:
+        """Initialize the USB handler.
         
         Returns:
-            List of dictionaries containing device information.
+            bool: True if initialization was successful, False otherwise.
         """
-        if not self.is_initialized:
-            return []
-        
-        devices = []
         try:
-            for device_id, device in self.devices.items():
-                try:
-                    device_info = {
-                        'id': device_id,
-                        'vendor_id': device.idVendor,
-                        'product_id': device.idProduct,
-                        'manufacturer': usb.util.get_string(device, device.iManufacturer),
-                        'product': usb.util.get_string(device, device.iProduct),
-                        'serial_number': usb.util.get_string(device, device.iSerialNumber),
-                        'bus': device.bus,
-                        'address': device.address
-                    }
-                    devices.append(device_info)
-                except Exception as e:
-                    logger.error(f"Error getting info for device {device_id}: {e}")
-        except Exception as e:
-            logger.error(f"Error listing USB devices: {e}")
-        
-        return devices
-    
-    def get_device_info(self, device_id: str) -> Optional[Dict[str, Any]]:
-        """Get information about a specific USB device on macOS.
-        
-        Args:
-            device_id: ID of the device to get information for.
+            # Check if USB handling is available
+            self._check_usb_availability()
             
-        Returns:
-            Dictionary containing device information or None if not found.
-        """
-        if not self.is_initialized:
-            return None
-        
-        try:
-            device = self.devices.get(device_id)
-            if device:
-                return {
-                    'id': device_id,
-                    'vendor_id': device.idVendor,
-                    'product_id': device.idProduct,
-                    'manufacturer': usb.util.get_string(device, device.iManufacturer),
-                    'product': usb.util.get_string(device, device.iProduct),
-                    'serial_number': usb.util.get_string(device, device.iSerialNumber),
-                    'bus': device.bus,
-                    'address': device.address
-                }
-        except Exception as e:
-            logger.error(f"Error getting device info for {device_id}: {e}")
-        
-        return None
-    
-    def connect_device(self, device_id: str) -> bool:
-        """Connect to a USB device on macOS.
-        
-        Args:
-            device_id: ID of the device to connect to.
+            # Initialize USB device manager
+            self._initialize_device_manager()
             
-        Returns:
-            True if successful, False otherwise.
-        """
-        if not self.is_initialized:
+            return self._usb_enabled
+        except Exception as e:
+            print(f"Failed to initialize MacUSBHandler: {e}")
             return False
-        
-        try:
-            device = self.devices.get(device_id)
-            if device:
-                # Set the active configuration
-                device.set_configuration()
-                return True
-        except Exception as e:
-            logger.error(f"Error connecting to device {device_id}: {e}")
-        
-        return False
     
-    def disconnect_device(self, device_id: str) -> bool:
-        """Disconnect from a USB device on macOS.
+    def cleanup(self) -> None:
+        """Clean up USB handler resources."""
+        self._usb_enabled = False
+        self._devices = []
+        if self._device_manager:
+            self._device_manager.stop()
+            self._device_manager = None
+    
+    def is_available(self) -> bool:
+        """Check if USB handling is available.
         
-        Args:
-            device_id: ID of the device to disconnect from.
-            
         Returns:
-            True if successful, False otherwise.
+            bool: True if USB handling is available, False otherwise.
         """
-        if not self.is_initialized:
-            return False
-        
-        try:
-            device = self.devices.get(device_id)
-            if device:
-                # Release the device
-                usb.util.dispose_resources(device)
-                return True
-        except Exception as e:
-            logger.error(f"Error disconnecting from device {device_id}: {e}")
-        
-        return False
+        return self._usb_enabled
     
-    def send_data(self, device_id: str, data: bytes) -> bool:
-        """Send data to a USB device on macOS.
-        
-        Args:
-            device_id: ID of the device to send data to.
-            data: Data to send.
+    def _check_usb_availability(self) -> None:
+        """Check if USB handling is available on the system."""
+        try:
+            import IOKit
+            # Check if USB handling is available
+            self._usb_enabled = True
+        except ImportError:
+            print("Failed to import IOKit module")
+            self._usb_enabled = False
+    
+    def _initialize_device_manager(self) -> None:
+        """Initialize USB device manager."""
+        try:
+            import IOKit
             
-        Returns:
-            True if successful, False otherwise.
-        """
-        if not self.is_initialized:
-            return False
-        
-        try:
-            device = self.devices.get(device_id)
-            if device:
-                # Get the first OUT endpoint
-                endpoint = device[0][(0, 0)][0]
-                
-                # Send the data
-                device.write(endpoint.bEndpointAddress, data)
-                return True
-        except Exception as e:
-            logger.error(f"Error sending data to device {device_id}: {e}")
-        
-        return False
-    
-    def receive_data(self, device_id: str, size: int) -> Optional[bytes]:
-        """Receive data from a USB device on macOS.
-        
-        Args:
-            device_id: ID of the device to receive data from.
-            size: Number of bytes to receive.
+            # Create USB device manager
+            self._device_manager = IOKit.IOUSBDeviceManager()
             
-        Returns:
-            Received data or None if failed.
-        """
-        if not self.is_initialized:
-            return None
-        
-        try:
-            device = self.devices.get(device_id)
-            if device:
-                # Get the first IN endpoint
-                endpoint = device[0][(0, 0)][1]
-                
-                # Receive the data
-                data = device.read(endpoint.bEndpointAddress, size)
-                return bytes(data)
-        except Exception as e:
-            logger.error(f"Error receiving data from device {device_id}: {e}")
-        
-        return None
-    
-    def _platform_specific_cleanup(self) -> None:
-        """Clean up USB resources."""
-        try:
-            # Release all devices
-            for device in self.devices.values():
-                try:
-                    usb.util.dispose_resources(device)
-                except Exception as e:
-                    logger.error(f"Error disposing device resources: {e}")
+            # Get initial device list
+            self._refresh_devices()
             
-            self.devices.clear()
         except Exception as e:
-            logger.error(f"Error during USB cleanup: {e}")
-
-    def refresh_devices(self):
-        """Refresh the list of connected USB devices"""
-        try:
-            # Use PyUSB to get the list of USB devices
-            self.devices = {str(dev.idVendor) + ':' + str(dev.idProduct): dev 
-                          for dev in usb.core.find(find_all=True)}
-        except usb.core.NoBackendError:
-            print("WARNING: USB backend not available. Install libusb with 'brew install libusb'")
-            print("USB device detection will be limited.")
-            self.devices = {}
-        except Exception as e:
-            print(f"Error refreshing USB devices: {e}")
-            self.devices = {}
-        return self.list_devices()
+            print(f"Failed to initialize USB device manager: {e}")
+            self._device_manager = None
     
-    def get_device_list(self):
-        """Return a list of connected USB devices with details"""
-        device_list = []
-        
-        for device_id, device in self.devices.items():
-            try:
+    def _refresh_devices(self) -> None:
+        """Refresh the list of connected USB devices."""
+        try:
+            if not self._device_manager:
+                return
+            
+            # Get all USB devices
+            devices = self._device_manager.get_devices()
+            self._devices = []
+            
+            for device in devices:
                 device_info = {
-                    "id": device_id,
-                    "vendor_id": device.idVendor,
-                    "product_id": device.idProduct,
-                    "manufacturer": usb.util.get_string(device, device.iManufacturer),
-                    "product": usb.util.get_string(device, device.iProduct),
-                    "serial_number": usb.util.get_string(device, device.iSerialNumber),
-                    "bus": device.bus,
-                    "address": device.address
+                    'id': device.get_id(),
+                    'name': device.get_name(),
+                    'vendor_id': device.get_vendor_id(),
+                    'product_id': device.get_product_id(),
+                    'serial_number': device.get_serial_number(),
+                    'is_connected': device.is_connected()
                 }
-                device_list.append(device_info)
-            except:
-                # Skip devices that cause errors when trying to read their details
-                pass
-        
-        return device_list
+                self._devices.append(device_info)
+                
+        except Exception as e:
+            print(f"Failed to refresh USB devices: {e}")
+            self._devices = []
     
-    def find_device(self, vendor_id=None, product_id=None):
+    def get_devices(self) -> List[Dict[str, Any]]:
+        """Get list of connected USB devices.
+        
+        Returns:
+            List[Dict[str, Any]]: List of USB device information.
         """
-        Find a USB device by vendor ID and/or product ID
+        self._refresh_devices()
+        return self._devices
+    
+    def get_device_by_id(self, device_id: str) -> Optional[Dict[str, Any]]:
+        """Get information about a specific USB device.
         
         Args:
-            vendor_id (int/hex): The vendor ID to search for
-            product_id (int/hex): The product ID to search for
+            device_id: The ID of the USB device.
             
         Returns:
-            dict: Device information or None if not found
+            Optional[Dict[str, Any]]: Device information or None if not found.
         """
-        # Convert hex strings to integers if necessary
-        if isinstance(vendor_id, str) and vendor_id.startswith('0x'):
-            vendor_id = int(vendor_id, 16)
-        if isinstance(product_id, str) and product_id.startswith('0x'):
-            product_id = int(product_id, 16)
-            
-        # Refresh device list
-        self.refresh_devices()
-        
-        # Search for the device
-        for device_id, device in self.devices.items():
-            if ((vendor_id is None or device.idVendor == vendor_id) and
-                (product_id is None or device.idProduct == product_id)):
-                return device_id, device
-        
+        self._refresh_devices()
+        for device in self._devices:
+            if device['id'] == device_id:
+                return device
         return None
     
-    def get_storage_devices(self):
-        """Get a list of USB storage devices"""
-        # On macOS, use diskutil to get storage device information
-        try:
-            result = subprocess.run(['diskutil', 'list', '-plist', 'external'], 
-                                    capture_output=True, text=True, check=True)
-            
-            # Parse the plist output
-            import plistlib
-            plist_data = plistlib.loads(result.stdout.encode('utf-8'))
-            
-            # Extract disk information
-            storage_devices = []
-            for disk_name in plist_data.get('AllDisksAndPartitions', []):
-                device_info = {
-                    "name": disk_name.get('DeviceIdentifier'),
-                    "size": disk_name.get('Size', 0),
-                    "mountPoint": disk_name.get('MountPoint', None),
-                    "content": disk_name.get('Content', None),
-                    "volumeName": disk_name.get('VolumeName', None),
-                }
-                storage_devices.append(device_info)
-                
-            return storage_devices
-        except Exception as e:
-            print(f"Error getting storage devices: {e}")
-            return []
-    
-    def mount_device(self, device_path):
-        """Mount a USB storage device"""
-        if not device_path.startswith('/dev/'):
-            device_path = f'/dev/{device_path}'
-            
-        try:
-            result = subprocess.run(['diskutil', 'mount', device_path], 
-                                    capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            print(f"Error mounting device: {e}")
-            print(f"Error output: {e.stderr}")
-            return None
-    
-    def unmount_device(self, device_path):
-        """Unmount a USB storage device"""
-        if not device_path.startswith('/dev/'):
-            device_path = f'/dev/{device_path}'
-            
-        try:
-            result = subprocess.run(['diskutil', 'unmount', device_path], 
-                                    capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            print(f"Error unmounting device: {e}")
-            print(f"Error output: {e.stderr}")
-            return None
-
-    def send_control_transfer(self, device, request_type, request, value, index, data_or_length):
-        """
-        Send a control transfer to a USB device
+    def get_device_by_vendor_product(self, vendor_id: int, product_id: int) -> Optional[Dict[str, Any]]:
+        """Get information about a USB device by vendor and product ID.
         
         Args:
-            device: PyUSB device object
-            request_type: bmRequestType field
-            request: bRequest field
-            value: wValue field
-            index: wIndex field
-            data_or_length: data to send or length to receive
+            vendor_id: The vendor ID of the device.
+            product_id: The product ID of the device.
             
         Returns:
-            bytes or int: Received data or number of bytes written
+            Optional[Dict[str, Any]]: Device information or None if not found.
+        """
+        self._refresh_devices()
+        for device in self._devices:
+            if device['vendor_id'] == vendor_id and device['product_id'] == product_id:
+                return device
+        return None
+    
+    def is_device_connected(self, device_id: str) -> bool:
+        """Check if a specific USB device is connected.
+        
+        Args:
+            device_id: The ID of the USB device.
+            
+        Returns:
+            bool: True if the device is connected, False otherwise.
+        """
+        device = self.get_device_by_id(device_id)
+        return device is not None and device['is_connected']
+    
+    def get_device_driver(self, device_id: str) -> Optional[str]:
+        """Get the driver name for a specific USB device.
+        
+        Args:
+            device_id: The ID of the USB device.
+            
+        Returns:
+            Optional[str]: Driver name or None if not found.
         """
         try:
-            return device.ctrl_transfer(request_type, request, value, index, data_or_length)
+            if not self._device_manager:
+                return None
+            
+            device = self._device_manager.get_device_by_id(device_id)
+            if not device:
+                return None
+            
+            return device.get_driver_name()
+            
         except Exception as e:
-            print(f"Control transfer error: {e}")
+            print(f"Failed to get device driver: {e}")
             return None
+    
+    def get_device_speed(self, device_id: str) -> Optional[str]:
+        """Get the speed of a specific USB device.
+        
+        Args:
+            device_id: The ID of the USB device.
+            
+        Returns:
+            Optional[str]: Device speed (e.g., 'low', 'full', 'high', 'super') or None if not found.
+        """
+        try:
+            if not self._device_manager:
+                return None
+            
+            device = self._device_manager.get_device_by_id(device_id)
+            if not device:
+                return None
+            
+            return device.get_speed()
+            
+        except Exception as e:
+            print(f"Failed to get device speed: {e}")
+            return None
+    
+    def get_device_power(self, device_id: str) -> Optional[float]:
+        """Get the power consumption of a specific USB device.
+        
+        Args:
+            device_id: The ID of the USB device.
+            
+        Returns:
+            Optional[float]: Power consumption in watts or None if not found.
+        """
+        try:
+            if not self._device_manager:
+                return None
+            
+            device = self._device_manager.get_device_by_id(device_id)
+            if not device:
+                return None
+            
+            return device.get_power_consumption()
+            
+        except Exception as e:
+            print(f"Failed to get device power: {e}")
+            return None
+    
+    def get_device_interfaces(self, device_id: str) -> List[Dict[str, Any]]:
+        """Get the interfaces of a specific USB device.
+        
+        Args:
+            device_id: The ID of the USB device.
+            
+        Returns:
+            List[Dict[str, Any]]: List of interface information.
+        """
+        try:
+            if not self._device_manager:
+                return []
+            
+            device = self._device_manager.get_device_by_id(device_id)
+            if not device:
+                return []
+            
+            interfaces = []
+            for interface in device.get_interfaces():
+                interfaces.append({
+                    'id': interface.get_id(),
+                    'class': interface.get_class(),
+                    'subclass': interface.get_subclass(),
+                    'protocol': interface.get_protocol()
+                })
+            return interfaces
+            
+        except Exception as e:
+            print(f"Failed to get device interfaces: {e}")
+            return []

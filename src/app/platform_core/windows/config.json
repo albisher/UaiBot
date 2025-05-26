@@ -1,0 +1,61 @@
+{
+    "name": "windows",
+    "display_name": "Windows",
+    "version": "1.0.0",
+    "description": "Windows platform support for Labeeb",
+    "features": {
+        "audio": {
+            "enabled": true,
+            "handler": "windows_audio_handler",
+            "supported_formats": ["wav", "mp3", "wma"],
+            "default_device": "default",
+            "sample_rate": 44100,
+            "channels": 2
+        },
+        "input": {
+            "enabled": true,
+            "handler": "windows_input_handler",
+            "supported_devices": ["keyboard", "mouse", "touchscreen"],
+            "keyboard_layout": "us",
+            "mouse_sensitivity": 1.0
+        },
+        "usb": {
+            "enabled": true,
+            "handler": "windows_usb_handler",
+            "auto_detect": true,
+            "poll_interval": 1000,
+            "supported_protocols": ["usb2", "usb3"]
+        },
+        "display": {
+            "enabled": true,
+            "handler": "windows_display_handler",
+            "supported_resolutions": ["standard", "high_dpi"],
+            "dpi_aware": true,
+            "multi_monitor": true
+        }
+    },
+    "paths": {
+        "config": "%APPDATA%\\Labeeb",
+        "cache": "%LOCALAPPDATA%\\Labeeb\\Cache",
+        "logs": "%LOCALAPPDATA%\\Labeeb\\Logs",
+        "temp": "%TEMP%\\Labeeb"
+    },
+    "permissions": {
+        "accessibility": true,
+        "input_monitoring": true,
+        "screen_recording": true,
+        "microphone": true,
+        "usb_access": true
+    },
+    "system": {
+        "min_windows_version": "10.0.19041",
+        "required_dotnet_version": "4.7.2",
+        "required_powershell_version": "5.1",
+        "supported_architectures": ["x86_64", "x86"]
+    },
+    "security": {
+        "require_admin": false,
+        "require_signed_drivers": true,
+        "require_secure_boot": false
+    }
+} 

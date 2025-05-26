@@ -10,8 +10,9 @@ across the application.
 import os
 import json
 import shutil
-import platform
 from pathlib import Path
+from typing import Dict, Optional
+from app.platform_core.platform_manager import PlatformManager
 
 class OutputStyleManager:
     """Manages output styling preferences for UaiBot."""
@@ -52,6 +53,20 @@ class OutputStyleManager:
         # Auto-detect terminal capabilities if requested
         if auto_detect:
             self._detect_terminal_capabilities()
+            
+        self.platform_manager = PlatformManager()
+        self.platform_info = self.platform_manager.get_platform_info()
+        self._init_style_settings()
+        
+    def _init_style_settings(self):
+        """Initialize style settings based on platform capabilities."""
+        self.use_colors = True
+        self.use_unicode = True
+        
+        # Check if we're on Windows without proper terminal support
+        if self.platform_info['name'] == 'windows' and "TERM" not in os.environ:
+            self.use_colors = False
+            self.use_unicode = False
             
     def _get_project_root(self):
         """Get the path to the project root directory."""
@@ -142,7 +157,7 @@ class OutputStyleManager:
                     self.output_styles["terminal_width"] = columns
                     
                 # Check if we're in Windows command prompt (limited emoji support)
-                if platform.system() == "Windows" and "TERM" not in os.environ:
+                if self.platform_info['name'] == 'windows' and "TERM" not in os.environ:
                     # Using cmd.exe or PowerShell with limited capabilities
                     self.output_styles["use_emojis"] = False
             else:

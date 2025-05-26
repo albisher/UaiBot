@@ -1,0 +1,76 @@
+{
+    "name": "mac",
+    "display_name": "macOS",
+    "version": "1.0.0",
+    "description": "macOS platform support for Labeeb",
+    "features": {
+        "audio": {
+            "enabled": true,
+            "handler": "mac_audio_handler",
+            "supported_formats": ["wav", "mp3", "aac"],
+            "default_device": "default",
+            "sample_rate": 44100,
+            "channels": 2,
+            "core_audio": true
+        },
+        "input": {
+            "enabled": true,
+            "handler": "mac_input_handler",
+            "supported_devices": ["keyboard", "mouse", "trackpad"],
+            "keyboard_layout": "us",
+            "mouse_sensitivity": 1.0,
+            "accessibility": true
+        },
+        "usb": {
+            "enabled": true,
+            "handler": "mac_usb_handler",
+            "auto_detect": true,
+            "poll_interval": 1000,
+            "supported_protocols": ["usb2", "usb3", "thunderbolt"],
+            "io_kit": true
+        },
+        "display": {
+            "enabled": true,
+            "handler": "mac_display_handler",
+            "supported_resolutions": ["retina", "standard"],
+            "dpi_aware": true,
+            "multi_monitor": true,
+            "quartz": true
+        }
+    },
+    "paths": {
+        "config": "~/Library/Application Support/Labeeb",
+        "cache": "~/Library/Caches/Labeeb",
+        "logs": "~/Library/Logs/Labeeb",
+        "temp": "/tmp/Labeeb"
+    },
+    "permissions": {
+        "accessibility": true,
+        "input_monitoring": true,
+        "screen_recording": true,
+        "microphone": true,
+        "usb_access": true
+    },
+    "system": {
+        "min_macos_version": "10.15",
+        "supported_architectures": ["x86_64", "arm64"],
+        "apple_silicon": true,
+        "required_frameworks": [
+            "CoreAudio",
+            "Quartz",
+            "IOKit",
+            "AVFoundation"
+        ]
+    },
+    "security": {
+        "require_signed_app": true,
+        "require_notarization": true,
+        "require_hardened_runtime": true,
+        "entitlements": [
+            "com.apple.security.automation.apple-events",
+            "com.apple.security.device.audio-input",
+            "com.apple.security.device.camera",
+            "com.apple.security.device.usb"
+        ]
+    }
+} 

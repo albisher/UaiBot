@@ -9,7 +9,6 @@ from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from uaibot.core.model_manager import ModelManager
-from uaibot.core.system_info_gatherer import SystemInfoGatherer
 from uaibot.core.config_manager import ConfigManager
 from uaibot.core.logging_config import get_logger
 logger = get_logger(__name__)
@@ -18,9 +17,9 @@ from uaibot.core.exceptions import AIError, ConfigurationError
 from uaibot.core.ai_performance_tracker import AIPerformanceTracker
 from uaibot.core.model_config_manager import ModelConfigManager
 from uaibot.core.key_manager import KeyManager
-import psutil
 from uaibot.typing import SystemInfo
 from uaibot.core.command_processor.ai_command_extractor import AICommandExtractor
+from uaibot.platform_core.platform_manager import get_platform_system_info_gatherer
 
 @dataclass
 class PromptConfig:
@@ -44,10 +43,11 @@ class AIHandler:
         self.model_manager = model_manager
         self.prompt_config = PromptConfig()
         self.command_extractor = AICommandExtractor()
+        self.system_info_gatherer = get_platform_system_info_gatherer()
 
     def process_prompt(self, prompt: str, extra_context: str = None) -> ResponseInfo:
         try:
-            system_info = get_system_info()['platform']
+            system_info = self.system_info_gatherer.get_system_info()['platform']
             if extra_context:
                 prompt = f"[Visual Context]: {extra_context}\n{prompt}"
             formatted_prompt = self.format_ai_prompt(prompt, system_info)

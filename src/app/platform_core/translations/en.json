@@ -1,0 +1,51 @@
+{
+    "platform_info": "Platform Information",
+    "cpu_info": "CPU Information",
+    "memory_info": "Memory Information",
+    "disk_info": "Disk Information",
+    "network_info": "Network Information",
+    
+    "system": "System",
+    "release": "Release",
+    "version": "Version",
+    "machine": "Machine",
+    "processor": "Processor",
+    
+    "physical_cores": "Physical Cores",
+    "total_cores": "Total Cores",
+    "max_frequency": "Maximum Frequency",
+    "min_frequency": "Minimum Frequency",
+    "current_frequency": "Current Frequency",
+    "cpu_usage_per_core": "CPU Usage per Core",
+    "total_cpu_usage": "Total CPU Usage",
+    
+    "total_memory": "Total Memory",
+    "available_memory": "Available Memory",
+    "used_memory": "Used Memory",
+    "memory_percentage": "Memory Usage Percentage",
+    
+    "total_disk": "Total Disk Space",
+    "used_disk": "Used Disk Space",
+    "free_disk": "Free Disk Space",
+    "disk_percentage": "Disk Usage Percentage",
+    
+    "bytes_sent": "Bytes Sent",
+    "bytes_received": "Bytes Received",
+    "packets_sent": "Packets Sent",
+    "packets_received": "Packets Received",
+    
+    "macos_version": "macOS Version",
+    "kernel_version": "Kernel Version",
+    "boot_time": "Boot Time",
+    "hostname": "Hostname",
+    
+    "windows_version": "Windows Version",
+    "edition": "Edition",
+    "build_number": "Build Number",
+    
+    "ubuntu_version": "Ubuntu Version",
+    
+    "unknown": "Unknown",
+    "error": "Error",
+    "not_available": "Not Available"
+} 

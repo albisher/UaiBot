@@ -1,0 +1,77 @@
+{
+    "name": "ubuntu",
+    "display_name": "Ubuntu",
+    "version": "1.0.0",
+    "description": "Ubuntu platform support for Labeeb",
+    "features": {
+        "audio": {
+            "enabled": true,
+            "handler": "ubuntu_audio_handler",
+            "supported_formats": ["wav", "mp3", "ogg"],
+            "default_device": "default",
+            "sample_rate": 44100,
+            "channels": 2,
+            "pulse_audio": true
+        },
+        "input": {
+            "enabled": true,
+            "handler": "ubuntu_input_handler",
+            "supported_devices": ["keyboard", "mouse", "touchscreen"],
+            "keyboard_layout": "us",
+            "mouse_sensitivity": 1.0,
+            "x11": true,
+            "wayland": true
+        },
+        "usb": {
+            "enabled": true,
+            "handler": "ubuntu_usb_handler",
+            "auto_detect": true,
+            "poll_interval": 1000,
+            "supported_protocols": ["usb2", "usb3"],
+            "udev_rules": true
+        },
+        "display": {
+            "enabled": true,
+            "handler": "ubuntu_display_handler",
+            "supported_resolutions": ["standard", "high_dpi"],
+            "dpi_aware": true,
+            "multi_monitor": true,
+            "x11": true,
+            "wayland": true
+        }
+    },
+    "paths": {
+        "config": "~/.config/labeeb",
+        "cache": "~/.cache/labeeb",
+        "logs": "~/.local/share/labeeb/logs",
+        "temp": "/tmp/labeeb"
+    },
+    "permissions": {
+        "accessibility": true,
+        "input_monitoring": true,
+        "screen_recording": true,
+        "microphone": true,
+        "usb_access": true
+    },
+    "system": {
+        "min_ubuntu_version": "20.04",
+        "required_packages": [
+            "python3",
+            "python3-pip",
+            "python3-dev",
+            "build-essential",
+            "libasound2-dev",
+            "libpulse-dev",
+            "libx11-dev",
+            "libxext-dev",
+            "libxrandr-dev",
+            "libxtst-dev"
+        ],
+        "supported_architectures": ["x86_64", "arm64"]
+    },
+    "security": {
+        "require_sudo": false,
+        "require_udev_rules": true,
+        "require_pulse_audio": true
+    }
+} 
