@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
 from .config.output_paths import get_log_file_path, APP_LOGS_DIR
-from app.platform_core.platform_manager import PlatformManager
+from app.core.platform_core.platform_manager import PlatformManager
 
 logger = logging.getLogger(__name__)
 

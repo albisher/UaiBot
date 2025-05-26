@@ -7,7 +7,7 @@ It handles initialization, configuration loading, and agent startup.
 
 import logging
 from app.core.ai.agents.labeeb_agent import LabeebAgent
-from app.platform_core.platform_manager import PlatformManager
+from app.core.platform_core.platform_manager import PlatformManager
 
 logger = logging.getLogger(__name__)
 

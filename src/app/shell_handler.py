@@ -1,7 +1,7 @@
 import logging
 import subprocess
 from typing import Dict, Any, Optional
-from app.platform_core.platform_manager import PlatformManager
+from app.core.platform_core.platform_manager import PlatformManager
 
 logger = logging.getLogger(__name__)
 

@@ -198,24 +198,8 @@ class PlatformManager:
         """
         return self._config.copy()
     
-    def update_config(self, config: Dict[str, Any]) -> bool:
-        """Update the platform configuration.
-        
-        Args:
-            config: New configuration to apply.
-            
-        Returns:
-            bool: True if update was successful, False otherwise.
-        """
-        try:
-            self._config.update(config)
-            return True
-        except Exception as e:
-            print(f"Failed to update platform configuration: {e}")
-            return False
-    
     def get_available_handlers(self) -> List[str]:
-        """Get list of available handlers.
+        """Get a list of available handler types.
         
         Returns:
             List[str]: List of available handler types.
@@ -223,85 +207,84 @@ class PlatformManager:
         return list(self.handlers.keys())
     
     def is_handler_available(self, handler_type: str) -> bool:
-        """Check if a specific handler is available.
+        """Check if a specific handler type is available.
         
         Args:
             handler_type: Type of handler to check.
             
         Returns:
-            bool: True if handler is available, False otherwise.
+            bool: True if the handler is available, False otherwise.
         """
         return handler_type in self.handlers
     
     def get_platform_info(self) -> Dict[str, Any]:
-        """Get information about the current platform"""
+        """Get information about the current platform.
+        
+        Returns:
+            Dict[str, Any]: Platform information.
+        """
         return {
-            'name': self.platform,
-            'version': sys.version,
+            'system': platform.system(),
+            'release': platform.release(),
+            'version': platform.version(),
+            'machine': platform.machine(),
+            'processor': platform.processor(),
             'features': self._get_platform_features(),
             'paths': self._get_platform_paths()
         }
-
+    
     def _get_platform_features(self) -> Dict[str, bool]:
-        """Get available features for the current platform"""
+        """Get platform-specific features.
+        
+        Returns:
+            Dict[str, bool]: Dictionary of feature flags.
+        """
         features = {
-            'calendar': False,
-            'bluetooth': False,
-            'audio': False,
-            'usb': False
+            'gui_support': False,
+            'audio_support': False,
+            'usb_support': False,
+            'network_support': True,
+            'file_system_support': True
         }
-
-        if self.platform == 'darwin':
-            features.update({
-                'calendar': True,
-                'bluetooth': True,
-                'audio': True,
-                'usb': True
-            })
-        elif self.platform == 'win32':
-            features.update({
-                'calendar': True,
-                'bluetooth': True,
-                'audio': True,
-                'usb': True
-            })
-        elif self.platform.startswith('linux'):
-            features.update({
-                'calendar': False,
-                'bluetooth': True,
-                'audio': True,
-                'usb': True
-            })
-
+        
+        # Update features based on available handlers
+        if 'display' in self.handlers:
+            features['gui_support'] = True
+        if 'audio' in self.handlers:
+            features['audio_support'] = True
+        if 'usb' in self.handlers:
+            features['usb_support'] = True
+            
         return features
-
+    
     def _get_platform_paths(self) -> Dict[str, str]:
-        """Get platform-specific paths"""
+        """Get platform-specific paths.
+        
+        Returns:
+            Dict[str, str]: Dictionary of platform paths.
+        """
         paths = {
             'home': os.path.expanduser('~'),
             'config': os.path.join(os.path.expanduser('~'), '.config', 'labeeb'),
             'data': os.path.join(os.path.expanduser('~'), '.local', 'share', 'labeeb'),
             'cache': os.path.join(os.path.expanduser('~'), '.cache', 'labeeb')
         }
-
-        if self.platform == 'darwin':
-            paths.update({
-                'config': os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'Labeeb'),
-                'data': os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'Labeeb', 'Data'),
-                'cache': os.path.join(os.path.expanduser('~'), 'Library', 'Caches', 'Labeeb')
-            })
-        elif self.platform == 'win32':
-            paths.update({
-                'config': os.path.join(os.environ.get('APPDATA', ''), 'Labeeb'),
-                'data': os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Labeeb', 'Data'),
-                'cache': os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Labeeb', 'Cache')
-            })
-
+        
+        # Platform-specific path adjustments
+        if self.platform == 'win32':
+            paths['config'] = os.path.join(os.environ.get('APPDATA', ''), 'Labeeb')
+            paths['data'] = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Labeeb')
+            paths['cache'] = os.path.join(os.environ.get('TEMP', ''), 'Labeeb')
+            
         return paths
-
+    
     def get_handlers(self) -> Dict[str, Any]:
-        """Get all platform-specific handlers"""
-        return self.handlers
+        """Get all platform handlers.
+        
+        Returns:
+            Dict[str, Any]: Dictionary of all handlers.
+        """
+        return self.handlers.copy()
     
     @classmethod
     def get_system_info_gatherer(cls) -> BaseSystemInfoGatherer:
@@ -312,10 +295,8 @@ class PlatformManager:
         """
         system = platform.system()
         gatherer_class = cls._system_info_gatherers.get(system)
-        
         if gatherer_class is None:
-            raise NotImplementedError(f"No system info gatherer available for {system}")
-            
+            raise RuntimeError(f"No system info gatherer available for {system}")
         return gatherer_class()
     
     @classmethod
@@ -329,7 +310,7 @@ class PlatformManager:
             Dict[str, Any]: System information.
         """
         gatherer = cls.get_system_info_gatherer()
-        return gatherer.get_system_info()
+        return gatherer.gather_info(language)
 
 def get_platform_system_info_gatherer() -> BaseSystemInfoGatherer:
     """Get the appropriate system info gatherer for the current platform.
@@ -339,5 +320,5 @@ def get_platform_system_info_gatherer() -> BaseSystemInfoGatherer:
     """
     return PlatformManager.get_system_info_gatherer()
 
-# Create singleton instance
+# Create a singleton instance
 platform_manager = PlatformManager()

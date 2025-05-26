@@ -28,7 +28,7 @@ sys.path.append(project_root)
 from app.logging_config import setup_logging, get_logger
 from app.core.exceptions import LabeebError, AIError, ConfigurationError, CommandError
 from app.core.cache_manager import CacheManager
-from app.platform_core.platform_manager import PlatformManager
+from app.core.platform_core.platform_manager import PlatformManager
 from app.core.command_processor.command_processor import CommandProcessor
 from app.core.shell_handler import ShellHandler
 from app.core.ai_handler import AIHandler

@@ -8,7 +8,6 @@ import os
 import sys
 from typing import Dict, Any, Optional, Tuple
 from ..common.base_handler import BaseHandler
-from ..platform_manager import platform_manager
 
 class MacInputHandler(BaseHandler):
     """Handler for macOS input devices."""
