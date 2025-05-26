@@ -193,9 +193,9 @@ This format is used for providing information without executing commands.
   "info_type": "help",
   "response": "You can use Labeeb to perform file operations, execute commands, and get information.",
   "related_commands": [
-    {"command": "uaibot help", "description": "Display general help information"},
-    {"command": "uaibot examples", "description": "Show example commands"},
-    {"command": "uaibot version", "description": "Show version information"}
+    {"command": "labeeb help", "description": "Display general help information"},
+    {"command": "labeeb examples", "description": "Show example commands"},
+    {"command": "labeeb version", "description": "Show version information"}
   ],
   "explanation": "Provides help information about Labeeb",
   "requires_implementation": false

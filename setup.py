@@ -1,7 +1,7 @@
 import os
 import sys
 from setuptools import setup, find_packages
-from app.platform_core.platform_manager import PlatformManager
+from labeeb.platform_core.platform_manager import PlatformManager
 
 # Initialize platform manager
 platform_manager = PlatformManager()
@@ -39,7 +39,10 @@ base_requires = [
     'sphinx>=7.1.0',
     'sphinx-rtd-theme>=1.3.0',
     'twine>=4.0.2',
-    'build>=1.0.3'
+    'build>=1.0.3',
+    'arabic-reshaper>=3.0.0',
+    'python-bidi>=0.4.2',
+    'selenium>=4.18.1'
 ]
 
 # Platform-specific dependencies
@@ -52,6 +55,7 @@ if platform_info['name'] == 'ubuntu':
     ]
 elif platform_info['name'] == 'mac':
     platform_requires += [
+        'pyobjc>=9.2',
         'pyobjc-framework-Quartz>=9.2',
         'pyobjc-framework-CoreServices>=9.2',
         'pyobjc-framework-CoreWLAN>=9.2'
@@ -66,7 +70,7 @@ elif platform_info['name'] == 'windows':
 setup(
     name="labeeb",
     version="1.0.0",
-    description="Intelligent, cross-platform AI agent framework",
+    description="Intelligent, cross-platform AI agent framework with RTL and Arabic language support",
     author="Labeeb Team",
     author_email="contact@labeeb.ai",
     packages=find_packages(where="src"),
@@ -89,7 +93,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'labeeb=app.start_Labeeb:main',
+            'labeeb=labeeb.main:main',
         ],
     },
     classifiers=[
@@ -105,5 +109,6 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Systems Administration',
         'Topic :: Utilities',
+        'Natural Language :: Arabic',
     ],
 ) 

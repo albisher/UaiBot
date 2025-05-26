@@ -8,19 +8,21 @@ It handles command processing, model management, and output formatting.
 import sys
 import os
 import asyncio
+import logging
 from pathlib import Path
 
-# Add src to Python path
-src_path = Path(__file__).parent.parent / "src"
-sys.path.append(str(src_path))
+# Add src directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
 
-from labeeb.core.ai.Labeeb_agent import Labeeb
-from labeeb.core.config_manager import ConfigManager
-from labeeb.core.model_manager import ModelManager
-from labeeb.core.cache import Cache
-from labeeb.core.auth_manager import AuthManager
-from labeeb.core.plugin_manager import PluginManager
-from labeeb.utils.output_style_manager import OutputStyleManager
+from app.core.ai.agent import Labeeb
+from app.core.config_manager import ConfigManager
+from app.core.model_manager import ModelManager
+from app.core.cache import Cache
+from app.core.auth_manager import AuthManager
+from app.core.plugin_manager import PluginManager
+from app.utils.output_style_manager import OutputStyleManager
 
 style_mgr = OutputStyleManager()
 

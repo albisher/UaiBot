@@ -1,8 +1,8 @@
-# UaiBot Project Architecture Tree
+# Labeeb Project Architecture Tree
 
 ## Root Directory Structure
 ```
-UaiBot/
+Labeeb/
 ├── .github/                    # GitHub specific configurations
 ├── .vscode/                    # VS Code specific configurations
 ├── .venv/                      # Python virtual environment
