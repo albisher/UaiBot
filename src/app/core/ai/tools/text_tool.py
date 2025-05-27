@@ -13,11 +13,9 @@ import unicodedata
 import json
 from typing import Dict, Any, List, Optional, Union, Tuple
 from labeeb.core.ai.tool_base import BaseTool
-from . import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
-@ToolRegistry.register
 class TextTool(BaseTool):
     """Tool for text processing operations."""
     

@@ -1,57 +1,32 @@
 """
-SmolAgent Implementation.
+Base Agent Implementation.
 
-This module implements the SmolAgent pattern for minimal, efficient agent implementation.
-The SmolAgent pattern emphasizes:
-- Minimal dependencies
-- Clear state management
-- Efficient tool usage
-- Simple but powerful interfaces
-- Easy testing and debugging
+This module provides the core interfaces and base classes for all agents in the Labeeb system.
+It follows the SmolAgent pattern and implements A2A, MCP, and SmolAgent protocols.
 
 Key Features:
-- State Management: Clear state transitions and persistence
-- Tool Integration: Simple tool registration and execution
-- Error Handling: Robust error handling and recovery
-- Testing: Easy to test with clear interfaces
-- Debugging: Built-in logging and state inspection
-
-Agent Lifecycle:
-1. Initialize agent with optional state directory
-2. Register tools and handlers
-3. Execute actions and update state
-4. Persist state when needed
-5. Clean up resources
-
-State Management:
-- In-memory state for active operations
-- Persistent state for long-term storage
-- Clear state transitions
-- State validation and recovery
-
-Tool Integration:
-- Simple tool registration
-- Tool discovery and execution
-- Tool result handling
-- Tool error recovery
+- Base Agent class with common functionality
+- Protocol definitions for agent communication
+- Shared interfaces for tool integration
+- State management and persistence
 """
 
-from typing import Any, Dict, List, Optional, Protocol, TypeVar, Generic
+from typing import Any, Dict, List, Optional, Protocol
 from dataclasses import dataclass, field
 from datetime import datetime
 import json
 import logging
 import os
-import asyncio
 from pathlib import Path
 
-class SmolAgentProtocol(Protocol):
-    """Protocol for SmolAgent compliance."""
+class Agent(Protocol):
+    """Base protocol for all agents in the system."""
     name: str
-    state: Any
-    def register_tool(self, tool: Any): ...
-    def unregister_tool(self, tool_name: str): ...
-    async def execute_tool(self, tool_name: str, **kwargs) -> Any: ...
+    description: str
+    
+    async def execute(self, **kwargs) -> Any:
+        """Execute the agent's main functionality."""
+        ...
 
 @dataclass
 class AgentState:
@@ -113,18 +88,9 @@ class AgentResult:
             metadata=data.get("metadata", {})
         )
 
-class Tool(Protocol):
-    """Protocol defining the interface for tools."""
-    name: str
-    description: str
-    
-    async def execute(self, **kwargs) -> Any:
-        """Execute the tool with the given parameters."""
-        ...
-
-class SmolAgent:
+class BaseAgent:
     """
-    Base class for SmolAgent implementation.
+    Base class for all agents in the system.
     
     This class provides:
     - State management
@@ -140,14 +106,14 @@ class SmolAgent:
         self.state_dir = state_dir or os.path.expanduser("~/Documents/labeeb/agents")
         os.makedirs(self.state_dir, exist_ok=True)
         
-        self.logger = logging.getLogger(f"SmolAgent.{name}")
+        self.logger = logging.getLogger(f"Agent.{name}")
         self.state = AgentState(name=name)
-        self.tools: Dict[str, Tool] = {}
+        self.tools: Dict[str, Any] = {}
         
         # Load state if exists
         self._load_state()
     
-    def register_tool(self, tool: Tool):
+    def register_tool(self, tool: Any):
         """Register a tool with the agent."""
         self.tools[tool.name] = tool
         self.state.tools.append(tool.name)
@@ -253,14 +219,14 @@ class SmolAgent:
             with open(state_path, 'r') as f:
                 self.state = AgentState.from_dict(json.load(f))
 
-class SmolAgentError(Exception):
-    """Base class for SmolAgent errors."""
+class AgentError(Exception):
+    """Base class for agent errors."""
     pass
 
-class ToolNotFoundError(SmolAgentError):
+class ToolNotFoundError(AgentError):
     """Raised when a tool is not found."""
     pass
 
-class ToolExecutionError(SmolAgentError):
+class ToolExecutionError(AgentError):
     """Raised when a tool execution fails."""
     pass 

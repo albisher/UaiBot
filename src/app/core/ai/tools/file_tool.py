@@ -1,166 +1,350 @@
 """
-File Tool Implementation
+File tool for Labeeb AI system.
 
-This module provides the FileTool for file system operations,
-implementing A2A (Agent-to-Agent), MCP (Model Context Protocol), and SmolAgents patterns.
+This module provides functionality for file operations.
 """
 import os
-import shutil
-import json
-from pathlib import Path
-from typing import Any, Dict, List, Union
+import logging
+from typing import Dict, Any, Optional, List
 from .base_tool import BaseTool
-from . import ToolRegistry
+from .tool_registry import ToolRegistry
 
-@ToolRegistry.register
+logger = logging.getLogger(__name__)
+
 class FileTool(BaseTool):
-    """Tool for file system operations."""
+    """Tool for file operations."""
     
     def __init__(self):
-        """Initialize the FileTool."""
-        super().__init__(
-            name="FileTool",
-            description="Handles file system operations including reading, writing, and managing files"
-        )
+        """Initialize the file tool."""
+        super().__init__(name="file_tool", description="Tool for file operations")
     
-    async def execute(self, action: str, **kwargs) -> Dict[str, Any]:
-        """
-        Execute a file system operation.
+    def create_file(self, path: str, content: str) -> bool:
+        """Create a file with the given content.
         
         Args:
-            action (str): The action to execute
-            **kwargs: Additional arguments for the action
+            path: Path to the file
+            content: Content to write to the file
             
         Returns:
-            Dict[str, Any]: The result of the operation
+            bool: True if file was created successfully
         """
         try:
-            if not self.validate_input(action, **kwargs):
-                return self.handle_error(ValueError("Invalid input"))
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             
-            if action == "read_file":
-                return self._read_file(**kwargs)
-            elif action == "write_file":
-                return self._write_file(**kwargs)
-            elif action == "list_directory":
-                return self._list_directory(**kwargs)
-            elif action == "create_directory":
-                return self._create_directory(**kwargs)
-            elif action == "delete_file":
-                return self._delete_file(**kwargs)
-            elif action == "move_file":
-                return self._move_file(**kwargs)
-            elif action == "copy_file":
-                return self._copy_file(**kwargs)
-            else:
-                return self.handle_error(ValueError(f"Unknown action: {action}"))
-                
-        except Exception as e:
-            return self.handle_error(e)
-    
-    def get_available_actions(self) -> Dict[str, str]:
-        """
-        Get available file system operations.
-        
-        Returns:
-            Dict[str, str]: Available operations and their descriptions
-        """
-        return {
-            "read_file": "Read contents of a file",
-            "write_file": "Write contents to a file",
-            "list_directory": "List contents of a directory",
-            "create_directory": "Create a new directory",
-            "delete_file": "Delete a file",
-            "move_file": "Move a file to a new location",
-            "copy_file": "Copy a file to a new location"
-        }
-    
-    def _read_file(self, path: str, encoding: str = "utf-8", **kwargs) -> Dict[str, Any]:
-        """Read contents of a file."""
-        try:
-            with open(path, "r", encoding=encoding) as f:
-                content = f.read()
-            return {
-                "content": content,
-                "size": os.path.getsize(path),
-                "encoding": encoding
-            }
-        except FileNotFoundError:
-            return self.handle_error(ValueError(f"File not found: {path}"))
-        except Exception as e:
-            return self.handle_error(e)
-    
-    def _write_file(self, path: str, content: str, encoding: str = "utf-8", **kwargs) -> Dict[str, Any]:
-        """Write contents to a file."""
-        try:
-            with open(path, "w", encoding=encoding) as f:
+            # Write content to file
+            with open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            return {
-                "path": path,
-                "size": os.path.getsize(path),
-                "encoding": encoding
-            }
+            return True
         except Exception as e:
-            return self.handle_error(e)
+            logger.error(f"Failed to create file {path}: {e}")
+            return False
     
-    def _list_directory(self, path: str = ".", **kwargs) -> Dict[str, Any]:
-        """List contents of a directory."""
+    def read_file(self, path: str) -> Optional[str]:
+        """Read content from a file.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            Optional[str]: File content if successful, None otherwise
+        """
         try:
-            items = []
-            for item in os.listdir(path):
-                full_path = os.path.join(path, item)
-                items.append({
-                    "name": item,
-                    "path": full_path,
-                    "type": "directory" if os.path.isdir(full_path) else "file",
-                    "size": os.path.getsize(full_path) if os.path.isfile(full_path) else None
-                })
-            return {"items": items}
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
         except Exception as e:
-            return self.handle_error(e)
+            logger.error(f"Failed to read file {path}: {e}")
+            return None
     
-    def _create_directory(self, path: str, **kwargs) -> Dict[str, Any]:
-        """Create a new directory."""
+    def delete_file(self, path: str) -> bool:
+        """Delete a file.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            bool: True if file was deleted successfully
+        """
+        try:
+            os.remove(path)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete file {path}: {e}")
+            return False
+    
+    def list_files(self, directory: str) -> List[str]:
+        """List files in a directory.
+        
+        Args:
+            directory: Directory to list files from
+            
+        Returns:
+            List[str]: List of file names
+        """
+        try:
+            return os.listdir(directory)
+        except Exception as e:
+            logger.error(f"Failed to list files in {directory}: {e}")
+            return []
+    
+    def file_exists(self, path: str) -> bool:
+        """Check if a file exists.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            bool: True if file exists
+        """
+        return os.path.isfile(path)
+    
+    def directory_exists(self, path: str) -> bool:
+        """Check if a directory exists.
+        
+        Args:
+            path: Path to the directory
+            
+        Returns:
+            bool: True if directory exists
+        """
+        return os.path.isdir(path)
+    
+    def create_directory(self, path: str) -> bool:
+        """Create a directory.
+        
+        Args:
+            path: Path to the directory
+            
+        Returns:
+            bool: True if directory was created successfully
+        """
         try:
             os.makedirs(path, exist_ok=True)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create directory {path}: {e}")
+            return False
+    
+    def delete_directory(self, path: str) -> bool:
+        """Delete a directory.
+        
+        Args:
+            path: Path to the directory
+            
+        Returns:
+            bool: True if directory was deleted successfully
+        """
+        try:
+            os.rmdir(path)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete directory {path}: {e}")
+            return False
+    
+    def get_file_size(self, path: str) -> Optional[int]:
+        """Get file size in bytes.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            Optional[int]: File size in bytes if successful, None otherwise
+        """
+        try:
+            return os.path.getsize(path)
+        except Exception as e:
+            logger.error(f"Failed to get file size for {path}: {e}")
+            return None
+    
+    def get_file_extension(self, path: str) -> str:
+        """Get file extension.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            str: File extension
+        """
+        return os.path.splitext(path)[1]
+    
+    def get_file_name(self, path: str) -> str:
+        """Get file name without extension.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            str: File name without extension
+        """
+        return os.path.splitext(os.path.basename(path))[0]
+    
+    def get_file_path(self, path: str) -> str:
+        """Get file path without file name.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            str: File path without file name
+        """
+        return os.path.dirname(path)
+    
+    def get_absolute_path(self, path: str) -> str:
+        """Get absolute path.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            str: Absolute path
+        """
+        return os.path.abspath(path)
+    
+    def get_relative_path(self, path: str, start: str) -> str:
+        """Get relative path.
+        
+        Args:
+            path: Path to the file
+            start: Start directory
+            
+        Returns:
+            str: Relative path
+        """
+        return os.path.relpath(path, start)
+    
+    def get_file_info(self, path: str) -> Dict[str, Any]:
+        """Get file information.
+        
+        Args:
+            path: Path to the file
+            
+        Returns:
+            Dict[str, Any]: File information
+        """
+        try:
+            stat = os.stat(path)
             return {
-                "path": path,
-                "created": True
+                'size': stat.st_size,
+                'created': stat.st_ctime,
+                'modified': stat.st_mtime,
+                'accessed': stat.st_atime,
+                'mode': stat.st_mode,
+                'uid': stat.st_uid,
+                'gid': stat.st_gid
             }
         except Exception as e:
-            return self.handle_error(e)
-    
-    def _delete_file(self, path: str, **kwargs) -> Dict[str, Any]:
-        """Delete a file."""
+            logger.error(f"Failed to get file info for {path}: {e}")
+            return {}
+
+    async def execute(self, action: str, **kwargs) -> Dict[str, Any]:
+        """Execute a file operation action asynchronously."""
         try:
-            if os.path.isfile(path):
-                os.remove(path)
-                return {"deleted": True, "path": path}
+            if action == "create_file":
+                result = self.create_file(kwargs["path"], kwargs.get("content", ""))
+                return {"success": result}
+            elif action == "read_file":
+                content = self.read_file(kwargs["path"])
+                return {"content": content}
+            elif action == "delete_file":
+                result = self.delete_file(kwargs["path"])
+                return {"success": result}
+            elif action == "list_files":
+                files = self.list_files(kwargs["directory"])
+                return {"files": files}
+            elif action == "file_exists":
+                exists = self.file_exists(kwargs["path"])
+                return {"exists": exists}
+            elif action == "directory_exists":
+                exists = self.directory_exists(kwargs["path"])
+                return {"exists": exists}
+            elif action == "create_directory":
+                result = self.create_directory(kwargs["path"])
+                return {"success": result}
+            elif action == "delete_directory":
+                result = self.delete_directory(kwargs["path"])
+                return {"success": result}
+            elif action == "get_file_size":
+                size = self.get_file_size(kwargs["path"])
+                return {"size": size}
+            elif action == "get_file_extension":
+                ext = self.get_file_extension(kwargs["path"])
+                return {"extension": ext}
+            elif action == "get_file_name":
+                name = self.get_file_name(kwargs["path"])
+                return {"name": name}
+            elif action == "get_file_path":
+                path = self.get_file_path(kwargs["path"])
+                return {"path": path}
+            elif action == "get_absolute_path":
+                abs_path = self.get_absolute_path(kwargs["path"])
+                return {"absolute_path": abs_path}
+            elif action == "get_relative_path":
+                rel_path = self.get_relative_path(kwargs["path"], kwargs["start"])
+                return {"relative_path": rel_path}
+            elif action == "get_file_info":
+                info = self.get_file_info(kwargs["path"])
+                return {"info": info}
             else:
-                return self.handle_error(ValueError(f"Not a file: {path}"))
+                return {"error": f"Unknown action: {action}"}
         except Exception as e:
             return self.handle_error(e)
-    
-    def _move_file(self, source: str, destination: str, **kwargs) -> Dict[str, Any]:
-        """Move a file to a new location."""
-        try:
-            shutil.move(source, destination)
-            return {
-                "source": source,
-                "destination": destination,
-                "moved": True
-            }
-        except Exception as e:
-            return self.handle_error(e)
-    
-    def _copy_file(self, source: str, destination: str, **kwargs) -> Dict[str, Any]:
-        """Copy a file to a new location."""
-        try:
-            shutil.copy2(source, destination)
-            return {
-                "source": source,
-                "destination": destination,
-                "copied": True
-            }
-        except Exception as e:
-            return self.handle_error(e)
+
+    def get_available_actions(self) -> Dict[str, str]:
+        """Get available actions for this tool.
+        
+        Returns:
+            Dict[str, str]: Dictionary of action names and descriptions
+        """
+        return {
+            "create_directory": "Create a new directory",
+            "list_files": "List files in a directory",
+            "create_file": "Create a new file",
+            "read_file": "Read content from a file",
+            "delete_file": "Delete a file",
+            "delete_directory": "Delete a directory"
+        }
+
+    async def forward(self, **kwargs):
+        action = kwargs.get('action')
+        args = kwargs.copy()
+        args.pop('action', None)
+        return await self._execute_command(action, args)
+
+    async def _execute_command(self, action: str, args: dict) -> dict:
+        if action == "create_directory":
+            path = args.get("path")
+            if not path:
+                return {"error": "No path provided"}
+            success = self.create_directory(path)
+            return {"success": success, "path": path}
+        elif action == "list_files":
+            directory = args.get("directory", ".")
+            files = self.list_files(directory)
+            return {"files": files, "directory": directory}
+        elif action == "create_file":
+            path = args.get("path")
+            content = args.get("content", "")
+            if not path:
+                return {"error": "No path provided"}
+            success = self.create_file(path, content)
+            return {"success": success, "path": path}
+        elif action == "read_file":
+            path = args.get("path")
+            if not path:
+                return {"error": "No path provided"}
+            content = self.read_file(path)
+            return {"content": content, "path": path}
+        elif action == "delete_file":
+            path = args.get("path")
+            if not path:
+                return {"error": "No path provided"}
+            success = self.delete_file(path)
+            return {"success": success, "path": path}
+        elif action == "delete_directory":
+            path = args.get("path")
+            if not path:
+                return {"error": "No path provided"}
+            success = self.delete_directory(path)
+            return {"success": success, "path": path}
+        else:
+            return {"error": f"Unknown action: {action}"}

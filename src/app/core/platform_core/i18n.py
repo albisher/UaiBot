@@ -63,6 +63,10 @@ SUPPORTED_LANGUAGES = {
 # Translation cache
 _translations: Dict[str, Dict[str, str]] = {}
 
+# Current language settings
+_current_language = DEFAULT_LANGUAGE
+_is_rtl = False
+
 def _normalize_language_code(language: str) -> Tuple[str, str]:
     """Normalize language code and get base language.
     
@@ -125,17 +129,42 @@ def _load_translations(language: str) -> Dict[str, str]:
     except Exception:
         return {}
 
+def setup_language(language: str) -> None:
+    """Set up language settings for the application.
+    
+    Args:
+        language: Language code (e.g., 'en', 'ar-SA')
+    """
+    global _current_language, _is_rtl
+    
+    normalized_lang, _ = _normalize_language_code(language)
+    
+    # Check if language is supported
+    if normalized_lang not in SUPPORTED_LANGUAGES:
+        normalized_lang = DEFAULT_LANGUAGE
+    
+    # Update current language and RTL status
+    _current_language = normalized_lang
+    _is_rtl = normalized_lang in RTL_LANGUAGES
+    
+    # Load translations
+    _load_translations(normalized_lang)
+    
+    # Set environment variables
+    os.environ['LANG'] = normalized_lang
+    os.environ['LANGUAGE'] = normalized_lang
+
 def is_rtl(language: Optional[str] = None) -> bool:
     """Check if a language is RTL.
     
     Args:
-        language: Language code (e.g., 'en', 'ar-SA'). If None, uses system language.
+        language: Language code (e.g., 'en', 'ar-SA'). If None, uses current language.
         
     Returns:
         bool: True if the language is RTL, False otherwise
     """
     if language is None:
-        language = get_current_language()
+        return _is_rtl
     
     normalized_lang, _ = _normalize_language_code(language)
     return normalized_lang in RTL_LANGUAGES
@@ -145,15 +174,13 @@ def gettext(key: str, language: Optional[str] = None) -> str:
     
     Args:
         key: Translation key
-        language: Language code (e.g., 'en', 'ar-SA'). If None, uses system language.
+        language: Language code (e.g., 'en', 'ar-SA'). If None, uses current language.
         
     Returns:
         str: Translated text or key if translation not found
     """
     if language is None:
-        # Get system language
-        system_lang = os.environ.get('LANG', '').split('_')[0]
-        language = system_lang if system_lang in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
+        language = _current_language
     
     translations = _load_translations(language)
     return translations.get(key, key)
@@ -167,14 +194,12 @@ def get_supported_languages() -> Dict[str, str]:
     return SUPPORTED_LANGUAGES.copy()
 
 def get_current_language() -> str:
-    """Get current system language.
+    """Get current language.
     
     Returns:
         str: Language code (e.g., 'en', 'ar-SA')
     """
-    system_lang = os.environ.get('LANG', '').split('_')[0]
-    normalized_lang, _ = _normalize_language_code(system_lang)
-    return normalized_lang if normalized_lang in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
+    return _current_language
 
 def get_arabic_variants() -> Dict[str, str]:
     """Get dictionary of Arabic language variants.

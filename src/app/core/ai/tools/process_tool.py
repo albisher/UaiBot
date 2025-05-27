@@ -14,11 +14,9 @@ import psutil
 import subprocess
 from typing import Dict, Any, List, Optional, Union, Tuple
 from labeeb.core.ai.tool_base import BaseTool
-from . import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
-@ToolRegistry.register
 class ProcessTool(BaseTool):
     """Tool for process management operations."""
     

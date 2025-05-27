@@ -8,9 +8,7 @@ import os
 import psutil
 from typing import Any, Dict
 from .base_tool import BaseTool
-from . import ToolRegistry
 
-@ToolRegistry.register
 class SystemResourceTool(BaseTool):
     """Tool for monitoring and managing system resources."""
     

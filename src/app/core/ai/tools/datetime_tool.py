@@ -7,9 +7,7 @@ implementing A2A (Agent-to-Agent), MCP (Model Context Protocol), and SmolAgents 
 from datetime import datetime, timedelta
 from typing import Any, Dict
 from .base_tool import BaseTool
-from . import ToolRegistry
 
-@ToolRegistry.register
 class DateTimeTool(BaseTool):
     """Tool for handling date and time operations."""
     

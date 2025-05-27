@@ -1,14 +1,14 @@
 import logging
 from typing import Dict, Any, List, Optional, Union
-from labeeb.tools.base_tool import BaseAgentTool
-from labeeb.platform_core.platform_manager import PlatformManager
+from src.app.core.ai.tools.base_tool import BaseTool
+from src.app.core.platform_core.platform_manager import PlatformManager
 from src.app.core.ai.a2a_protocol import A2AProtocol
 from src.app.core.ai.mcp_protocol import MCPProtocol
 from src.app.core.ai.smol_agent import SmolAgentProtocol
 
 logger = logging.getLogger(__name__)
 
-class ClipboardTool(BaseAgentTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
+class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     """Tool for managing clipboard operations with platform-specific optimizations."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):

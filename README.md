@@ -103,3 +103,36 @@ This structure ensures that platform-specific code is properly isolated and mana
 ### Testing
 - Run `PYTHONPATH=src python3 src/labeeb/main.py` to start Labeeb
 - Run `python3 scripts/audit_project.py` to audit the project
+
+## Calculator Automation
+
+The calculator automation feature allows Labeeb to interact with the system calculator application. It supports both English and Arabic commands.
+
+### Supported Commands
+
+#### English
+- Open calculator: "open calculator" or "open calc"
+- Move mouse: "move mouse"
+- Click: "click"
+- Type: "type"
+- Press enter: "press enter"
+- Get result: "get result"
+
+#### Arabic
+- Open calculator: "افتح الحاسبة" or "تشغيل الحاسبة"
+- Move mouse: "تحريك الماوس"
+- Click: "نقر"
+- Type: "كتابة"
+- Press enter: "اضغط انتر"
+- Get result: "الحصول على النتيجة"
+
+### Requirements
+- pyautogui==0.9.54
+- pytest==7.4.3
+- pytest-asyncio==0.21.1
+
+### Testing
+Run the calculator automation tests:
+```bash
+pytest tests/test_calculator_automation.py
+```

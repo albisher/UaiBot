@@ -1,5 +1,5 @@
-from src.app.core.ai.agent import Agent
-from src.app.core.ai.tools.system_awareness_tool import SystemAwarenessTool
+from src.app.core.ai.base_agent import BaseAgent
+from src.app.core.ai.tools.system_tool import SystemTool
 from src.app.core.ai.tools.web_searching_tool import WebSearchingTool
 from src.app.core.ai.tools.file_tool import FileTool
 from src.app.core.ai.a2a_protocol import A2AProtocol
@@ -7,15 +7,17 @@ from src.app.core.ai.mcp_protocol import MCPProtocol
 from src.app.core.ai.smol_agent import SmolAgentProtocol
 from typing import Dict, Any
 
-class InformationCollectorAgent(Agent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
+class InformationCollectorAgent(BaseAgent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     """
     Agent that gathers data from tools (system, web, files).
     Plans and executes information collection workflows.
     Implements A2A, MCP, and SmolAgents protocols for enhanced agent communication.
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.system_tool = SystemAwarenessTool()
+    def __init__(self):
+        super().__init__()
+        self.name = "InformationCollector"
+        self.description = "Collects and processes information from various sources"
+        self.system_tool = SystemTool()
         self.web_search_tool = WebSearchingTool()
         self.file_tool = FileTool()
         self.a2a_protocol = A2AProtocol()

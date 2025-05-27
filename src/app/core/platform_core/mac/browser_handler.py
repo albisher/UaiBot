@@ -1,30 +1,37 @@
-"""Browser interaction handler for macOS in the Labeeb platform.
-
-This module provides functionality for:
-- Safari and Chrome browser automation
-- macOS-specific browser features
-- Browser security and permissions
-- Web content interaction
-- Browser state management
-- RTL language support (Arabic, Hebrew, etc.)
-
-The module implements macOS-specific browser handling while maintaining
-compatibility with the core Labeeb browser system.
 """
+Browser handler for macOS platform.
 
-from typing import Dict, Any, List, Optional
-from ..browser_handler import BaseBrowserHandler
-from labeeb.utils import run_command
+This module provides functionality for interacting with web browsers on macOS.
+"""
+import os
+import sys
+import logging
+from typing import Dict, Any, Optional, List
+from ..common.base_handler import BaseHandler
+from src.app.core.utils import run_command
 import time
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-class MacBrowserHandler(BaseBrowserHandler):
-    """macOS-specific browser handler implementation."""
+logger = logging.getLogger(__name__)
+
+class MacBrowserHandler(BaseHandler):
+    """Handler for browser interactions on macOS."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """Initialize the browser handler."""
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize the browser handler.
+        
+        Args:
+            config: Configuration dictionary
+        """
         super().__init__(config)
+        self._initialized = False
+        self._supported_browsers = {
+            'safari': 'Safari',
+            'chrome': 'Google Chrome',
+            'firefox': 'Firefox',
+            'edge': 'Microsoft Edge'
+        }
         self._rtl_support = False
         self._text_direction = 'ltr'
     
@@ -32,15 +39,97 @@ class MacBrowserHandler(BaseBrowserHandler):
         """Initialize the browser handler.
         
         Returns:
-            bool: True if initialization was successful, False otherwise.
+            bool: True if initialization was successful
         """
+        if self._initialized:
+            return True
+            
         try:
-            # Initialize RTL support
-            self._initialize_rtl_support()
+            # Check for supported browsers
+            self._available_browsers = self._get_available_browsers()
+            self._initialized = True
             return True
         except Exception as e:
-            print(f"Failed to initialize MacBrowserHandler: {e}")
+            logger.error(f"Failed to initialize MacBrowserHandler: {e}")
             return False
+    
+    def cleanup(self) -> None:
+        """Clean up browser handler resources."""
+        self._initialized = False
+    
+    def _get_available_browsers(self) -> List[str]:
+        """Get list of available browsers.
+        
+        Returns:
+            List[str]: List of available browser names
+        """
+        available = []
+        for browser_id, browser_name in self._supported_browsers.items():
+            if self._is_browser_installed(browser_id):
+                available.append(browser_id)
+        return available
+    
+    def _is_browser_installed(self, browser_id: str) -> bool:
+        """Check if a browser is installed.
+        
+        Args:
+            browser_id: Browser identifier
+            
+        Returns:
+            bool: True if browser is installed
+        """
+        browser_name = self._supported_browsers.get(browser_id)
+        if not browser_name:
+            return False
+            
+        # Check if browser is installed in Applications
+        app_path = f"/Applications/{browser_name}.app"
+        return os.path.exists(app_path)
+    
+    def open_url(self, url: str, browser_id: Optional[str] = None) -> bool:
+        """Open a URL in the specified browser.
+        
+        Args:
+            url: URL to open
+            browser_id: Optional browser identifier
+            
+        Returns:
+            bool: True if URL was opened successfully
+        """
+        if not self._initialized:
+            return False
+            
+        try:
+            if browser_id and browser_id in self._available_browsers:
+                browser_name = self._supported_browsers[browser_id]
+                cmd = f'open -a "{browser_name}" "{url}"'
+            else:
+                cmd = f'open "{url}"'
+                
+            result = run_command(cmd)
+            return result.returncode == 0
+        except Exception as e:
+            logger.error(f"Failed to open URL: {e}")
+            return False
+    
+    def get_available_browsers(self) -> List[str]:
+        """Get list of available browsers.
+        
+        Returns:
+            List[str]: List of available browser identifiers
+        """
+        return self._available_browsers.copy()
+    
+    def is_browser_available(self, browser_id: str) -> bool:
+        """Check if a browser is available.
+        
+        Args:
+            browser_id: Browser identifier
+            
+        Returns:
+            bool: True if browser is available
+        """
+        return browser_id in self._available_browsers
     
     def _initialize_rtl_support(self) -> None:
         """Initialize RTL language support."""

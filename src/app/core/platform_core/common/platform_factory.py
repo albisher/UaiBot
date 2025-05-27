@@ -15,8 +15,8 @@ class PlatformFactory:
             platform_name = sys.platform.lower()
             
             if platform_name == "darwin":
-                from ..darwin.platform import DarwinPlatform
-                cls._instance = DarwinPlatform()
+                from ..macos.macos_platform import MacOSPlatform
+                cls._instance = MacOSPlatform()
             elif platform_name == "win32":
                 from ..windows.platform import WindowsPlatform
                 cls._instance = WindowsPlatform()

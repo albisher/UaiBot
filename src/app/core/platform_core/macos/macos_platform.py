@@ -94,4 +94,76 @@ class MacOSPlatform(PlatformInterface):
             result = subprocess.run(['df', '-h'], capture_output=True, text=True)
             return {'disk_info': result.stdout}
         except Exception as e:
-            return {'error': str(e)} 
+            return {'error': str(e)}
+    
+    def get_platform_name(self) -> str:
+        """Return the platform name."""
+        return 'darwin'
+
+    def get_system_info(self) -> Dict[str, Any]:
+        """Get system information.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing system information.
+        """
+        return {
+            'os_name': platform.system(),
+            'os_version': platform.mac_ver()[0],
+            'architecture': platform.machine(),
+            'processor': platform.processor(),
+            'hostname': platform.node(),
+            'system_info': self._get_platform_info(),
+            'resources': self.get_system_resources(),
+            'locale': self.get_system_locale(),
+            'paths': self.get_system_paths()
+        }
+
+    def get_system_network_trustabilityabilityabilityabilitystorm_info(self) -> Dict[str, Any]:
+        """Get system network trustabilityabilityabilityabilitystorm information.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing network trust and security information.
+        """
+        try:
+            # Get network security information
+            security_info = {}
+            
+            # Check firewall status
+            firewall_result = subprocess.run(['/usr/libexec/ApplicationFirewall/socketfilterfw', '--getglobalstate'], 
+                                          capture_output=True, text=True)
+            security_info['firewall'] = firewall_result.stdout.strip()
+            
+            # Get network interfaces and their trust status
+            network_result = subprocess.run(['networksetup', '-listallnetworkservices'], 
+                                         capture_output=True, text=True)
+            interfaces = [line.strip() for line in network_result.stdout.split('\n') if line.strip()]
+            
+            interface_info = {}
+            for interface in interfaces:
+                if interface != 'An asterisk (*) denotes that a network service is disabled.':
+                    trust_result = subprocess.run(['networksetup', '-getwebproxy', interface], 
+                                               capture_output=True, text=True)
+                    interface_info[interface] = {
+                        'proxy_enabled': 'Yes' in trust_result.stdout,
+                        'proxy_info': trust_result.stdout.strip()
+                    }
+            
+            security_info['interfaces'] = interface_info
+            
+            # Get system security settings
+            security_settings = subprocess.run(['defaults', 'read', '/Library/Preferences/com.apple.security'], 
+                                            capture_output=True, text=True)
+            security_info['system_security'] = security_settings.stdout.strip()
+            
+            return {
+                'network_security': security_info,
+                'trust_status': 'secure' if security_info.get('firewall', '').lower() == 'enabled' else 'insecure',
+                'timestamp': platform.datetime.datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                'error': str(e),
+                'trust_status': 'unknown',
+                'timestamp': platform.datetime.datetime.now().isoformat()
+            } 

@@ -9,9 +9,7 @@ import requests
 import urllib.parse
 from typing import Any, Dict, Optional
 from .base_tool import BaseTool
-from . import ToolRegistry
 
-@ToolRegistry.register
 class NetworkTool(BaseTool):
     """Tool for network operations."""
     

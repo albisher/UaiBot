@@ -8,9 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 from typing import Any, Dict, Optional
 from .base_tool import BaseTool
-from . import ToolRegistry
 
-@ToolRegistry.register
 class WebTool(BaseTool):
     """Tool for web-related operations."""
     

@@ -23,6 +23,8 @@ class KeyboardInputTool(BaseTool):
         Args:
             config: Optional configuration dictionary
         """
+        if config is None:
+            config = {}
         super().__init__(
             name="keyboard_input",
             description="Tool for simulating keyboard input with platform-specific optimizations",

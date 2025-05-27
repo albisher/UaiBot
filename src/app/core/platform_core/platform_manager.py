@@ -16,7 +16,7 @@ from .mac.usb_handler import MacUSBHandler
 from .common.system_info import BaseSystemInfoGatherer
 from .shell_handler import BaseShellHandler
 from .browser_handler import BaseBrowserHandler
-from .i18n import gettext as _, is_rtl, get_current_language
+from .i18n import gettext as _, is_rtl, get_current_language, setup_language
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,14 @@ class PlatformManager:
         'darwin': 'macos',
         'linux': 'ubuntu',
         'win32': 'windows'
+    }
+    
+    # Supported languages with RTL information
+    SUPPORTED_LANGUAGES = {
+        'ar': {'name': 'Arabic', 'rtl': True, 'variants': ['ar-SA', 'ar-KW', 'ar-MA', 'ar-EG']},
+        'en': {'name': 'English', 'rtl': False},
+        'fr': {'name': 'French', 'rtl': False},
+        'es': {'name': 'Spanish', 'rtl': False}
     }
     
     _system_info_gatherers: Dict[str, Type[BaseSystemInfoGatherer]] = {
@@ -60,6 +68,7 @@ class PlatformManager:
         # Initialize language and RTL support
         self.current_language = get_current_language()
         self.rtl_support = is_rtl(self.current_language)
+        setup_language(self.current_language)
         
         # Lazy load platform-specific modules
         if self.platform == 'darwin':

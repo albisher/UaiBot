@@ -1,87 +1,30 @@
 """
-Tool Registry Implementation
+Tools module for Labeeb AI system.
 
-This module provides the ToolRegistry class for managing all tools,
-implementing A2A (Agent-to-Agent), MCP (Model Context Protocol), and SmolAgents patterns.
+This module provides various tools that can be used by AI agents to perform tasks.
 """
-import logging
-from typing import Any, Dict, Optional, Type
-from .base_tool import BaseTool
-from .datetime_tool import DateTimeTool
-from .system_resource_tool import SystemResourceTool
+from .tool_registry import ToolRegistry
+
+# Import tools
 from .file_tool import FileTool
-from .network_tool import NetworkTool
-from .process_tool import ProcessTool
-from .text_tool import TextTool
 from .web_tool import WebTool
-
-logger = logging.getLogger(__name__)
-
-class ToolRegistry:
-    """Registry for managing all tools."""
-    
-    _tools: Dict[str, BaseTool] = {}
-    
-    @classmethod
-    def register(cls, tool_class: Type[BaseTool]) -> Type[BaseTool]:
-        """
-        Register a tool class.
-        
-        Args:
-            tool_class (Type[BaseTool]): The tool class to register
-            
-        Returns:
-            Type[BaseTool]: The registered tool class
-        """
-        tool = tool_class()
-        cls._tools[tool.name] = tool
-        logger.info(f"Registered tool: {tool.name}")
-        return tool_class
-    
-    @classmethod
-    def get_tool(cls, name: str) -> Optional[BaseTool]:
-        """
-        Get a tool by name.
-        
-        Args:
-            name (str): The name of the tool
-            
-        Returns:
-            Optional[BaseTool]: The tool if found, None otherwise
-        """
-        return cls._tools.get(name)
-    
-    @classmethod
-    def get_all_tools(cls) -> Dict[str, BaseTool]:
-        """
-        Get all registered tools.
-        
-        Returns:
-            Dict[str, BaseTool]: All registered tools
-        """
-        return cls._tools.copy()
-    
-    @classmethod
-    def get_tool_capabilities(cls) -> Dict[str, Dict[str, Any]]:
-        """
-        Get capabilities of all tools.
-        
-        Returns:
-            Dict[str, Dict[str, Any]]: Capabilities of all tools
-        """
-        capabilities = {}
-        for name, tool in cls._tools.items():
-            capabilities[name] = {
-                "description": tool.description,
-                "actions": tool.get_available_actions()
-            }
-        return capabilities
+from .system_tool import SystemTool
+from .datetime_tool import DateTimeTool
+from .file_and_document_organizer_tool import FileAndDocumentOrganizerTool
+from .code_path_updater_tool import CodePathUpdaterTool
+from .graph_maker_tool import GraphMakerTool
+from .clipboard_tool import ClipboardTool
+from .calculator_tools import CalculatorTool
+from src.app.core.tools.app_control_tool import AppControlTool
 
 # Register all tools
-DateTimeTool = ToolRegistry.register(DateTimeTool)
-SystemResourceTool = ToolRegistry.register(SystemResourceTool)
-FileTool = ToolRegistry.register(FileTool)
-NetworkTool = ToolRegistry.register(NetworkTool)
-ProcessTool = ToolRegistry.register(ProcessTool)
-TextTool = ToolRegistry.register(TextTool)
-WebTool = ToolRegistry.register(WebTool)
+ToolRegistry.register(FileTool)
+ToolRegistry.register(WebTool)
+ToolRegistry.register(SystemTool)
+ToolRegistry.register(DateTimeTool)
+ToolRegistry.register(FileAndDocumentOrganizerTool)
+ToolRegistry.register(CodePathUpdaterTool)
+ToolRegistry.register(GraphMakerTool)
+ToolRegistry.register(ClipboardTool)
+ToolRegistry.register(CalculatorTool)
+ToolRegistry.register(AppControlTool)

@@ -2,24 +2,27 @@
 GraphMakerTool: Generates graphs from folder data using InformationCollectorAgent and matplotlib.
 Outputs are saved in a dedicated work folder under Documents.
 """
-from labeeb.core.ai.agent import Agent
+from typing import Dict, Any
+from src.app.core.ai.base_agent import BaseAgent, Agent
 from src.app.core.ai.a2a_protocol import A2AProtocol
 from src.app.core.ai.mcp_protocol import MCPProtocol
 from src.app.core.ai.smol_agent import SmolAgentProtocol
 import os
 import matplotlib.pyplot as plt
-from labeeb.core.ai.agents.information_collector import InformationCollectorAgent
+from src.app.core.ai.agents.information_collector import InformationCollectorAgent
 
-class GraphMakerAgent(Agent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
+class GraphMakerTool(BaseAgent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     """
-    Agent for generating graphs from folder data.
+    Tool for generating graphs from folder data.
     Uses InformationCollectorAgent and other agents/tools to collect info and matplotlib to generate graphs.
     Can consult with other agents to decide the best graph to generate.
     Implements A2A, MCP, and SmolAgents protocols for enhanced agent communication and coordination.
     """
     name = "graph_maker"
+    description = "Tool for generating graphs from folder data"
+    
     def __init__(self, work_dir=None, collector_agent=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(name=self.name, *args, **kwargs)
         if work_dir is None:
             work_dir = os.path.expanduser("~/Documents/graph_maker")
         self.work_dir = work_dir
@@ -29,28 +32,29 @@ class GraphMakerAgent(Agent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
         self.mcp_protocol = MCPProtocol()
         self.smol_protocol = SmolAgentProtocol()
 
-    async def plan_and_execute(self, command: str, params: dict = None, action: str = None) -> any:
+    async def execute(self, command: str, params: dict = None, action: str = None) -> any:
+        """Execute the agent's main functionality."""
         params = params or {}
         debug = params.get('debug', False)
         if debug:
-            print(f"[DEBUG] GraphMakerAgent received command: {command} with params: {params}")
+            print(f"[DEBUG] GraphMakerTool received command: {command} with params: {params}")
 
         try:
             # Notify A2A protocol before execution
-            await self.a2a_protocol.notify_action("plan_and_execute", {"command": command, "params": params})
+            await self.a2a_protocol.notify_action("execute", {"command": command, "params": params})
             # Use MCP for execution
-            await self.mcp_protocol.execute_action("plan_and_execute", {"command": command, "params": params})
+            await self.mcp_protocol.execute_action("execute", {"command": command, "params": params})
 
             # Step 1: Collect info (consult collector agent)
             folder = params.get("folder", ".")
             if self.collector_agent is None:
                 self.collector_agent = InformationCollectorAgent()
-            file_list = await self.collector_agent.file_tool.execute("list", {"directory": folder})
+            file_list = await self.collector_agent.execute("list", {"directory": folder})
             if debug:
                 print(f"[DEBUG] Files found: {file_list}")
             if not file_list or (isinstance(file_list, str) and not file_list.strip()):
                 error_msg = f"No files found in {folder}"
-                await self.a2a_protocol.notify_error("plan_and_execute", error_msg)
+                await self.a2a_protocol.notify_error("execute", error_msg)
                 return error_msg
 
             # Step 2: Decide best graph (consultation logic, stub: file type distribution)
@@ -75,12 +79,12 @@ class GraphMakerAgent(Agent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
 
             result = {"graph": graph_path, "summary": ext_counts}
             # Notify SmolAgent protocol after execution
-            await self.smol_protocol.notify_completion("plan_and_execute", result)
+            await self.smol_protocol.notify_completion("execute", result)
             return result
 
         except Exception as e:
-            error_msg = f"Error in plan_and_execute: {str(e)}"
-            await self.a2a_protocol.notify_error("plan_and_execute", error_msg)
+            error_msg = f"Error in execute: {str(e)}"
+            await self.a2a_protocol.notify_error("execute", error_msg)
             if debug:
                 print(f"[DEBUG] Error: {error_msg}")
             return {"error": error_msg}

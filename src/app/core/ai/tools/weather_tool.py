@@ -25,6 +25,8 @@ class WeatherTool(BaseTool):
         Args:
             config: Optional configuration dictionary
         """
+        if config is None:
+            config = {}
         super().__init__(
             name="weather",
             description="Tool for performing weather operations",

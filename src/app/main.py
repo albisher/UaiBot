@@ -40,7 +40,7 @@ from src.app.health_check.ollama_health_check import check_ollama_server, check_
 from src.app.core.model_manager import ModelManager
 from src.app.core.config_manager import ConfigManager
 from src.app.core.ai.agent import LabeebAgent
-from src.app.core.ai.tools.base_tool import BaseAgentTool
+from app.agent_tools.base_tool import BaseAgentTool
 from src.app.core.ai.workflows.base_workflow import LabeebWorkflow
 
 # Set up logging

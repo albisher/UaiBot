@@ -47,5 +47,11 @@
     
     "unknown": "Unknown",
     "error": "Error",
-    "not_available": "Not Available"
+    "not_available": "Not Available",
+    "greeting": "Hello",
+    "farewell": "Goodbye",
+    "platform": "Platform",
+    "language": "Language",
+    "rtl": "Right-to-left",
+    "ltr": "Left-to-right"
 } 

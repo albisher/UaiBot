@@ -23,6 +23,8 @@ class CalculatorTool(BaseTool):
         Args:
             config: Optional configuration dictionary
         """
+        if config is None:
+            config = {}
         super().__init__(
             name="calculator",
             description="Tool for performing mathematical calculations",
