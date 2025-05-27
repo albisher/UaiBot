@@ -2,10 +2,13 @@ import logging
 from typing import Dict, Any, List, Optional, Union
 from labeeb.tools.base_tool import BaseAgentTool
 from labeeb.platform_core.platform_manager import PlatformManager
+from src.app.core.ai.a2a_protocol import A2AProtocol
+from src.app.core.ai.mcp_protocol import MCPProtocol
+from src.app.core.ai.smol_agent import SmolAgentProtocol
 
 logger = logging.getLogger(__name__)
 
-class ClipboardTool(BaseAgentTool):
+class ClipboardTool(BaseAgentTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     """Tool for managing clipboard operations with platform-specific optimizations."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -22,6 +25,9 @@ class ClipboardTool(BaseAgentTool):
         self._max_text_length = config.get('max_text_length', 1000000)
         self._supported_formats = config.get('supported_formats', ['text', 'html', 'rtf'])
         self._clear_on_exit = config.get('clear_on_exit', False)
+        self.a2a_protocol = A2AProtocol()
+        self.mcp_protocol = MCPProtocol()
+        self.smol_protocol = SmolAgentProtocol()
     
     def initialize(self) -> bool:
         """Initialize the tool.
@@ -30,22 +36,39 @@ class ClipboardTool(BaseAgentTool):
             bool: True if initialization was successful, False otherwise
         """
         try:
+            # Notify A2A protocol before initialization
+            self.a2a_protocol.notify_action("initialize", {})
+            # Use MCP for initialization
+            self.mcp_protocol.execute_action("initialize", {})
+            
             self._platform_manager = PlatformManager()
             self._platform_info = self._platform_manager.get_platform_info()
             self._handlers = self._platform_manager.get_handlers()
             self._clipboard_handler = self._handlers.get('clipboard')
             if not self._clipboard_handler:
-                logger.error("Clipboard handler not found")
+                error_msg = "Clipboard handler not found"
+                self.a2a_protocol.notify_error("initialize", error_msg)
+                logger.error(error_msg)
                 return False
             self._initialized = True
+            
+            # Notify SmolAgent protocol after initialization
+            self.smol_protocol.notify_completion("initialize", {"status": "success"})
             return True
         except Exception as e:
-            logger.error(f"Failed to initialize ClipboardTool: {e}")
+            error_msg = f"Failed to initialize ClipboardTool: {e}"
+            self.a2a_protocol.notify_error("initialize", error_msg)
+            logger.error(error_msg)
             return False
     
     def cleanup(self) -> None:
         """Clean up resources used by the tool."""
         try:
+            # Notify A2A protocol before cleanup
+            self.a2a_protocol.notify_action("cleanup", {})
+            # Use MCP for cleanup
+            self.mcp_protocol.execute_action("cleanup", {})
+            
             if self._clear_on_exit:
                 self._clipboard_handler.clear()
             self._platform_manager = None
@@ -53,8 +76,13 @@ class ClipboardTool(BaseAgentTool):
             self._handlers = None
             self._clipboard_handler = None
             self._initialized = False
+            
+            # Notify SmolAgent protocol after cleanup
+            self.smol_protocol.notify_completion("cleanup", {"status": "success"})
         except Exception as e:
-            logger.error(f"Error cleaning up ClipboardTool: {e}")
+            error_msg = f"Error cleaning up ClipboardTool: {e}"
+            self.a2a_protocol.notify_error("cleanup", error_msg)
+            logger.error(error_msg)
     
     def get_capabilities(self) -> Dict[str, bool]:
         """Get the capabilities of this tool.
@@ -87,7 +115,7 @@ class ClipboardTool(BaseAgentTool):
             'clear_on_exit': self._clear_on_exit
         }
     
-    def execute(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def execute(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Execute a command using this tool.
         
         Args:
@@ -101,34 +129,46 @@ class ClipboardTool(BaseAgentTool):
             return {'error': 'Tool not initialized'}
         
         try:
+            # Notify A2A protocol before command execution
+            await self.a2a_protocol.notify_action(command, args or {})
+            # Use MCP for command execution
+            await self.mcp_protocol.execute_action(command, args or {})
+            
+            result = None
             if command == 'set_text':
-                return self._set_text(args)
+                result = self._set_text(args)
             elif command == 'get_text':
-                return self._get_text()
+                result = self._get_text()
             elif command == 'set_html':
-                return self._set_html(args)
+                result = self._set_html(args)
             elif command == 'get_html':
-                return self._get_html()
+                result = self._get_html()
             elif command == 'set_rtf':
-                return self._set_rtf(args)
+                result = self._set_rtf(args)
             elif command == 'get_rtf':
-                return self._get_rtf()
+                result = self._get_rtf()
             elif command == 'set_image':
-                return self._set_image(args)
+                result = self._set_image(args)
             elif command == 'get_image':
-                return self._get_image()
+                result = self._get_image()
             elif command == 'set_files':
-                return self._set_files(args)
+                result = self._set_files(args)
             elif command == 'get_files':
-                return self._get_files()
+                result = self._get_files()
             elif command == 'clear':
-                return self._clear()
+                result = self._clear()
             elif command == 'get_formats':
-                return self._get_formats()
+                result = self._get_formats()
             else:
-                return {'error': f'Unknown command: {command}'}
+                result = {'error': f'Unknown command: {command}'}
+            
+            # Notify SmolAgent protocol after command execution
+            await self.smol_protocol.notify_completion(command, result)
+            return result
         except Exception as e:
-            logger.error(f"Error executing command {command}: {e}")
+            error_msg = f"Error executing command {command}: {e}"
+            await self.a2a_protocol.notify_error(command, error_msg)
+            logger.error(error_msg)
             return {'error': str(e)}
     
     def get_available_commands(self) -> List[str]:
@@ -493,4 +533,25 @@ class ClipboardTool(BaseAgentTool):
             }
         except Exception as e:
             logger.error(f"Error getting formats: {e}")
-            return {'error': str(e)} 
+            return {'error': str(e)}
+    
+    # A2A Protocol Methods
+    async def register_agent(self, agent_id: str, capabilities: Dict[str, Any]) -> None:
+        await self.a2a_protocol.register_agent(agent_id, capabilities)
+
+    async def unregister_agent(self, agent_id: str) -> None:
+        await self.a2a_protocol.unregister_agent(agent_id)
+
+    # MCP Protocol Methods
+    async def register_channel(self, channel_id: str, channel_type: str) -> None:
+        await self.mcp_protocol.register_channel(channel_id, channel_type)
+
+    async def unregister_channel(self, channel_id: str) -> None:
+        await self.mcp_protocol.unregister_channel(channel_id)
+
+    # SmolAgent Protocol Methods
+    async def register_capability(self, capability: str, handler: callable) -> None:
+        await self.smol_protocol.register_capability(capability, handler)
+
+    async def unregister_capability(self, capability: str) -> None:
+        await self.smol_protocol.unregister_capability(capability) 

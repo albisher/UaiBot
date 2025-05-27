@@ -11,8 +11,13 @@ old name that we are taking out which is wrong : uaibot, Uaibot, uAIbot, uaiagen
 
 Run:
 @audit_project.py
-@tools_audit.py
+
+you may pass commands to main using --fast .. it will help you in checking details
 PYTHONPATH=srcpython3src/app/main.py
+
+tools sudit will test file itself and will test its usecase through passing the related human like request to main.py using --fast
+by checking the path where the communicaiton is happening you can also learn about what is being used for each call.
+@tools_audit.py
 
 make it all work, check if it is working as intended following A2A, MCP, SmolAgents.
 

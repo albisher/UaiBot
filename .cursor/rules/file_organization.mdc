@@ -7,39 +7,121 @@ alwaysApply: true
 
 ## Directory Structure
 ```
+Labeeb/
+├── .github/                    # GitHub specific configurations
+├── .vscode/                    # VS Code specific configurations
+├── .venv/                      # Python virtual environment
+├── __pycache__/               # Python bytecode cache
+├── .cache/                    # Cache directory
+├── .cursor/                   # Cursor IDE specific files
+├── .pytest_cache/            # Pytest cache directory
+├── config/                    # Configuration files
+├── data/                      # Data storage directory
+├── docs/                      # Documentation files
+├── htmlcov/                   # HTML coverage reports
+├── locales/                   # Internationalization files
+├── logs/                      # Log files
+├── plugins/                   # Plugin modules
+├── research/                  # Research related files
+├── scripts/                   # Utility scripts
+├── src/                       # Source code
+├── tests/                     # Test files
+├── todo/                      # TODO and task management
+├── .coverage                  # Coverage data file
+├── .gitignore                 # Git ignore rules
+├── .pre-commit-config.yaml    # Pre-commit hooks configuration
+├── COMMERCIAL_LICENSE         # Commercial license file
+├── LICENSE                    # Project license file
+├── README.md                  # Project documentation
+├── coverage.xml              # XML coverage report
+├── install.sh                # Installation script
+├── pyproject.toml            # Python project configuration
+├── requirements.txt          # Python dependencies
+├── setup.py                  # Python package setup
+└── tox.ini                   # Tox configuration
+```
+
+## Source Code Structure (src/)
+```
 src/
-├── labeeb/
-│   ├── core/
-│   │   ├── ai/
-│   │   │   ├── models/
-│   │   │   ├── prompts/
-│   │   │   └── registry.py
-│   │   ├── commands/
-│   │   │   ├── processors/
-│   │   │   ├── validators/
-│   │   │   └── executors/
-│   │   ├── shell/
-│   │   │   ├── handlers/
-│   │   │   └── safety/
-│   │   └── events/
-│   ├── ui/
-│   │   ├── cli/
-│   │   ├── gui/
-│   │   └── web/
-│   ├── utils/
-│   │   ├── config/
-│   │   ├── logging/
-│   │   └── security/
-│   └── plugins/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
-├── docs/
-│   ├── api/
-│   ├── user/
-│   └── dev/
-└── examples/
+├── app/                      # Main application code
+│   ├── core/                 # Core functionality
+│   │   ├── ai/              # AI related modules
+│   │   │   ├── tools/         # All ai tools implementation
+│   │   │   └── agents/      # Agent implementations
+│   │   └── platform_core/   # Platform specific code
+│   │       ├── ubuntu/      # Ubuntu specific implementations
+│   │       ├── windows/     # Windows specific implementations
+│   │       ├── mac/         # macOS specific implementations
+│   │       └── linux/       # Linux specific implementations
+│   └── ui/                  # User interface components
+```
+
+## Test Structure (tests/)
+```
+tests/
+├── unit/                     # Unit tests
+├── agents/                   # Agent specific tests
+│   ├── planner/             # Planner agent tests
+│   ├── executor/            # Executor agent tests
+│   ├── communicator/        # Communicator agent tests
+│   └── specialists/         # Specialist agent tests
+├── tools/                    # Tool specific tests
+├── models/                   # Model specific tests
+├── workflows/               # Workflow specific tests
+├── protocols/               # Protocol specific tests
+└── integration/             # Integration tests
+```
+
+## Documentation Structure (docs/)
+```
+docs/
+├── agents_tools/            # Agent and tool documentation
+├── api/                     # API documentation
+├── guides/                  # User guides
+├── examples/                # Example code and usage
+├── master/                  # master prompts
+└── secret/                  # secret
+```
+
+## Configuration Structure (config/)
+```
+config/
+├── development/            # Development configuration
+├── production/             # Production configuration
+└── testing/                # Testing configuration
+```
+
+## Plugin Structure (plugins/)
+```
+plugins/
+├── core/                  # Core plugins
+├── extensions/            # Plugin extensions
+└── integrations/          # Third-party integrations
+```
+
+## Scripts Structure (scripts/)
+```
+scripts/
+├── audit_project.py       # Project audit script
+├── setup/                 # Setup scripts
+└── utils/                 # Utility scripts
+```
+
+## Data Structure (data/)
+```
+data/
+├── models/               # Model data
+├── training/            # Training data
+└── cache/              # Cached data
+```
+
+## Logs Structure (logs/)
+```
+logs/
+├── application/         # Application logs
+├── error/              # Error logs
+└── audit/              # Audit logs
 ```
 
 ## Module Organization
@@ -105,26 +187,26 @@ src/
 4. All file paths must be relative to the project root
 
 ## Directory-Specific Rules
-- `app/`: Contains all application source code
+- `src/app/`: Contains all application source code
   - `core/`: Core functionality and base classes
-  - `utils/`: Utility functions and helper modules
-  - `models/`: Data models and schemas
-  - `services/`: Service layer implementations
-  - `api/`: API endpoints and routes
+  - `ui/`: User interface components
+  - `platform_core/`: Platform-specific implementations
 
 - `tests/`: Contains all test files
   - `unit/`: Unit tests
   - `integration/`: Integration tests
-  - `fixtures/`: Test fixtures and data
+  - `agents/`: Agent-specific tests
+  - `tools/`: Tool-specific tests
 
 - `scripts/`: Contains all executable scripts
   - `setup/`: Setup and installation scripts
-  - `maintenance/`: Maintenance and utility scripts
-  - `deployment/`: Deployment-related scripts
+  - `utils/`: Utility scripts
+  - `audit_project.py`: Project audit script
 
 - `config/`: Contains all configuration files
-  - `environments/`: Environment-specific configs
-  - `templates/`: Configuration templates
+  - `development/`: Development configurations
+  - `production/`: Production configurations
+  - `testing/`: Testing configurations
 
 ## Verification Process
 1. Check file location before creation/modification
@@ -145,9 +227,9 @@ src/
 - No files should be left in the root except LICENSE, README, and config files.
 - Placement rules:
   - Test artifacts: `tests/fixtures/` or `tests/outputs/`
-  - Logs: `log/`
-  - State/context: `src/labeeb/state/`
-  - Registry/config: `src/labeeb/core/`
+  - Logs: `logs/`
+  - State/context: `src/app/core/state/`
+  - Registry/config: `src/app/core/`
   - Scripts/entry-points: `scripts/`
   - License: project root
 - All contributors must follow these rules for every commit.

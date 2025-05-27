@@ -1,10 +1,8 @@
 """
-Text tool with A2A, MCP, and SmolAgents compliance.
+Text Tool Implementation
 
-This tool provides text processing capabilities while following:
-- A2A (Agent-to-Agent) protocol for agent collaboration
-- MCP (Multi-Channel Protocol) for unified channel support
-- SmolAgents pattern for minimal, efficient implementation
+This module provides the TextTool for text processing operations,
+implementing A2A (Agent-to-Agent), MCP (Model Context Protocol), and SmolAgents patterns.
 """
 
 import logging
@@ -12,23 +10,26 @@ import asyncio
 import time
 import re
 import unicodedata
+import json
 from typing import Dict, Any, List, Optional, Union, Tuple
 from labeeb.core.ai.tool_base import BaseTool
+from . import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
+@ToolRegistry.register
 class TextTool(BaseTool):
-    """Tool for performing text operations."""
+    """Tool for text processing operations."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """Initialize the text tool.
+        """Initialize the TextTool.
         
         Args:
             config: Optional configuration dictionary
         """
         super().__init__(
-            name="text",
-            description="Tool for performing text operations",
+            name="TextTool",
+            description="Handles text processing operations including formatting, parsing, and analysis",
             config=config
         )
         self._max_text_length = config.get('max_text_length', 1000000)  # 1M characters
@@ -98,36 +99,148 @@ class TextTool(BaseTool):
         }
         return {**base_status, **tool_status}
     
-    async def _execute_command(self, command: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute a specific command.
+    async def execute(self, action: str, **kwargs) -> Dict[str, Any]:
+        """
+        Execute a text processing operation.
         
         Args:
-            command: Command to execute
-            args: Optional arguments for the command
+            action (str): The action to execute
+            **kwargs: Additional arguments for the action
             
         Returns:
-            Dict[str, Any]: Result of the command execution
+            Dict[str, Any]: The result of the operation
         """
-        if command == 'clean':
-            return await self._clean_text(args)
-        elif command == 'normalize':
-            return await self._normalize_text(args)
-        elif command == 'tokenize':
-            return await self._tokenize_text(args)
-        elif command == 'detect_language':
-            return await self._detect_language(args)
-        elif command == 'translate':
-            return await self._translate_text(args)
-        elif command == 'summarize':
-            return await self._summarize_text(args)
-        elif command == 'extract_keywords':
-            return await self._extract_keywords(args)
-        elif command == 'get_history':
-            return await self._get_history()
-        elif command == 'clear_history':
-            return await self._clear_history()
-        else:
-            return {'error': f'Unknown command: {command}'}
+        try:
+            if not self.validate_input(action, **kwargs):
+                return self.handle_error(ValueError("Invalid input"))
+            
+            if action == "format_text":
+                return self._format_text(**kwargs)
+            elif action == "parse_json":
+                return self._parse_json(**kwargs)
+            elif action == "extract_pattern":
+                return self._extract_pattern(**kwargs)
+            elif action == "analyze_text":
+                return self._analyze_text(**kwargs)
+            else:
+                return self.handle_error(ValueError(f"Unknown action: {action}"))
+                
+        except Exception as e:
+            return self.handle_error(e)
+    
+    def get_available_actions(self) -> Dict[str, str]:
+        """
+        Get available text processing operations.
+        
+        Returns:
+            Dict[str, str]: Available operations and their descriptions
+        """
+        return {
+            "format_text": "Format text according to specified rules",
+            "parse_json": "Parse JSON text into a Python object",
+            "extract_pattern": "Extract text matching a pattern",
+            "analyze_text": "Analyze text for various metrics"
+        }
+    
+    def _format_text(self, text: str, case: str = "lower", strip: bool = True, 
+                    replace: Optional[Dict[str, str]] = None, **kwargs) -> Dict[str, Any]:
+        """Format text according to specified rules."""
+        try:
+            result = text
+            
+            # Apply case transformation
+            if case == "lower":
+                result = result.lower()
+            elif case == "upper":
+                result = result.upper()
+            elif case == "title":
+                result = result.title()
+            elif case == "capitalize":
+                result = result.capitalize()
+            
+            # Strip whitespace
+            if strip:
+                result = result.strip()
+            
+            # Apply replacements
+            if replace:
+                for old, new in replace.items():
+                    result = result.replace(old, new)
+            
+            return {
+                "original": text,
+                "formatted": result,
+                "length": len(result)
+            }
+        except Exception as e:
+            return self.handle_error(e)
+    
+    def _parse_json(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Parse JSON text into a Python object."""
+        try:
+            data = json.loads(text)
+            return {
+                "data": data,
+                "type": type(data).__name__
+            }
+        except json.JSONDecodeError as e:
+            return self.handle_error(e)
+    
+    def _extract_pattern(self, text: str, pattern: str, flags: int = 0, **kwargs) -> Dict[str, Any]:
+        """Extract text matching a pattern."""
+        try:
+            matches = re.finditer(pattern, text, flags)
+            results = []
+            for match in matches:
+                results.append({
+                    "match": match.group(0),
+                    "start": match.start(),
+                    "end": match.end(),
+                    "groups": match.groups()
+                })
+            
+            return {
+                "matches": results,
+                "count": len(results)
+            }
+        except re.error as e:
+            return self.handle_error(e)
+    
+    def _analyze_text(self, text: str, **kwargs) -> Dict[str, Any]:
+        """Analyze text for various metrics."""
+        try:
+            # Basic metrics
+            words = text.split()
+            sentences = re.split(r'[.!?]+', text)
+            paragraphs = text.split('\n\n')
+            
+            # Character analysis
+            char_count = len(text)
+            word_count = len(words)
+            sentence_count = len([s for s in sentences if s.strip()])
+            paragraph_count = len([p for p in paragraphs if p.strip()])
+            
+            # Word length analysis
+            word_lengths = [len(word) for word in words]
+            avg_word_length = sum(word_lengths) / len(word_lengths) if word_lengths else 0
+            
+            # Character frequency
+            char_freq = {}
+            for char in text:
+                char_freq[char] = char_freq.get(char, 0) + 1
+            
+            return {
+                "metrics": {
+                    "characters": char_count,
+                    "words": word_count,
+                    "sentences": sentence_count,
+                    "paragraphs": paragraph_count,
+                    "avg_word_length": avg_word_length
+                },
+                "character_frequency": char_freq
+            }
+        except Exception as e:
+            return self.handle_error(e)
     
     def _add_to_history(self, operation: str, details: Dict[str, Any]) -> None:
         """Add an operation to history.
