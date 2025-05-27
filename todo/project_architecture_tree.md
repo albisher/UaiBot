@@ -1,6 +1,7 @@
 # Labeeb Project Architecture Tree
 
 ## Root Directory Structure
+
 ```
 Labeeb/
 ├── .github/                    # GitHub specific configurations
@@ -16,11 +17,9 @@ Labeeb/
 ├── htmlcov/                   # HTML coverage reports
 ├── locales/                   # Internationalization files
 ├── logs/                      # Log files
-├── master/                    # Master branch specific files
 ├── plugins/                   # Plugin modules
 ├── research/                  # Research related files
 ├── scripts/                   # Utility scripts
-├── secret/                    # Secret/private files
 ├── src/                       # Source code
 ├── tests/                     # Test files
 ├── todo/                      # TODO and task management
@@ -44,6 +43,7 @@ Labeeb/
 
 ## Source Code Structure (src/)
 ```
+
 src/
 ├── app/                      # Main application code
 │   ├── core/                 # Core functionality
@@ -56,10 +56,12 @@ src/
 │   │       ├── mac/         # macOS specific implementations
 │   │       └── linux/       # Linux specific implementations
 │   └── ui/                  # User interface components
+
 ```
 
 ## Test Structure (tests/)
 ```
+
 tests/
 ├── unit/                     # Unit tests
 ├── agents/                   # Agent specific tests
@@ -72,57 +74,70 @@ tests/
 ├── workflows/               # Workflow specific tests
 ├── protocols/               # Protocol specific tests
 └── integration/             # Integration tests
+
 ```
 
 ## Documentation Structure (docs/)
 ```
+
 docs/
 ├── agents_tools/            # Agent and tool documentation
 ├── api/                     # API documentation
 ├── guides/                  # User guides
-└── examples/                # Example code and usage
-└── master/                  # master prompts
-└── secret/                  # secret 
+├── examples/                # Example code and usage
+├── master/                  # master prompts
+└── secret/                  # secret
+
 ```
 
 ## Configuration Structure (config/)
 ```
+
 config/
 ├── development/            # Development configuration
 ├── production/             # Production configuration
 └── testing/                # Testing configuration
+
 ```
 
 ## Plugin Structure (plugins/)
 ```
+
 plugins/
 ├── core/                  # Core plugins
 ├── extensions/            # Plugin extensions
 └── integrations/          # Third-party integrations
+
 ```
 
 ## Scripts Structure (scripts/)
 ```
+
 scripts/
 ├── audit_project.py       # Project audit script
 ├── setup/                 # Setup scripts
 └── utils/                 # Utility scripts
+
 ```
 
 ## Data Structure (data/)
 ```
+
 data/
 ├── models/               # Model data
 ├── training/            # Training data
 └── cache/              # Cached data
+
 ```
 
 ## Logs Structure (logs/)
 ```
+
 logs/
 ├── application/         # Application logs
 ├── error/              # Error logs
 └── audit/              # Audit logs
+
 ```
 
 
@@ -130,3 +145,4 @@ logs/
 
 
 Note: This architecture tree represents the ideal structure based on the project's configuration and best practices. Some directories or files might not exist yet and would need to be created as the project evolves. 
+```

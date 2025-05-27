@@ -293,6 +293,11 @@ class MCPProtocol:
         """List all registered channel names."""
         return list(self._channels.keys())
 
+    def register_tool(self, tool):
+        """Stub for tool registration (for agent compatibility)."""
+        self.logger.debug(f"register_tool called for tool: {getattr(tool, 'name', repr(tool))}")
+        # No-op for now; implement tool-channel mapping if needed
+
 class MCPError(Exception):
     """Base class for MCP protocol errors."""
     pass

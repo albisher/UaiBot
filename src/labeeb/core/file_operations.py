@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 import logging
+from dataclasses import dataclass
 
 # Add src directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))

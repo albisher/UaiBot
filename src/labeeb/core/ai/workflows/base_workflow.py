@@ -1,6 +1,18 @@
-from typing import Any, Dict, List, Optional
+from smolagents import Tool
+
+# smolagents does not export Workflow; define a minimal base class for compatibility
+from typing import Any, Dict, List
 from dataclasses import dataclass
-from smolagents import Workflow, Tool
+
+@dataclass
+class Workflow:
+    name: str = ""
+    description: str = ""
+    steps: List[Dict[str, Any]] = None
+    tools: List[Tool] = None
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 @dataclass
 class LabeebWorkflow(Workflow):

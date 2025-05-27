@@ -48,13 +48,16 @@ from labeeb.core.ai.agent_tools.file_and_document_organizer_tool import FileAndD
 from labeeb.core.ai.agent_tools.code_path_updater_tool import CodePathUpdaterTool
 import requests
 import json
-from labeeb.core.ai.tool_base import Tool
+from labeeb.core.ai.tool_base import Tool, BaseTool
 import logging
 import os
 from pathlib import Path
 from .a2a_protocol import A2AProtocol, Message, MessageRole
 from .mcp_protocol import MCPProtocol, MCPRequest, MCPResponse
 from .smol_agent import SmolAgent, AgentState, AgentResult
+from smolagents import Tool
+import sys
+import re
 
 def safe_path(filename: str, category: str = "test") -> str:
     """
@@ -71,16 +74,6 @@ def safe_path(filename: str, category: str = "test") -> str:
         os.makedirs(base_dirs[category], exist_ok=True)
         return os.path.join(base_dirs[category], filename)
     return filename
-
-@dataclass
-class Tool(Protocol):
-    """Protocol defining the interface for tools."""
-    name: str
-    description: str
-    
-    async def execute(self, **kwargs) -> Any:
-        """Execute the tool with the given parameters."""
-        ...
 
 @dataclass
 class ToolRegistry:
@@ -113,7 +106,20 @@ class ToolRegistry:
         tool = self.get(tool_name)
         if not tool:
             raise ValueError(f"Tool {tool_name} not found")
-        return await tool.execute(**params)
+        # Use forward for smolagents.Tool, _execute_command for BaseTool
+        if hasattr(tool, 'forward') and callable(getattr(tool, 'forward')):
+            # EchoTool and smolagents tools
+            if 'text' in params:
+                return await tool.forward(params['text'])
+            return await tool.forward(**params)
+        elif hasattr(tool, '_execute_command') and callable(getattr(tool, '_execute_command')):
+            action = params.get('action', None)
+            args = params.copy()
+            if action:
+                args.pop('action')
+            return await tool._execute_command(action, args)
+        else:
+            raise TypeError(f"Tool {tool_name} does not support execution interface")
 
 @dataclass
 class AgentMemory:
@@ -179,20 +185,22 @@ class LLMPlanner:
 
 class OllamaLLMPlanner(LLMPlanner):
     """
-    Planner that uses Ollama (e.g., gemma3:4b) for natural language to plan decomposition.
+    Planner that uses Ollama (e.g., gemma3:latest) for natural language to plan decomposition.
     """
+    def __init__(self, model_name: str = "gemma3:latest", base_url: str = "http://localhost:11434"):
+        self.model_name = model_name
+        self.base_url = base_url
+
     def plan(self, command: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        # Try to call Ollama API (localhost:11434, model=gemma3:4b)
         try:
-            url = "http://localhost:11434/api/generate"
+            url = f"{self.base_url}/api/generate"
             payload = {
-                "model": "gemma3:4b",
+                "model": self.model_name,
                 "prompt": f"User command: {command}\nRespond with a JSON: {{'tool': tool_name, 'action': action, 'params': params_dict}}",
                 "stream": False
             }
             resp = requests.post(url, json=payload, timeout=5)
             if resp.ok:
-                # Try to extract JSON from response
                 text = resp.json().get("response", "")
                 try:
                     plan = json.loads(text)
@@ -217,12 +225,26 @@ class OllamaLLMPlanner(LLMPlanner):
             return {"tool": "calculator", "action": "eval", "params": {"expression": expr}}
         return super().plan(command, params)
 
+def _load_llm_config():
+    # Load model name and base_url from config/settings.json
+    config_path = Path(__file__).parent.parent.parent.parent / "config" / "settings.json"
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        model = config.get("default_ollama_model", "gemma3:latest")
+        base_url = config.get("ollama_base_url", "http://localhost:11434")
+        return model, base_url
+    return "gemma3:latest", "http://localhost:11434"
+
 class EchoTool(Tool):
     name = "echo"
-    def execute(self, action: str, params: dict) -> any:
-        if action == "say":
-            return params.get("text", "")
-        raise ValueError(f"Unknown action: {action}")
+    description = "Echoes the input text."
+    inputs = {"text": {"type": "string", "description": "Text to echo"}}
+    outputs = {"text": {"type": "string", "description": "Echoed text"}}
+    output_type = "string"
+
+    async def forward(self, text: str) -> str:
+        return text
 
 class BaseAgent:
     """Base class for Labeeb AI agents."""
@@ -235,42 +257,65 @@ class BaseAgent:
         self.logger = logging.getLogger(f"LabeebAgent.{self.name}")
         self._a2a_protocol = A2AProtocol()
         self._mcp_protocol = MCPProtocol()
+        # LLM planner
+        model, base_url = _load_llm_config()
+        self.planner = OllamaLLMPlanner(model_name=model, base_url=base_url)
     
     def register_tool(self, tool: Tool) -> None:
         """Register a new tool with the agent."""
         self.tools.register(tool)
         self.logger.debug(f"Registered tool: {tool.name}")
     
-    async def plan_and_execute(self, command: str, **kwargs) -> Any:
-        """
-        Plan and execute a command.
-        
-        Args:
-            command (str): The command to execute
-            **kwargs: Additional parameters for the command
-            
-        Returns:
-            Any: The result of the command execution
-        """
-        self.logger.info(f"Processing command: {command}")
-        
-        # Create and execute plan
-        plan = await self._create_plan(command, **kwargs)
-        result = await self._execute_plan(plan)
-        
-        # Update memory
-        self.memory.add_step(command, plan.steps[-1].action if plan.steps else "unknown",
-                           plan.steps[-1].parameters if plan.steps else {},
-                           result)
-        
-        return result
-    
-    async def _create_plan(self, command: str, **kwargs) -> MultiStepPlan:
-        """Create a plan for executing the command."""
-        # Default to single-step plan
-        return MultiStepPlan(steps=[
-            PlanStep(action=command, parameters=kwargs)
-        ])
+    async def plan(self, command: str) -> MultiStepPlan:
+        """Use the LLM planner to create a plan from natural language, with entity extraction and fallback."""
+        plan_dict = self.planner.plan(command, {})
+        # Defensive: check for valid tool/action
+        if isinstance(plan_dict, dict) and "tool" in plan_dict and plan_dict["tool"] and "action" in plan_dict and plan_dict["action"]:
+            params = plan_dict.get("params", {})
+            return MultiStepPlan(steps=[PlanStep(action=plan_dict["tool"], parameters=params)])
+
+        # Entity extraction (simple regex for location, time, etc.)
+        lc = command.lower()
+        location = None
+        match = re.search(r"in ([a-zA-Z\u0600-\u06FF\s]+)", command)
+        if match:
+            location = match.group(1).strip()
+        # Weather intent
+        if "weather" in lc:
+            params = {"action": "current"}
+            if location:
+                params["location"] = location
+            return MultiStepPlan(steps=[PlanStep(action="weather", parameters=params)])
+        # System info intent
+        if any(word in lc for word in ["system", "cpu", "memory", "stats"]):
+            return MultiStepPlan(steps=[PlanStep(action="system", parameters={"action": "info"})])
+        # Date/time intent
+        if any(word in lc for word in ["date", "time", "now"]):
+            return MultiStepPlan(steps=[PlanStep(action="datetime", parameters={"action": "now"})])
+        # Calculator intent
+        if any(word in lc for word in ["calculate", "math", "+", "-", "*", "/"]):
+            expr = command.split("calculate", 1)[-1].strip() if "calculate" in lc else command
+            return MultiStepPlan(steps=[PlanStep(action="calculator", parameters={"action": "calculate", "expression": expr})])
+        # Who are you/self-knowledge
+        if any(word in lc for word in ["who are you", "your name", "what is labeeb", "about you"]):
+            return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": "I am Labeeb, your multilingual, multi-system AI assistant."})])
+        # Remember/recall/teach/forget (memory/skills)
+        if lc.startswith("remember "):
+            fact = command[len("remember "):].strip()
+            self.memory.context.setdefault("facts", []).append(fact)
+            return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": f"I will remember: {fact}"})])
+        if lc.startswith("recall") or lc.startswith("what did you remember"):
+            facts = self.memory.context.get("facts", [])
+            return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": "I remember: " + ", ".join(facts) if facts else "I have nothing remembered yet."})])
+        if lc.startswith("forget"):
+            self.memory.context["facts"] = []
+            return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": "I have forgotten all remembered facts."})])
+        # Fallback: echo
+        return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": command})])
+
+    async def execute(self, plan: MultiStepPlan) -> Any:
+        """Execute a plan and return the result."""
+        return await self._execute_plan(plan)
     
     async def _execute_plan(self, plan: MultiStepPlan) -> Any:
         """Execute a multi-step plan."""
@@ -306,6 +351,31 @@ class BaseAgent:
     def clear_memory(self):
         """Clear agent memory."""
         self.memory.clear()
+
+class LabeebAgent(BaseAgent):
+    """Main Labeeb agent class, extends BaseAgent with default tools and configuration."""
+    def __init__(self):
+        super().__init__()
+        self.name = "LabeebAgent"
+        # Register default tools (add more as needed)
+        self.register_tool(EchoTool())
+        self.register_tool(FileTool({}))
+        self.register_tool(SystemResourceTool({}))
+        self.register_tool(DateTimeTool({}))
+        self.register_tool(CalculatorTool({}))
+        self.register_tool(WeatherTool({}))
+        # You can register more tools here as needed
+
+__all__ = [
+    "LabeebAgent",
+    "BaseAgent",
+    "ToolRegistry",
+    "AgentMemory",
+    "PlanStep",
+    "MultiStepPlan",
+    "LLMPlanner",
+    "OllamaLLMPlanner"
+]
 
 # Minimal test agent usage
 if __name__ == "__main__":

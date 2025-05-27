@@ -424,18 +424,6 @@ class Labeeb:
         else:
             output.error("Invalid model selection.")
 
-class EchoTool(LabeebTool):
-    """Simple echo tool for testing."""
-    def __init__(self):
-        super().__init__(
-            name="echo",
-            description="Echoes back the input text",
-            parameters={"text": "The text to echo"}
-        )
-    
-    async def execute(self, params: Dict[str, Any]) -> str:
-        return params.get("text", "")
-
 async def main():
     """Main CLI entry point."""
     print("Labeeb CLI")
@@ -443,9 +431,6 @@ async def main():
     
     # Initialize agent
     agent = LabeebAgent()
-    
-    # Register basic tools
-    agent.register_tool(EchoTool())
     
     # Main interaction loop
     while True:

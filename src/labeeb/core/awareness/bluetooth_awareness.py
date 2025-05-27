@@ -70,7 +70,11 @@ class BluetoothAwarenessManager:
         """Get Bluetooth devices on Linux using bluetoothctl."""
         try:
             import subprocess
-            out = subprocess.check_output(["bluetoothctl", "paired-devices"]).decode()
+            import shutil
+            if not shutil.which("bluetoothctl"):
+                logger.warning("bluetoothctl not found; skipping Bluetooth device detection.")
+                return
+            out = subprocess.check_output(["bluetoothctl", "paired-devices"], timeout=3).decode()
             for line in out.splitlines():
                 if line.startswith("Device"):
                     _, addr, name = line.split(maxsplit=2)
@@ -81,6 +85,8 @@ class BluetoothAwarenessManager:
                         status="connected"
                     )
                     self.devices.append(device)
+        except subprocess.TimeoutExpired:
+            logger.warning("bluetoothctl timed out; skipping Bluetooth device detection.")
         except Exception as e:
             logger.error(f"Failed to get Linux Bluetooth devices: {str(e)}")
     

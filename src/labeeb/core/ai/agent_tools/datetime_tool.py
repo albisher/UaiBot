@@ -1,11 +1,16 @@
-from labeeb.core.ai.tool_base import Tool
+from labeeb.core.ai.tool_base import BaseTool
 from datetime import datetime
 
-class DateTimeTool(Tool):
-    name = "datetime"
+class DateTimeTool(BaseTool):
+    def __init__(self, config=None):
+        super().__init__(
+            name="datetime",
+            description="Tool for date and time information",
+            config=config or {}
+        )
 
-    def execute(self, action: str, params: dict) -> any:
-        if action == "now":
-            return datetime.now().isoformat()
+    async def _execute_command(self, command: str, args=None):
+        if command == "now":
+            return {"datetime": datetime.now().isoformat()}
         else:
-            return f"Unknown datetime tool action: {action}" 
+            return {"error": f"Unknown datetime tool command: {command}"} 

@@ -63,7 +63,7 @@ class OutputFacade:
             raise RuntimeError("Use OutputFacade.get_instance() to get the singleton instance")
             
         # Create the actual handler that will implement our output operations
-        self._handler = OutputHandler(theme=theme, config_path=str(Path(__file__).parent.parent.parent / 'config' / 'output_styles.json'))
+        self._handler = OutputHandler(theme=theme)
         
         # Set verbosity level
         self._set_verbosity(verbosity)

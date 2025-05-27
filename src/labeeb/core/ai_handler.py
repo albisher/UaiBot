@@ -11,6 +11,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from dataclasses import dataclass, field
 
 # Add src directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +26,7 @@ from labeeb.core.exceptions import AIError, ConfigurationError
 from labeeb.core.ai_performance_tracker import AIPerformanceTracker
 from labeeb.core.model_config_manager import ModelConfigManager
 from labeeb.core.key_manager import KeyManager
-from labeeb.typing import SystemInfo
+from labeeb.system_types import SystemInfo
 from labeeb.core.command_processor.ai_command_extractor import AICommandExtractor
 from labeeb.core.platform_core.platform_manager import get_platform_system_info_gatherer
 

@@ -227,3 +227,23 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - A2A protocol for agent-to-agent communication
 - MCP protocol for unified channel support
 - All contributors and users of the project
+
+## Troubleshooting & System Dependencies
+
+- **Linux Bluetooth Support:**
+  - The Labeeb agent uses `bluetoothctl` to detect Bluetooth devices on Linux. Ensure it is installed and available in your PATH. If not present, Bluetooth device detection will be skipped with a warning.
+  - Install with: `sudo apt install bluez`
+- **Other Platform-Specific Tools:**
+  - Some features require platform-specific tools (see requirements.txt for details).
+- **Linux Audio Support:**
+  - The Labeeb agent uses the `pyalsaaudio` (imported as `alsaaudio`) library for audio features on Linux. If you see errors about missing `alsaaudio`, install it with: `pip install pyalsaaudio`
+  - You may also need system libraries: `sudo apt install libasound2-dev`
+- **Transformers Library:**
+  - Some AI features require the HuggingFace `transformers` library. If you see errors about missing `transformers`, install it with: `pip install transformers`
+
+## Internationalization (i18n) & RTL/Arabic Support
+
+- Labeeb is designed for multi-language support, with a focus on Arabic (RTL) and its regional variants (Kuwait, Saudi, Morocco, Egypt).
+- All user-facing strings in UI and CLI modules should use translation functions (`_()` or `gettext`).
+- Arabic translations are located in `locales/ar/LC_MESSAGES/labeeb.po`.
+- To add or update translations, edit the `.po` files and recompile with `msgfmt`.
