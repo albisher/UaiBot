@@ -4,20 +4,12 @@ Platform-specific utility functions for Labeeb.
 This module provides various platform-specific utility functions used throughout the application.
 """
 import os
-import platform
+# import platform  # No longer needed
 from pathlib import Path
 import json
 import sys
 import subprocess
-
-def get_platform_name():
-    """
-    Get the name of the current platform.
-    
-    Returns:
-        str: Platform name (darwin, linux, or windows)
-    """
-    return platform.system().lower()
+from src.app.core.platform_core.platform_utils import get_platform_name, is_windows, is_mac, is_linux
 
 def run_command(command, check=True):
     """Run a shell command and return the result"""
@@ -36,7 +28,7 @@ def get_descriptive_platform_name():
     Returns:
         str: Descriptive platform name
     """
-    system = platform.system().lower()
+    system = get_platform_name().lower()
     system_info = platform.uname()
     
     if system == 'darwin':

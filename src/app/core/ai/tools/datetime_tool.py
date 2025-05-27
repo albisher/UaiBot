@@ -1,3 +1,6 @@
+"""
+DateTimeTool: Handles date and time operations for the Labeeb agent, including getting current time, formatting, and conversions.
+"""
 from src.app.core.ai.tool_base import BaseTool
 from datetime import datetime
 

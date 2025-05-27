@@ -8,11 +8,12 @@ It monitors and manages device-related information and capabilities.
 # Deprecated stub for backward compatibility
 from platform_core.platform_manager import PlatformManager
 
-import platform
+# import platform  # No longer needed
 import logging
 from typing import Dict, List, Any, Optional
 import psutil
 import pyautogui
+from src.app.core.platform_core.platform_utils import get_platform_name
 
 class DeviceAwarenessTool:
     """
@@ -27,7 +28,7 @@ class DeviceAwarenessTool:
 
     def _setup_platform_specific(self):
         """Setup platform-specific device monitoring."""
-        self.system = platform.system()
+        self.system = get_platform_name()
         if self.system == "Darwin":
             self._setup_macos()
         elif self.system == "Windows":

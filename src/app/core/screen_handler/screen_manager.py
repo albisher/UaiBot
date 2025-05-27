@@ -5,7 +5,7 @@ Handles sending commands to screen sessions and detecting active sessions.
 import subprocess
 import re
 import os
-import platform
+from src.app.core.platform_core.platform_utils import get_platform_name
 
 class ScreenManager:
     def __init__(self, quiet_mode=False):
@@ -16,7 +16,7 @@ class ScreenManager:
             quiet_mode (bool): If True, reduces terminal output
         """
         self.quiet_mode = quiet_mode
-        self.system_platform = platform.system().lower()
+        self.system_platform = get_platform_name()
     
     def log(self, message):
         """Print a message if not in quiet mode"""

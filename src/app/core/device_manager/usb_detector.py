@@ -6,6 +6,7 @@ import platform
 import subprocess
 import re
 import os
+from src.app.core.platform_core.platform_utils import get_platform_name
 
 class USBDetector:
     def __init__(self, quiet_mode=False):
@@ -15,7 +16,7 @@ class USBDetector:
         Args:
             quiet_mode (bool): If True, reduces terminal output
         """
-        self.system = platform.system().lower()
+        self.system = get_platform_name()
         self.quiet_mode = quiet_mode
         
     def get_usb_devices(self):

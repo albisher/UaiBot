@@ -1,5 +1,5 @@
 """
-Web searching tool with A2A, MCP, and SmolAgents compliance.
+WebSearchingTool: Enables the Labeeb agent to perform web searches and retrieve relevant information from the internet.
 
 This tool provides web searching capabilities while following:
 - A2A (Agent-to-Agent) protocol for agent collaboration
@@ -12,7 +12,7 @@ import asyncio
 import aiohttp
 import time
 from typing import Dict, Any, List, Optional, Union
-from labeeb.core.ai.tool_base import BaseTool
+from src.app.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 

@@ -8,11 +8,12 @@ and command processing.
 from typing import Dict, List, Optional, Any
 import logging
 from pathlib import Path
-import platform
+# import platform  # No longer needed
 import os
 
 from .capabilities import CapabilitiesManager, Capability
 from .learning import LearningManager
+from src.app.core.platform_core.platform_utils import get_platform_name
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ class Labeeb:
             # Always learn from the result, even if successful
             self.learning_manager.learn_from_result(command, result)
             if result["status"] != "success":
-                os_name = platform.system().lower()
+                os_name = get_platform_name()
                 alternatives = self.learning_manager.suggest_alternatives(command, os_name)
                 result["alternatives"] = alternatives
             return {

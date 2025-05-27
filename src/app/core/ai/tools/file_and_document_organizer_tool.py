@@ -1,7 +1,7 @@
-from labeeb.core.ai.tool_base import Tool
+from src.app.core.ai.tool_base import Tool
 
 """
-File and Document Organizer Tool for Labeeb
+FileAndDocumentOrganizerTool: Organizes, categorizes, and manages files and documents for the Labeeb agent. Useful for file system automation and document management tasks.
 
 This module provides file and document organization capabilities for the Labeeb AI agent.
 It allows the agent to organize, categorize, and manage files and documents within the system.

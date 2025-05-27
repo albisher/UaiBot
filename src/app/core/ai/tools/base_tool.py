@@ -1,5 +1,5 @@
 """
-Labeeb Base Agent Tool
+Base class for all Labeeb agent tools. Provides the interface and shared logic for tool registration, execution, and documentation.
 
 This module defines the base tool class for Labeeb's AI agent tools.
 """

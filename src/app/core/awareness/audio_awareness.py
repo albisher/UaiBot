@@ -1,7 +1,7 @@
-import platform
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from src.app.core.platform_core.platform_utils import is_mac
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class AudioAwarenessManager:
         """Refresh the list of audio devices."""
         self.devices = []
         try:
-            if platform.system() == "Darwin":
+            if is_mac():
                 try:
                     import objc
                     from CoreAudio import AudioHardware

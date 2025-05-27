@@ -15,9 +15,9 @@ import datetime
 import pyautogui
 import psutil
 from typing import List, Tuple, Dict, Optional, Any
-import platform
+from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
 
-system = platform.system()
+system = get_platform_name()
 if system in ("Windows", "Darwin"):
     try:
         import pygetwindow as gw
@@ -69,7 +69,7 @@ class SystemAwarenessTool:
     def get_system_info(self) -> Dict[str, Any]:
         """Return basic system information."""
         return {
-            "os": platform.system(),
+            "os": get_platform_name(),
             "os_version": platform.version(),
             "cpu_usage": psutil.cpu_percent(),
             "memory_usage": psutil.virtual_memory().percent,
@@ -92,7 +92,7 @@ class SystemAwarenessTool:
         """Return a list of open windows with title and geometry (best effort cross-platform)."""
         if gw is None:
             return []
-        system = platform.system()
+        system = get_platform_name()
         if system == 'Windows':
             return [
                 {
@@ -139,7 +139,7 @@ class SystemAwarenessTool:
 
     def get_active_app(self) -> Optional[str]:
         """Return the name of the currently active application (if possible)."""
-        if platform.system() == 'Darwin':
+        if is_mac():
             try:
                 import subprocess
                 script = 'tell application "System Events" to get name of (processes where frontmost is true)'
@@ -147,7 +147,7 @@ class SystemAwarenessTool:
                 return out.decode('utf-8').strip().split(',')[0]
             except Exception:
                 return None
-        elif platform.system() == 'Windows' and gw is not None:
+        elif is_windows() and gw is not None:
             w = gw.getActiveWindow()
             return w.title if w else None
         return None

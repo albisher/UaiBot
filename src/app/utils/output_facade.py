@@ -17,13 +17,13 @@ Output Philosophy & Flow:
 import sys
 import os
 from typing import Optional, Any, Dict, Union, List
-from labeeb.core.logging_config import get_logger
+from src.app.logging_config import get_logger
 from pathlib import Path
 import arabic_reshaper
 from bidi.algorithm import get_display
 
 # Import the OutputHandler as our implementation class
-from labeeb.utils.output_handler import OutputHandler
+from src.app.utils.output_handler import OutputHandler
 
 logger = get_logger(__name__)
 

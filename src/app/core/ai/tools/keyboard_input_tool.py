@@ -1,5 +1,5 @@
 """
-Keyboard input tool with A2A, MCP, and SmolAgents compliance.
+KeyboardInputTool: Simulates keyboard input for the Labeeb agent, enabling automation of typing and keyboard shortcuts.
 
 This tool provides keyboard input functionality while following:
 - A2A (Agent-to-Agent) protocol for agent collaboration

@@ -1,5 +1,5 @@
 """
-Calculator tool with A2A, MCP, and SmolAgents compliance.
+CalculatorTool: Performs mathematical calculations for the Labeeb agent, supporting basic arithmetic and advanced operations.
 
 This tool provides calculation functionality while following:
 - A2A (Agent-to-Agent) protocol for agent collaboration

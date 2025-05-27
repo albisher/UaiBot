@@ -1,5 +1,5 @@
 """
-Web surfing tool with A2A, MCP, and SmolAgents compliance.
+WebSurfingTool: Allows the Labeeb agent to surf the web, extract information, and interact with web pages for research and automation tasks.
 
 This tool provides web surfing functionality while following:
 - A2A (Agent-to-Agent) protocol for agent collaboration
@@ -15,7 +15,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from labeeb.core.ai.tool_base import BaseTool
+from src.app.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 

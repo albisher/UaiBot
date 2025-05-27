@@ -1,12 +1,6 @@
 
 LabeebAgent is master agent, its backed with a choosen local llm set it now for gemma3:latest it should be able to interact and choose the needed tools and models for further interactions. it should be able learn, memorize, gain a skill or capabilities.
 
-* For richer command understanding, improve the plan method to parse more natural language and map to tool actions/parameters.
-* Expand tool registration for more features (network, file, etc.).
-* Continue to update docs, todos, and requirements as new features or dependencies are added.
-* Ensure all user-facing strings use translation functions for i18n/RTL/Arabic support.
-
-
 run main app and audit it
 find the needed actions
 
@@ -15,8 +9,10 @@ solve the list one by one .. do not create script to solve.
 the project name is now : labeeb or Labeeb
 old name that we are taking out which is wrong : uaibot, Uaibot, uAIbot, uaiagent, uAI Agent, UaiAgent
 
-**@audit_project.py**
-PYTHONPATH=srcpython3src/labeeb/main.py
+Run:
+@audit_project.py
+**@tools_audit.py**
+PYTHONPATH=srcpython3src/app/main.py
 
 make it all work, check if it is working as intended following A2A, MCP, SmolAgents.
 

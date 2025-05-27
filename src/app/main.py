@@ -40,7 +40,7 @@ from src.app.health_check.ollama_health_check import check_ollama_server, check_
 from src.app.core.model_manager import ModelManager
 from src.app.core.config_manager import ConfigManager
 from src.app.core.ai.agent import LabeebAgent
-from src.app.core.ai.tools.base_tool import LabeebTool
+from src.app.core.ai.tools.base_tool import BaseAgentTool
 from src.app.core.ai.workflows.base_workflow import LabeebWorkflow
 
 # Set up logging
@@ -445,9 +445,9 @@ async def main():
             # Plan and execute
             plan = await agent.plan(command)
             result = await agent.execute(plan)
-            
-            # Display result
-            print(f"\nResult: {result}")
+            print(f"[DEBUG] Result type: {type(result)}, value: {result}")
+            sequence.append("LabeebAgent.execute")
+            print(result)
             
         except KeyboardInterrupt:
             print("\nGoodbye!")
@@ -456,4 +456,43 @@ async def main():
             print(f"Error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Labeeb CLI")
+    parser.add_argument('--fast', action='store_true', help='Enable fast mode (single input/output)')
+    parser.add_argument('command', nargs='*', help='Command to execute (in fast mode)')
+    args = parser.parse_args()
+
+    async def process_command_and_log(command: str):
+        agent = LabeebAgent()
+        sequence = [f"input: {command}"]
+        plan = await agent.plan(command)
+        sequence.append("LabeebAgent.plan")
+        result = await agent.execute(plan)
+        sequence.append("LabeebAgent.execute")
+        print(result)
+        os.makedirs("review", exist_ok=True)
+        with open("review/cli_sequence_audit.md", "a", encoding="utf-8") as f:
+            f.write(f"# CLI Sequence Audit\n\n")
+            f.write(f"Input: {command}\n")
+            f.write(f"Sequence: {' > '.join(sequence)}\n")
+            f.write(f"Result: {result}\n\n")
+        return result
+
+    if args.fast:
+        command = ' '.join(args.command) if args.command else input("Enter command: ")
+        asyncio.run(process_command_and_log(command))
+        sys.exit(0)
+    else:
+        print("Labeeb CLI\n----------")
+        agent = LabeebAgent()
+        while True:
+            try:
+                command = input("\nEnter command (or 'exit' to quit): ").strip()
+                if command.lower() in ['exit', 'quit']:
+                    print("Goodbye!")
+                    break
+                asyncio.run(process_command_and_log(command))
+            except KeyboardInterrupt:
+                print("\nGoodbye!")
+                break
+            except Exception as e:
+                print(f"Error: {e}")

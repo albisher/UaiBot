@@ -10,6 +10,7 @@ import platform
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class InterfaceInfo:
 class NetworkAwarenessManager:
     """Provides awareness of network interfaces, usage, and connectivity."""
     def __init__(self):
-        self.platform = platform.system()
+        self.platform = get_platform_name()
 
     def get_active_interfaces(self) -> Dict[str, Any]:
         """Get a list of active network interfaces with IP and MAC addresses."""

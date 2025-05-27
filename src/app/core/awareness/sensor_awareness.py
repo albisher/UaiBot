@@ -5,8 +5,8 @@ Use PlatformManager for all sensor awareness logic.
 
 # Deprecated stub for backward compatibility
 from platform_core.platform_manager import PlatformManager
+from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows
 
-import platform
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
@@ -46,7 +46,7 @@ class SensorAwarenessManager:
     def _get_screen_brightness(self) -> None:
         """Get screen brightness reading."""
         try:
-            if platform.system() == "Darwin":
+            if is_mac():
                 import subprocess
                 try:
                     out = subprocess.check_output(["brightness", "-l"]).decode()
@@ -59,7 +59,7 @@ class SensorAwarenessManager:
                 except Exception as e:
                     logger.error(f"Failed to get brightness: {e}")
                     self.sensor_data.brightness = None
-            elif platform.system() == "Windows":
+            elif is_windows():
                 import screen_brightness_control as sbc
                 val = sbc.get_brightness(display=0)
                 self.sensor_data.brightness = val[0] if val else None
@@ -74,7 +74,7 @@ class SensorAwarenessManager:
     def _get_system_temperature(self) -> None:
         """Get system temperature reading."""
         try:
-            if platform.system() == "Darwin":
+            if is_mac():
                 try:
                     import subprocess
                     out = subprocess.check_output(["osx-cpu-temp"]).decode()
@@ -97,7 +97,7 @@ class SensorAwarenessManager:
                 except Exception as e:
                     logger.error(f"Failed to get temperature: {e}")
                     self.sensor_data.temperature = None
-            elif platform.system() == "Windows":
+            elif is_windows():
                 import wmi
                 w = wmi.WMI(namespace=r"root\OpenHardwareMonitor")
                 temperature_infos = w.Sensor()
@@ -120,7 +120,7 @@ class SensorAwarenessManager:
     def _get_battery_status(self) -> None:
         """Get battery status."""
         try:
-            if platform.system() == "Darwin":
+            if is_mac():
                 try:
                     import subprocess
                     out = subprocess.check_output(["pmset", "-g", "batt"]).decode()
@@ -143,7 +143,7 @@ class SensorAwarenessManager:
                         logger.error(f"psutil fallback failed for battery: {e2}")
                         self.sensor_data.battery_level = None
                         self.sensor_data.is_charging = None
-            elif platform.system() == "Windows":
+            elif is_windows():
                 import psutil
                 battery = psutil.sensors_battery()
                 if battery:

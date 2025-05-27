@@ -4,6 +4,7 @@ DEPRECATED: SystemTools logic is now handled by PlatformManager (see platform_co
 
 # Deprecated stub for backward compatibility
 from platform_core.platform_manager import PlatformManager
+from src.app.core.platform_core.platform_utils import get_platform_name, is_mac
 
 import os
 import platform
@@ -18,7 +19,7 @@ class SystemTools:
     def get_system_info() -> Dict[str, Any]:
         """Get basic system information without external APIs"""
         return {
-            "os": platform.system(),
+            "os": get_platform_name(),
             "os_version": platform.version(),
             "cpu_usage": psutil.cpu_percent(),
             "memory_usage": psutil.virtual_memory().percent,
@@ -31,7 +32,7 @@ class SystemTools:
         """Get weather information from macOS widget"""
         try:
             # On macOS, we can use the Weather widget
-            if platform.system() == "Darwin":
+            if is_mac():
                 # Open Weather widget
                 pyautogui.hotkey('command', 'space')
                 pyautogui.write('weather')

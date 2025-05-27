@@ -54,6 +54,8 @@ from smolagents import Tool
 import sys
 import re
 import gettext
+import logging
+from pathlib import Path
 
 # Setup translation (i18n)
 _ = gettext.gettext
@@ -104,20 +106,27 @@ class ToolRegistry:
         """Execute a tool with the given parameters."""
         tool = self.get(tool_name)
         if not tool:
+            print(f"[DEBUG] ToolRegistry: Tool '{tool_name}' not found.")
             raise ValueError(f"Tool {tool_name} not found")
+        print(f"[DEBUG] ToolRegistry: Executing tool '{tool_name}' with params {params}")
         # Use forward for smolagents.Tool, _execute_command for BaseTool
         if hasattr(tool, 'forward') and callable(getattr(tool, 'forward')):
-            # EchoTool and smolagents tools
             if 'text' in params:
-                return await tool.forward(params['text'])
-            return await tool.forward(**params)
+                result = await tool.forward(params['text'])
+            else:
+                result = await tool.forward(**params)
+            print(f"[DEBUG] ToolRegistry: Result from '{tool_name}': {result}")
+            return result
         elif hasattr(tool, '_execute_command') and callable(getattr(tool, '_execute_command')):
             action = params.get('action', None)
             args = params.copy()
             if action:
                 args.pop('action')
-            return await tool._execute_command(action, args)
+            result = await tool._execute_command(action, args)
+            print(f"[DEBUG] ToolRegistry: Result from '{tool_name}': {result}")
+            return result
         else:
+            print(f"[DEBUG] ToolRegistry: Tool '{tool_name}' does not support execution interface.")
             raise TypeError(f"Tool {tool_name} does not support execution interface")
 
 @dataclass
@@ -276,55 +285,115 @@ class BaseAgent:
         # Use conversation context
         last_agent_reply = self.memory.conversation[-1]["agent"] if self.memory.conversation else None
         plan_dict = self.planner.plan(command, {})
+        print(f"[DEBUG] BaseAgent.plan: plan_dict={plan_dict}")
         # Defensive: check for valid tool/action
         if isinstance(plan_dict, dict) and "tool" in plan_dict and plan_dict["tool"] and "action" in plan_dict and plan_dict["action"]:
             params = plan_dict.get("params", {})
-            return MultiStepPlan(steps=[PlanStep(action=plan_dict["tool"], parameters=params)])
+            plan = MultiStepPlan(steps=[PlanStep(action=plan_dict["tool"], parameters=params)])
+            print(f"[DEBUG] BaseAgent.plan: MultiStepPlan={plan}")
+            return plan
 
-        # Entity extraction (simple regex for location, time, etc.)
-        lc = command.lower()
-        location = None
-        match = re.search(r"in ([a-zA-Z\u0600-\u06FF\s]+)", command)
-        if match:
-            location = match.group(1).strip()
-        # Weather intent
-        if "weather" in lc:
+        # --- Improved fallback planner logic ---
+        lc = command.lower().strip()
+        # Normalize common misspellings and synonyms
+        lc = lc.replace("waether", "weather").replace("mose", "mouse").replace("labebb", "labeeb")
+        # System info
+        if re.search(r"cpu|memory|system|stats|disk|ram|usage|sysinfo|resources|مواصفات|معلومات النظام", lc):
+            return MultiStepPlan(steps=[PlanStep(action="system", parameters={"action": "info"})])
+        # Weather
+        if re.search(r"weather|طقس|جو|حالة الجو|درجة الحرارة|temperature", lc):
+            location = None
+            match = re.search(r"weather in ([\w\s,]+)", lc)
+            if match:
+                location = match.group(1).strip()
+            ar_match = re.search(r"طقس (.+)", lc)
+            if ar_match:
+                location = ar_match.group(1).strip()
             params = {"action": "current"}
             if location:
                 params["location"] = location
             return MultiStepPlan(steps=[PlanStep(action="weather", parameters=params)])
-        # System info intent
-        if any(word in lc for word in ["system", "cpu", "memory", "stats"]):
-            return MultiStepPlan(steps=[PlanStep(action="system", parameters={"action": "info"})])
-        # Date/time intent
-        if any(word in lc for word in ["date", "time", "now"]):
+        # File operations
+        if re.search(r"list files|show files|عرض الملفات|ls|list directory|عرض محتويات|find content|show content|محتوى|documents folder|مجلد الوثائق", lc):
+            # Try to extract directory
+            match = re.search(r"in ([\w/\\.]+)", lc)
+            ar_match = re.search(r"في ([\w/\\.]+)", lc)
+            path = "."
+            if match:
+                path = match.group(1).strip()
+            elif ar_match:
+                path = ar_match.group(1).strip()
+            elif "documents" in lc or "مجلد الوثائق" in lc:
+                path = "Documents"
+            return MultiStepPlan(steps=[PlanStep(action="file", parameters={"action": "list", "path": path})])
+        # Date/time
+        if re.search(r"date|time|now|الوقت|التاريخ|الساعة|كم الساعة|clock|what time", lc):
             return MultiStepPlan(steps=[PlanStep(action="datetime", parameters={"action": "now"})])
-        # Calculator intent
-        if any(word in lc for word in ["calculate", "math", "+", "-", "*", "/"]):
-            expr = command.split("calculate", 1)[-1].strip() if "calculate" in lc else command
+        # Calculator
+        if re.search(r"calculate|math|احسب|كم يساوي|[\d\s\+\-\*/\^\(\)\.]+|what is|كم الناتج|result of", lc):
+            expr = command
+            match = re.search(r"calculate (.+)", lc)
+            ar_match = re.search(r"احسب (.+)", lc)
+            if match:
+                expr = match.group(1).strip()
+            elif ar_match:
+                expr = ar_match.group(1).strip()
+            elif "what is" in lc:
+                expr = lc.split("what is", 1)[-1].strip()
             return MultiStepPlan(steps=[PlanStep(action="calculator", parameters={"action": "calculate", "expression": expr})])
+        # Browser
+        if re.search(r"open browser|search in browser|search for|brave browser|firefox|chrome|افتح المتصفح|ابحث في المتصفح|ابحث عن", lc):
+            # Extract search query if present
+            search_query = None
+            match = re.search(r"search for ([\w\s,]+)", lc)
+            if match:
+                search_query = match.group(1).strip()
+            ar_match = re.search(r"ابحث عن (.+)", lc)
+            if ar_match:
+                search_query = ar_match.group(1).strip()
+            params = {"action": "open"}
+            if search_query:
+                params["query"] = search_query
+            return MultiStepPlan(steps=[PlanStep(action="browser", parameters=params)])
+        # Mouse
+        if re.search(r"mouse|مؤشر|move the mouse|move mouse|click the mouse|click mouse|حرك المؤشر|انقر المؤشر|move the mose|click the mose", lc):
+            # Extract coordinates or click type
+            match = re.search(r"move (?:the )?mouse to ([\d]+)[, ]+([\d]+)", lc)
+            ar_match = re.search(r"حرك المؤشر إلى ([\d]+)[, ]+([\d]+)", lc)
+            if match:
+                x, y = match.group(1), match.group(2)
+                return MultiStepPlan(steps=[PlanStep(action="mouse", parameters={"action": "move", "x": int(x), "y": int(y)})])
+            elif ar_match:
+                x, y = ar_match.group(1), ar_match.group(2)
+                return MultiStepPlan(steps=[PlanStep(action="mouse", parameters={"action": "move", "x": int(x), "y": int(y)})])
+            elif "click" in lc or "انقر" in lc:
+                count = 2 if "twice" in lc or "مرتين" in lc else 1
+                return MultiStepPlan(steps=[PlanStep(action="mouse", parameters={"action": "click", "count": count})])
+        # Screenshot
+        if re.search(r"screenshot|screen shot|لقطة شاشة|التقط الشاشة|take screenshot|التقط صورة", lc):
+            return MultiStepPlan(steps=[PlanStep(action="screen", parameters={"action": "screenshot"})])
         # Who are you/self-knowledge
-        if any(word in lc for word in ["who are you", "your name", "what is labeeb", "about you"]):
+        if any(word in lc for word in ["who are you", "your name", "what is labeeb", "about you", "من انت", "ما اسمك", "لبيب"]):
             return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"I am Labeeb, your multilingual, multi-system AI assistant. How can I help you today? 😊")})])
         # Remember/recall/teach/forget (memory/skills)
         if lc.startswith("remember "):
             fact = command[len("remember "):].strip()
             self.memory.context.setdefault("facts", []).append(fact)
             return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"I will remember: {fact}")})])
-        if lc.startswith("recall") or lc.startswith("what did you remember"):
+        if lc.startswith("recall") or lc.startswith("what did you remember") or lc.startswith("تذكر"):
             facts = self.memory.context.get("facts", [])
             return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"I remember: {', '.join(facts)}" if facts else "I have nothing remembered yet.")})])
-        if lc.startswith("forget"):
+        if lc.startswith("forget") or lc.startswith("انس"):
             self.memory.context["facts"] = []
             return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"I have forgotten all remembered facts.")})])
         # Follow-up/clarification
-        if "repeat" in lc or "again" in lc:
+        if "repeat" in lc or "again" in lc or "كرر" in lc:
             if last_agent_reply:
                 return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": last_agent_reply})])
             else:
                 return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"I have nothing to repeat yet.")})])
         # Clarification for unknown/ambiguous input
-        if len(command.strip()) < 3 or command.strip() in ["?", "help"]:
+        if len(command.strip()) < 3 or command.strip() in ["?", "help", "مساعدة"]:
             return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"How can I help you? You can ask about the weather, system info, calculations, or teach me something new!")})])
         # Fallback: friendly clarification
         return MultiStepPlan(steps=[PlanStep(action="echo", parameters={"text": _(f"Sorry, I didn't understand that. Can you rephrase or try a different request? 😊")})])
@@ -373,6 +442,7 @@ class LabeebAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.name = "LabeebAgent"
+        self.logger = logging.getLogger("LabeebAgent")
         # Register default tools (add more as needed)
         self.register_tool(EchoTool())
         self.register_tool(FileTool({}))
@@ -380,7 +450,43 @@ class LabeebAgent(BaseAgent):
         self.register_tool(DateTimeTool({}))
         self.register_tool(CalculatorTool({}))
         self.register_tool(WeatherTool({}))
-        # You can register more tools here as needed
+        # Register browser tool
+        from src.app.core.ai.tools.browser_automation_tool import BrowserAutomationTool
+        self.register_tool(BrowserAutomationTool({"browser_type": "chrome", "headless": True}))
+        # Register mouse tool
+        from src.app.core.ai.tools.mouse_tool import MouseTool
+        self.register_tool(MouseTool({}))
+        # Register keyboard input tool
+        from src.app.core.ai.tools.keyboard_input_tool import KeyboardInputTool
+        self.register_tool(KeyboardInputTool({}))
+        # Register screen tool (screenshot)
+        try:
+            from src.app.core.ai.tools.screen_control_tool import ScreenControlTool
+            # Wrap as a BaseTool if needed
+            class ScreenToolWrapper(BaseTool):
+                def __init__(self):
+                    super().__init__(name="screen", description="Screen control and screenshot tool")
+                    self._tool = ScreenControlTool()
+                async def _execute_command(self, command: str, args=None):
+                    if command == "screenshot":
+                        result = self._tool.take_screenshot()
+                        return {"status": result.get("status"), "action": "screenshot", "message": result.get("message", ""), "error": result.get("error", "")}
+                    return {"error": f"Unknown screen tool command: {command}"}
+            self.register_tool(ScreenToolWrapper())
+        except Exception:
+            pass
+
+    async def plan(self, command: str) -> MultiStepPlan:
+        self.logger.debug(f"Planning for command: {command}")
+        plan = await super().plan(command)
+        self.logger.debug(f"Generated plan: {plan}")
+        return plan
+
+    async def execute(self, plan: MultiStepPlan) -> Any:
+        self.logger.debug(f"Executing plan: {plan}")
+        result = await self._execute_plan(plan)
+        self.logger.debug(f"Execution result: {result}")
+        return result
 
 __all__ = [
     "LabeebAgent",

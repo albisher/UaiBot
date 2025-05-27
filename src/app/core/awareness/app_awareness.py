@@ -5,8 +5,8 @@ Use PlatformManager for all app awareness logic.
 
 # Deprecated stub for backward compatibility
 from platform_core.platform_manager import PlatformManager
+from src.app.core.platform_core.platform_utils import get_platform_name
 
-import platform
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -27,7 +27,7 @@ class AppInfo:
 class AppAwarenessManager:
     """Provides awareness of running and foreground applications across platforms, with detailed info."""
     def __init__(self):
-        self.platform = platform.system()
+        self.platform = get_platform_name()
 
     def get_running_apps(self) -> Dict[str, Any]:
         """Get a list of running applications/processes with details."""

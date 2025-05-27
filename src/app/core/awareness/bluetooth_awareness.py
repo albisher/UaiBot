@@ -1,7 +1,7 @@
-import platform
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from src.app.core.platform_core.platform_utils import is_mac, is_windows
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class BluetoothAwarenessManager:
         """Refresh the list of Bluetooth devices."""
         self.devices = []
         try:
-            if platform.system() == "Darwin":
+            if is_mac():
                 try:
                     import objc
                     from IOBluetooth import IOBluetoothDevice
@@ -43,7 +43,7 @@ class BluetoothAwarenessManager:
                 except Exception as e:
                     logger.info(f"pyobjc IOBluetooth not available or failed: {e}. Falling back to generic.")
                     self._get_generic_devices()
-            elif platform.system() == "Windows":
+            elif is_windows():
                 self._get_windows_devices()
             else:  # Linux
                 self._get_linux_devices()

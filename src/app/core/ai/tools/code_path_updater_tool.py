@@ -1,7 +1,7 @@
-from labeeb.core.ai.tool_base import Tool
+from src.app.core.ai.tool_base import Tool
 
 """
-Code Path Updater Tool for Labeeb
+CodePathUpdaterTool: Updates and manages code paths for the Labeeb agent, ensuring correct module imports and codebase structure.
 
 This module provides code path management capabilities for the Labeeb AI agent.
 It allows the agent to update and manage code paths within the project structure.

@@ -11,6 +11,7 @@ import logging
 import platform
 import subprocess
 from typing import Optional
+from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
 
 try:
     import pyttsx3
@@ -53,7 +54,7 @@ class SpeechTool:
             except Exception as e:
                 self.logger.error(f"pyttsx3 TTS failed: {e}")
         # Fallback to system TTS
-        system = platform.system()
+        system = get_platform_name()
         try:
             if system == "Darwin":
                 subprocess.run(["say", text], check=True)

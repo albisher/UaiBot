@@ -1,5 +1,5 @@
 """
-Weather tool with A2A, MCP, and SmolAgents compliance.
+WeatherTool: Retrieves weather information for the Labeeb agent, supporting queries by location and time.
 
 This tool provides weather capabilities while following:
 - A2A (Agent-to-Agent) protocol for agent collaboration

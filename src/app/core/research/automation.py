@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import spacy
 from transformers import pipeline
 import networkx as nx
-from labeeb.platform_core.platform_utils import get_input_handler
+from labeeb.platform_core.platform_utils import get_input_handler, get_platform_name, is_mac
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +296,7 @@ class ResearchManager:
             except Exception:
                 pass
             address_bar_x = screen_width // 2
-            address_bar_y = 60 if platform.system().lower() == 'darwin' else 40
+            address_bar_y = 60 if is_mac() else 40
             summary['MouseControl'] = mouse.move_and_click(address_bar_x, address_bar_y)
             summary['KeyboardControl'] = keyboard.type_and_enter(url)
             import time
@@ -677,7 +677,7 @@ class AwarenessIntegrator:
 class AppControlCapability:
     def launch_browser(self, url: str) -> bool:
         import platform, subprocess, time
-        system = platform.system().lower()
+        system = get_platform_name()
         try:
             if system == 'darwin':
                 subprocess.run(["open", url])

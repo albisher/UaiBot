@@ -1,3 +1,6 @@
+"""
+SystemResourceTool: Provides system resource monitoring and management for the Labeeb agent, including CPU, memory, and disk usage.
+"""
 from src.app.core.ai.tool_base import BaseTool
 import psutil
 

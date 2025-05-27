@@ -10,8 +10,9 @@ from dataclasses import dataclass
 import sys
 import os
 from colorama import init, Fore, Back, Style
-from labeeb.utils.output_style_manager import OutputStyleManager
+from src.app.utils.output_style_manager import OutputStyleManager
 from pathlib import Path
+from src.app.core.platform_core.terminal_utils import clear_terminal
 
 # Initialize colorama
 init()
@@ -108,14 +109,8 @@ class TerminalTool:
         """Display info text in the terminal."""
         return await self.show_text(text, color='blue', status_key='info')
         
-    async def clear(self) -> bool:
-        """Clear the terminal."""
-        try:
-            os.system('cls' if os.name == 'nt' else 'clear')
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to clear terminal: {e}")
-            return False
+    def clear(self):
+        clear_terminal()
             
     async def configure(self, **kwargs) -> bool:
         """Configure terminal settings."""

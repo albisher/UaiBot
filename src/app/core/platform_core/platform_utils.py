@@ -152,17 +152,18 @@ def get_input_handler() -> Optional[Any]:
         logger.warning(f"Failed to import input handler for {system}: {e}")
     return None
 
-def get_platform_name() -> Optional[str]:
-    """Get the platform name in a standardized format.
-    
-    Returns:
-        Platform name ('mac', 'linux', 'windows') or None if unsupported.
-    """
-    system = platform.system()
-    if system == 'Darwin':
-        return 'mac'
-    elif system == 'Linux':
-        return 'linux'
-    elif system == 'Windows':
-        return 'windows'
-    return None
+def get_platform_name():
+    """Get the name of the current platform."""
+    return platform.system().lower()
+
+def is_windows():
+    return get_platform_name() == 'windows'
+
+def is_mac():
+    return get_platform_name() == 'darwin'
+
+def is_linux():
+    return get_platform_name() == 'linux'
+
+def is_posix():
+    return os.name == 'posix'

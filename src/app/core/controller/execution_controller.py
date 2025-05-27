@@ -19,6 +19,7 @@ from labeeb.core.command_processor.error_handler import error_handler, ErrorCate
 from labeeb.core.parallel_utils import ParallelTaskManager
 from app.core.platform_core.browser_controller import BrowserController
 from labeeb.core.controller.macos_calendar_controller import MacOSCalendarController
+from src.app.core.platform_core.platform_utils import is_windows, is_mac, is_linux, is_posix
 
 logger = logging.getLogger(__name__)
 
@@ -288,9 +289,9 @@ class ExecutionController:
                     else:
                         cmd = f'open -a "{app_name_mapped}"'
                 else:
-                    if os.name == 'nt':
+                    if is_windows():
                         cmd = f'start {shlex.quote(app_name_mapped)}'
-                    elif os.name == 'posix' and os.path.exists('/Applications'):
+                    elif is_posix() and os.path.exists('/Applications'):
                         cmd = f'open -a {shlex.quote(app_name_mapped)}'
                     else:
                         cmd = f'{shlex.quote(app_name_mapped)}'
@@ -334,7 +335,7 @@ class ExecutionController:
                 else:
                     month_num = now.month
                 # Platform-specific delegation
-                if os.name == 'posix' and os.path.exists('/Applications/Calendar.app'):
+                if is_posix() and os.path.exists('/Applications/Calendar.app'):
                     return MacOSCalendarController.navigate_to_month_year(month_num, year)
                 else:
                     return f"Calendar navigation is not yet implemented for this platform (os.name={os.name}). Please open your calendar manually."
@@ -357,7 +358,7 @@ class ExecutionController:
                     return "UI interaction is not implemented. Please specify the UI element and action."
             if op_type == 'application_list':
                 # (NEW) Implement a basic application_list for macOS
-                if os.name == 'posix' and os.path.exists('/Applications'):
+                if is_posix() and os.path.exists('/Applications'):
                     try:
                         apps = [f for f in os.listdir('/Applications') if f.endswith('.app')]
                         return f"Installed applications: {', '.join(apps)}"
@@ -530,9 +531,9 @@ class ExecutionController:
                 raise ValueError("Missing required parameter: application_name")
             
             # Use the shell handler to launch the application
-            if os.name == 'nt':  # Windows
+            if is_windows():  # Windows
                 cmd = f'start "" "{app_name}"'
-            elif os.name == 'posix':  # macOS and Linux
+            elif is_posix():  # macOS and Linux
                 if os.path.exists('/Applications'):  # macOS
                     cmd = f'open -a "{app_name}"'
                 else:  # Linux

@@ -7,6 +7,7 @@ import re
 import subprocess
 import os
 import tempfile
+from src.app.core.platform_core.platform_utils import is_mac
 
 class ScreenSessionHandler:
     def __init__(self, quiet_mode=False):
@@ -198,8 +199,7 @@ class ScreenSessionHandler:
                 return result_msg
             
             # If still failed on macOS, try AppleScript approach
-            import platform
-            if platform.system().lower() == "darwin":
+            if is_mac():
                 self.log("Command sending still failed, trying AppleScript approach...")
                 import os
                 # Create the AppleScript command properly without problematic f-string with backslashes

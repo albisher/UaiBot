@@ -1,38 +1,13 @@
 # Labeeb Project TODO List
 
-Last updated: 2025-05-27 11:04:15
+Last updated: 2025-05-27 12:00:04
 
 ## Project Audit Findings
 
 ### PLATFORM_ISOLATION
 - Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/bot.py
-  - Suggestion: Abstract OS-dependent logic from 'bot.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/bot.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/utils/platform_utils.py
-  - Suggestion: Abstract OS-dependent logic from 'platform_utils.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/utils/platform_utils.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
   - File: src/app/core/controller/execution_controller.py
   - Suggestion: Abstract OS-dependent logic from 'execution_controller.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/controller/execution_controller.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/awareness/audio_awareness.py
-  - Suggestion: Abstract OS-dependent logic from 'audio_awareness.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/audio_awareness.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/awareness/app_awareness.py
-  - Suggestion: Abstract OS-dependent logic from 'app_awareness.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/app_awareness.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/awareness/terminal_tool.py
-  - Suggestion: Abstract OS-dependent logic from 'terminal_tool.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/terminal_tool.py' to 'allowed_platform_check_files' in project rules.
 
 ### PLATFORM_ISOLATION
 - Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
@@ -48,26 +23,6 @@ Last updated: 2025-05-27 11:04:15
 - Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
   - File: src/app/core/awareness/speech_tool.py
   - Suggestion: Abstract OS-dependent logic from 'speech_tool.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/speech_tool.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/awareness/device_awareness.py
-  - Suggestion: Abstract OS-dependent logic from 'device_awareness.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/device_awareness.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/awareness/bluetooth_awareness.py
-  - Suggestion: Abstract OS-dependent logic from 'bluetooth_awareness.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/bluetooth_awareness.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/awareness/sensor_awareness.py
-  - Suggestion: Abstract OS-dependent logic from 'sensor_awareness.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/awareness/sensor_awareness.py' to 'allowed_platform_check_files' in project rules.
-
-### PLATFORM_ISOLATION
-- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
-  - File: src/app/core/input/mouse.py
-  - Suggestion: Abstract OS-dependent logic from 'mouse.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/input/mouse.py' to 'allowed_platform_check_files' in project rules.
 
 ### PLATFORM_ISOLATION
 - Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
@@ -98,6 +53,11 @@ Last updated: 2025-05-27 11:04:15
 - Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
   - File: src/app/core/research/automation.py
   - Suggestion: Abstract OS-dependent logic from 'automation.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/app/core/research/automation.py' to 'allowed_platform_check_files' in project rules.
+
+### PLATFORM_ISOLATION
+- Platform detection code (e.g., sys.platform) found in file not under 'src/app/core/platform_core'.
+  - File: src/labeeb/core/controller/execution_controller.py
+  - Suggestion: Abstract OS-dependent logic from 'execution_controller.py' into modules within 'src/app/core/platform_core'. If this file must check OS (e.g. main script), consider adding 'src/labeeb/core/controller/execution_controller.py' to 'allowed_platform_check_files' in project rules.
 
 ### AGENT_COMPLIANCE
 - Potential lack of A2A compliance.
@@ -308,4 +268,29 @@ Last updated: 2025-05-27 11:04:15
 - Potential lack of SmolAgents compliance.
   - File: src/app/core/ai/agents/uaibot_agent.py
   - Suggestion: Review 'uaibot_agent.py' for SmolAgents patterns (e.g., method calls, class structures related to 'SmolAgent|smol_agent|minimal_agent'). Refer to SmolAgents guidelines.
+
+### PROJECT_NAMING
+- Found old project name reference (matching 'uai|Uai|UAIBOT|UaiBot') instead of 'Labeeb'.
+  - File: README.md
+  - Suggestion: Replace old project names with 'Labeeb' in 'README.md'.
+
+## Audit Findings (2024-06-11)
+
+- [ ] The planner always maps commands to the 'echo' tool, never to MouseTool or other specialized tools.
+- [ ] The plan_dict for 'move mouse', 'click mouse', etc. is always {'tool': 'echo', ...}.
+- [ ] The CLI debug output confirms only EchoTool is used, regardless of input.
+- [ ] The planner logic must be improved to map natural language commands to the correct tool (e.g., MouseTool for mouse commands).
+- [ ] Refactor planner logic to support tool/action mapping for all registered tools, including mouse, file, datetime, calculator, etc.
+- [ ] Add/expand tests for planner-tool mapping.
+- [ ] Document audit results and planner limitations in README and review/cli_sequence_audit.md.
+- [ ] Ensure all tool tests in tools_audit.py check for correct tool usage in CLI and --fast mode.
+- [ ] Continue platform/OS isolation and i18n/RTL/Arabic support as previously planned.
+
+## Remaining Actions
+
+- [ ] Refactor planner to support multi-tool, multi-language, and multi-system mapping.
+- [ ] Expand tool registration and ensure all tools are discoverable by the planner.
+- [ ] Add/expand CLI and tool tests for all supported commands.
+- [ ] Update README and review/cli_sequence_audit.md with audit results and next steps.
+- [ ] Continue enforcing file organization, naming, and platform isolation rules.
 
