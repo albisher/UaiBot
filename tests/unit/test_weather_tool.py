@@ -2,7 +2,7 @@
 import unittest
 
 try:
-    from src.app.core.ai.agent_tools.weather_tool import WeatherTool
+    from src.app.core.ai.tools.weather_tool import WeatherTool
 except ImportError:
     pass # Handle if module itself has issues or direct import isn't desired for test structure
 

@@ -93,7 +93,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'labeeb=labeeb.main:main',
+            'labeeb=src.app.main:main',
         ],
     },
     classifiers=[

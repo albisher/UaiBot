@@ -57,19 +57,106 @@ openai-whisper @ git+https://github.com/openai/whisper.git
 # Platform specific dependencies
 # macOS
 pyobjc; sys_platform == 'darwin'  # This will install all required pyobjc packages
+pyobjc-framework-AVFoundation; sys_platform == 'darwin'
+pyobjc-framework-AppKit; sys_platform == 'darwin'
+pyobjc-framework-CoreAudio; sys_platform == 'darwin'
+pyobjc-framework-Foundation; sys_platform == 'darwin'
+pyobjc-framework-IOBluetooth; sys_platform == 'darwin'
+pyobjc-framework-IOKit; sys_platform == 'darwin'
+pyobjc-framework-Quartz; sys_platform == 'darwin'
+objc; sys_platform == 'darwin'
 
 # Windows
 pywin32>=306; sys_platform == 'win32'
 wmi>=1.5.1; sys_platform == 'win32'
 comtypes>=1.2.0; sys_platform == 'win32'
+win32api; sys_platform == 'win32'
+win32clipboard; sys_platform == 'win32'
+win32com; sys_platform == 'win32'
+win32con; sys_platform == 'win32'
+win32file; sys_platform == 'win32'
+win32gui; sys_platform == 'win32'
+win32process; sys_platform == 'win32'
+win32security; sys_platform == 'win32'
 
 # Linux
 python-xlib>=0.33; sys_platform == 'linux'
 pyalsaaudio>=0.10.0; sys_platform == 'linux'  # Provides alsaaudio module
 alsaaudio>=0.10.0; sys_platform == 'linux'  # Alias for pyalsaaudio (for compatibility)
+pyudev; sys_platform == 'linux'
+distro; sys_platform == 'linux'
+sounddevice; sys_platform == 'linux'
 
 # Additional utilities
 ffmpeg-python>=0.2.0
 soundfile>=0.12.1
 PyYAML>=6.0.1
 selenium>=4.18.1
+
+# Core AI and agent framework
+smolagents
+
+# LLM and embedding
+transformers
+sentence-transformers
+torch
+
+# Vector DB for memory
+chromadb
+
+# Browser automation
+playwright
+selenium
+
+# System and device awareness
+psutil
+pyautogui
+pynput
+
+# File, network, and OS tools
+requests
+bs4
+
+# i18n and translation
+gettext
+
+# Audio and vision
+pyaudio
+pillow
+opencv-python
+
+# For TTS/STT
+pyttsx3
+openai-whisper
+
+# For testing and linting
+pytest
+pytest-asyncio
+
+# For parsing and config
+python-dotenv
+toml
+
+# For documentation
+mkdocs
+
+# For Linux-specific features (documented)
+# sudo apt install ffmpeg (for audio)
+# sudo apt install tesseract-ocr (for OCR)
+
+# Cross-platform/other
+Xlib
+cv2
+pygetwindow
+screen_brightness_control
+usb
+matplotlib
+networkx
+spacy
+langdetect
+keyboard
+jwt
+aiomysql
+aioimaplib
+aiosmtplib
+dns

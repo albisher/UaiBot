@@ -48,7 +48,7 @@ src/
 ├── app/                      # Main application code
 │   ├── core/                 # Core functionality
 │   │   ├── ai/              # AI related modules
-│   │   │   ├── agent_tools/ # Agent tools implementation
+│   │   │   ├── tools/         # All ai tools implementation
 │   │   │   └── agents/      # Agent implementations
 │   │   └── platform_core/   # Platform specific code
 │   │       ├── ubuntu/      # Ubuntu specific implementations

@@ -2,7 +2,7 @@
 import unittest
 
 try:
-    from src.app.core.ai.agent_tools.web_searching_tool import WebSearchingTool
+    from src.app.core.ai.tools.web_searching_tool import WebSearchingTool
 except ImportError:
     pass # Handle if module itself has issues or direct import isn't desired for test structure
 

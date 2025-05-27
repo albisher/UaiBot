@@ -2,7 +2,7 @@
 import unittest
 
 try:
-    from src.app.core.ai.agent_tools.calculator_tool import CalculatorTool
+    from src.app.core.ai.tools.calculator_tool import CalculatorTool
 except ImportError:
     pass # Handle if module itself has issues or direct import isn't desired for test structure
 

@@ -2,7 +2,7 @@
 import unittest
 
 try:
-    from src.app.core.ai.agent_tools.file_and_document_organizer_tool import FileAndDocumentOrganizerTool
+    from src.app.core.ai.tools.file_and_document_organizer_tool import FileAndDocumentOrganizerTool
 except ImportError:
     pass # Handle if module itself has issues or direct import isn't desired for test structure
 

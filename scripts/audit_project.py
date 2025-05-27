@@ -31,7 +31,7 @@ CONFIG = {
     "main_todo_filename": "labeeb_project_professional_todo.md",
     "platform_core_dir_segment": "app/core/platform_core", # Updated path
     "platform_dirs_keywords": ['ubuntu', 'windows', 'mac', 'linux'],
-    "agent_tool_dirs": ['app/core/ai/agent_tools', 'app/core/ai/agents'], # Updated paths
+    "tool_dirs": ['app/core/ai/tools', 'app/core/ai/agents'], # Updated paths
     "agent_docs_subdir": "agents_tools",
     "test_file_prefix": "test_",
     "unit_test_subdir": "unit",
@@ -171,6 +171,15 @@ logger = logging.getLogger(__name__)
 VIOLATIONS = []
 PROJECT_RULES = {}
 
+# Add a list of doc folders to skip
+SKIP_DOC_FOLDERS = [
+    "docs/secret/",
+    "docs/architecture/",
+    "docs/rules/",
+    "docs/research/",
+    # Add more as needed
+]
+
 # --- Helper Functions ---
 def ensure_dir_exists(path: Path):
     path.mkdir(parents=True, exist_ok=True)
@@ -293,7 +302,7 @@ def check_project_wide_python_syntax():
 # 2. A2A, MCP, SmolAgents Compliance
 def check_agent_compliance():
     logger.info("2. Checking A2A, MCP, SmolAgents Compliance...")
-    agent_base_dirs = [SRC_DIR / Path(p_dir) for p_dir in CONFIG["agent_tool_dirs"]]
+    agent_base_dirs = [SRC_DIR / Path(p_dir) for p_dir in CONFIG["tool_dirs"]]
     compliance_keywords = CONFIG["compliance_keywords"]
 
     for agent_dir_path in agent_base_dirs:
@@ -387,8 +396,12 @@ def manage_docs_and_todos():
     correct_name = CONFIG["project_name"]
     for text_file in get_all_project_files(PROJECT_ROOT, CONFIG["text_file_extensions"]):
         try:
-            # Skip the audit log file, TODO file, and the audit script itself
+            # Skip the audit log file, TODO file, the audit script itself, and doc folders
             if text_file == LOG_FILE or (TODO_FILE and text_file == TODO_FILE) or text_file.name == "audit_project.py":
+                continue
+            # Skip all configured doc folders
+            rel_path = str(text_file.relative_to(PROJECT_ROOT))
+            if any(rel_path.startswith(folder) for folder in SKIP_DOC_FOLDERS):
                 continue
             with open(text_file, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()

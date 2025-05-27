@@ -247,3 +247,31 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - All user-facing strings in UI and CLI modules should use translation functions (`_()` or `gettext`).
 - Arabic translations are located in `locales/ar/LC_MESSAGES/labeeb.po`.
 - To add or update translations, edit the `.po` files and recompile with `msgfmt`.
+
+## Labeeb Project Updates (Professional Audit)
+
+### New Dependencies (Linux)
+- smolagents, transformers, sentence-transformers, torch, chromadb
+- playwright, selenium, psutil, pyautogui, pynput, requests, bs4
+- gettext, pyaudio, pillow, opencv-python, pyttsx3, openai-whisper
+- pytest, pytest-asyncio, python-dotenv, toml, mkdocs
+- System: `sudo apt install ffmpeg tesseract-ocr`
+
+### AI Structure
+- All core AI modules are under `src/labeeb/core/ai/` (agents, agent_tools, models, workflows, prompts, registry)
+- Platform/OS-specific code is isolated in `src/app/core/platform_core/`
+
+### i18n/RTL/Arabic Support
+- All user-facing strings use translation functions (gettext)
+- Arabic (ar), English (en), French (fr), Spanish (es) locales supported
+- RTL and Arabic are first-class; test UI/CLI for Arabic/RTL display
+
+### Naming
+- All references to old names (uaibot, etc.) are replaced with Labeeb/labeeb
+
+### Memory
+- In-memory and ChromaDB-based memory supported for agent context and recall
+
+### Testing
+- Run `PYTHONPATH=src python3 src/labeeb/main.py` to start Labeeb
+- Run `python3 scripts/audit_project.py` to audit the project

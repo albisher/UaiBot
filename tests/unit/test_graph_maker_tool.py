@@ -2,7 +2,7 @@
 import unittest
 
 try:
-    from src.app.core.ai.agent_tools.graph_maker_tool import GraphMakerTool
+    from src.app.core.ai.tools.graph_maker_tool import GraphMakerTool
 except ImportError:
     pass # Handle if module itself has issues or direct import isn't desired for test structure
 
