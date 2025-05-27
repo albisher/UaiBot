@@ -56,15 +56,15 @@ openai-whisper @ git+https://github.com/openai/whisper.git
 
 # Platform specific dependencies
 # macOS
-pyobjc; sys_platform == 'darwin'  # This will install all required pyobjc packages
-pyobjc-framework-AVFoundation; sys_platform == 'darwin'
-pyobjc-framework-AppKit; sys_platform == 'darwin'
-pyobjc-framework-CoreAudio; sys_platform == 'darwin'
-pyobjc-framework-Foundation; sys_platform == 'darwin'
-pyobjc-framework-IOBluetooth; sys_platform == 'darwin'
-pyobjc-framework-IOKit; sys_platform == 'darwin'
-pyobjc-framework-Quartz; sys_platform == 'darwin'
-objc; sys_platform == 'darwin'
+pyobjc>=9.2; sys_platform == 'darwin'  # This will install all required pyobjc packages
+pyobjc-framework-AVFoundation>=9.2; sys_platform == 'darwin'
+pyobjc-framework-AppKit>=9.2; sys_platform == 'darwin'
+pyobjc-framework-CoreAudio>=9.2; sys_platform == 'darwin'
+pyobjc-framework-Foundation>=9.2; sys_platform == 'darwin'
+pyobjc-framework-IOBluetooth>=9.2; sys_platform == 'darwin'
+pyobjc-framework-IOKit>=9.2; sys_platform == 'darwin'
+pyobjc-framework-Quartz>=9.2; sys_platform == 'darwin'
+objc>=0.1.0; sys_platform == 'darwin'
 
 # Windows
 pywin32>=306; sys_platform == 'win32'
@@ -81,82 +81,77 @@ win32security; sys_platform == 'win32'
 
 # Linux
 python-xlib>=0.33; sys_platform == 'linux'
-pyalsaaudio>=0.10.0; sys_platform == 'linux'  # Provides alsaaudio module
-alsaaudio>=0.10.0; sys_platform == 'linux'  # Alias for pyalsaaudio (for compatibility)
-pyudev; sys_platform == 'linux'
-distro; sys_platform == 'linux'
-sounddevice; sys_platform == 'linux'
+pyalsaaudio>=0.10.0; sys_platform == 'linux'
+alsaaudio>=0.10.0; sys_platform == 'linux'
+pyudev>=0.24.0; sys_platform == 'linux'
+distro>=1.9.0; sys_platform == 'linux'
+sounddevice>=0.4.6; sys_platform == 'linux'
+
+# Core AI and agent framework
+smolagents>=0.1.0
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.1.0
+
+# LLM and embedding
+transformers>=4.40.0
+sentence-transformers>=2.2.2
+torch>=2.2.0
+
+# Vector DB for memory
+chromadb>=0.4.22
+
+# Browser automation
+playwright>=1.42.0
+selenium>=4.18.1
+
+# System and device awareness
+psutil>=7.0.0
+pyautogui>=0.9.54
+pynput>=1.7.6
+
+# File, network, and OS tools
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# i18n and translation
+gettext>=0.21.0
+
+# Audio and vision
+pyaudio>=0.2.13
+pillow>=11.2.1
+opencv-python>=4.8.0
+
+# For TTS/STT
+pyttsx3>=2.90
+openai-whisper @ git+https://github.com/openai/whisper.git
+
+# For testing and linting
+pytest>=7.4.0
+pytest-asyncio>=0.18.0
+
+# For parsing and config
+python-dotenv>=1.0.0
+toml>=0.10.2
+
+# For documentation
+mkdocs>=1.5.0
+
+# Cross-platform utilities
+Xlib>=0.33
+screen-brightness-control>=0.16.0
+usb>=1.2.1
+matplotlib>=3.8.0
+networkx>=3.2.0
+spacy>=3.7.0
+langdetect>=1.0.9
+keyboard>=0.13.5
+aiomysql>=0.2.0
+aioimaplib>=2.0.0
+aiosmtplib>=3.0.0
+dnspython>=2.6.0
 
 # Additional utilities
 ffmpeg-python>=0.2.0
 soundfile>=0.12.1
 PyYAML>=6.0.1
-selenium>=4.18.1
-
-# Core AI and agent framework
-smolagents
-
-# LLM and embedding
-transformers
-sentence-transformers
-torch
-
-# Vector DB for memory
-chromadb
-
-# Browser automation
-playwright
-selenium
-
-# System and device awareness
-psutil
-pyautogui
-pynput
-
-# File, network, and OS tools
-requests
-bs4
-
-# i18n and translation
-gettext
-
-# Audio and vision
-pyaudio
-pillow
-opencv-python
-
-# For TTS/STT
-pyttsx3
-openai-whisper
-
-# For testing and linting
-pytest
-pytest-asyncio
-
-# For parsing and config
-python-dotenv
-toml
-
-# For documentation
-mkdocs
-
-# For Linux-specific features (documented)
-# sudo apt install ffmpeg (for audio)
-# sudo apt install tesseract-ocr (for OCR)
-
-# Cross-platform/other
-Xlib
-cv2
-pygetwindow
-screen_brightness_control
-usb
-matplotlib
-networkx
-spacy
-langdetect
-keyboard
-jwt
-aiomysql
-aioimaplib
-aiosmtplib
-dns

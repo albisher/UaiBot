@@ -9,6 +9,7 @@ import py_compile # For syntax checking project files
 import subprocess # For running unittest on stubs
 from pathlib import Path
 from datetime import datetime
+from typing import List, Dict, Any
 
 # --- Configuration (Ideally from a config file like config.json or pyproject.toml) ---
 # For demonstration, keeping them here.

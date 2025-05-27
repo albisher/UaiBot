@@ -11,7 +11,7 @@ old name that we are taking out which is wrong : uaibot, Uaibot, uAIbot, uaiagen
 
 Run:
 @audit_project.py
-**@tools_audit.py**
+@tools_audit.py
 PYTHONPATH=srcpython3src/app/main.py
 
 make it all work, check if it is working as intended following A2A, MCP, SmolAgents.
