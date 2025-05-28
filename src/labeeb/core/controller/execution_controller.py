@@ -19,7 +19,7 @@ from labeeb.core.command_processor.error_handler import error_handler, ErrorCate
 from labeeb.core.parallel_utils import ParallelTaskManager
 from app.core.platform_core.browser_controller import BrowserController
 from labeeb.core.controller.macos_calendar_controller import MacOSCalendarController
-from src.app.core.platform_core.platform_utils import is_windows, is_mac, is_linux, is_posix
+from labeeb.core.platform_core.platform_utils import is_windows, is_mac, is_linux, is_posix
 
 logger = logging.getLogger(__name__)
 

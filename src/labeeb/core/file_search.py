@@ -4,7 +4,7 @@ Use PlatformManager for all file search logic.
 """
 
 # Deprecated stub for backward compatibility
-from src.app.core.platform_core.platform_manager import PlatformManager
+from labeeb.core.platform_core.platform_manager import PlatformManager
 
 """
 File search module for Labeeb.
@@ -39,7 +39,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 sys.path.append(project_root)
 
-from src.app.core.platform_core.platform_manager import PlatformManager
+from labeeb.core.platform_core.platform_manager import PlatformManager
 
 # Set up logging
 logger = logging.getLogger(__name__)

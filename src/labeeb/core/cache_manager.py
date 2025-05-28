@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from datetime import datetime, timedelta
 import hashlib
-from src.app.logging_config import get_logger
+from labeeb.logging_config import get_logger
 
 logger = get_logger(__name__)
 

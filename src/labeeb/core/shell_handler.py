@@ -9,11 +9,11 @@ import json
 import enum
 import re
 from typing import Dict, Any, List, Tuple, Optional
-from src.app.core.platform_core.platform_utils import get_platform_name
-from src.app.core.device_manager.usb_detector import USBDetector
-from src.app.core.browser_handler import BrowserHandler
-from src.app.core.file_search import FileSearch
-from src.app.core.platform_core.platform_manager import PlatformManager
+from labeeb.core.platform_core.platform_utils import get_platform_name
+from labeeb.core.device_manager.usb_detector import USBDetector
+from labeeb.core.browser_handler import BrowserHandler
+from labeeb.core.file_search import FileSearch
+from labeeb.core.platform_core.platform_manager import PlatformManager
 
 # Define CommandSafetyLevel enumeration to fix the import error
 class CommandSafetyLevel(enum.Enum):

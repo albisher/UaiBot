@@ -18,17 +18,17 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 sys.path.append(project_root)
 
-from src.app.core.model_manager import ModelManager
-from src.app.core.config_manager import ConfigManager
-from src.app.core.logging_config import get_logger
-from src.app.core.cache_manager import CacheManager
-from src.app.core.exceptions import AIError, ConfigurationError
-from src.app.core.ai_performance_tracker import AIPerformanceTracker
-from src.app.core.model_config_manager import ModelConfigManager
-from src.app.core.key_manager import KeyManager
-from src.app.system_types import SystemInfo
-from src.app.core.command_processor.ai_command_extractor import AICommandExtractor
-from src.app.core.platform_core.platform_manager import get_platform_system_info_gatherer
+from labeeb.core.model_manager import ModelManager
+from labeeb.core.config_manager import ConfigManager
+from labeeb.core.logging_config import get_logger
+from labeeb.core.cache_manager import CacheManager
+from labeeb.core.exceptions import AIError, ConfigurationError
+from labeeb.core.ai_performance_tracker import AIPerformanceTracker
+from labeeb.core.model_config_manager import ModelConfigManager
+from labeeb.core.key_manager import KeyManager
+from labeeb.system_types import SystemInfo
+from labeeb.core.command_processor.ai_command_extractor import AICommandExtractor
+from labeeb.core.platform_core.platform_manager import get_platform_system_info_gatherer
 
 @dataclass
 class PromptConfig:

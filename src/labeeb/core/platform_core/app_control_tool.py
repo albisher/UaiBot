@@ -12,7 +12,7 @@ import platform
 import subprocess
 import time
 from typing import Dict, Any, Optional
-from src.app.core.ai.tools.base_tool import BaseTool
+from labeeb.core.ai.tools.base_tool import BaseTool
 
 logger = logging.getLogger(__name__)
 

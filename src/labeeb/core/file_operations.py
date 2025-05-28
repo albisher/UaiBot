@@ -15,9 +15,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 sys.path.append(project_root)
 
-from src.app.utils.file_utils import search_files, expand_path, find_cv_files
-from src.app.logging_config import get_logger
-from src.app.utils.file_utils import FileUtils
+from labeeb.utils.file_utils import search_files, expand_path, find_cv_files
+from labeeb.logging_config import get_logger
+from labeeb.utils.file_utils import FileUtils
 
 logger = get_logger(__name__)
 

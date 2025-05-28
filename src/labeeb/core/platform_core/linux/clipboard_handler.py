@@ -1,5 +1,5 @@
 import pyperclip
-from src.app.core.platform_core.common.base_handler import BaseHandler
+from labeeb.core.platform_core.common.base_handler import BaseHandler
 from typing import Optional, Dict, Any
 
 class LinuxClipboardHandler(BaseHandler):

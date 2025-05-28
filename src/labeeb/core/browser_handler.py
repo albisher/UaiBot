@@ -2,7 +2,7 @@
 Browser integration for Labeeb.
 This version uses the platform-specific browser handler from platform_core.
 """
-from src.app.core.platform_core.platform_manager import PlatformManager
+from labeeb.core.platform_core.platform_manager import PlatformManager
 
 class BrowserHandler:
     """Handler for browser interactions."""

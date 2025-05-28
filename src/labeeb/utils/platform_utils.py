@@ -9,7 +9,7 @@ from pathlib import Path
 import json
 import sys
 import subprocess
-from src.app.core.platform_core.platform_utils import get_platform_name, is_windows, is_mac, is_linux
+from labeeb.core.platform_core.platform_utils import get_platform_name, is_windows, is_mac, is_linux
 
 def run_command(command, check=True):
     """Run a shell command and return the result"""
