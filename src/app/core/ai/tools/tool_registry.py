@@ -18,7 +18,9 @@ class ToolRegistry:
         Args:
             tool_class: Tool class to register
         """
-        cls._tools[tool_class.__name__] = tool_class
+        # Instantiate the tool to get its name
+        tool_instance = tool_class()
+        cls._tools[tool_instance.name] = tool_class
     
     @classmethod
     def get_tool(cls, tool_name: str) -> Optional[Type[BaseTool]]:

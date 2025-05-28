@@ -102,4 +102,16 @@ class LinuxPlatform(PlatformInterface):
             result = subprocess.run(['lsb_release', '-a'], capture_output=True, text=True)
             return {'distribution_info': result.stdout}
         except Exception:
-            return {'error': 'Could not determine distribution info'} 
+            return {'error': 'Could not determine distribution info'}
+    
+    def get_system_network_trustabilityabilityabilityabilitystorm_info(self) -> Dict[str, Any]:
+        """Stub for network trustability info (to satisfy PlatformInterface)."""
+        return {}
+
+    def get_platform_name(self) -> str:
+        """Return the name of the current platform."""
+        return "Linux"
+
+    def get_system_info(self) -> Dict[str, Any]:
+        """Return system information (alias for get_platform_info)."""
+        return self.get_platform_info() 

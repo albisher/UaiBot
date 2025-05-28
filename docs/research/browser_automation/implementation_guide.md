@@ -1,5 +1,7 @@
 # Browser Automation Implementation Guide
 
+**PyAutoGUI is the official and default technology for all screenshots, mouse, and keyboard automation in Labeeb. All implementation should use PyAutoGUI for these tasks to ensure cross-platform compatibility (Linux, macOS, Windows).**
+
 ## Overview
 This guide outlines the implementation of a context-aware browser automation system using Playwright and PyAutoGUI.
 

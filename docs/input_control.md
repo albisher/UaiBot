@@ -1,4 +1,6 @@
-# Input Control Module
+# Input Control in Labeeb
+
+**PyAutoGUI is the official and default technology for all screenshots, mouse, and keyboard automation in Labeeb. All input automation should use PyAutoGUI for cross-platform compatibility (Linux, macOS, Windows).**
 
 ## Overview
 
@@ -116,4 +118,3 @@ All input handlers implement the following methods:
 
 - `get_mouse_position()`: Get the current mouse position
 - `get_screen_size()`: Get the screen size
-- `

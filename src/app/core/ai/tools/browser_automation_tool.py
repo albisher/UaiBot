@@ -16,6 +16,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from src.app.core.ai.tool_base import BaseTool
+import tempfile
+import os
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +31,8 @@ class BrowserAutomationTool(BaseTool):
         Args:
             config: Optional configuration dictionary
         """
+        if config is None:
+            config = {}
         super().__init__(
             name="browser_automation",
             description="Tool for automating browser actions with platform-specific optimizations",
@@ -51,6 +56,20 @@ class BrowserAutomationTool(BaseTool):
                 options = webdriver.ChromeOptions()
                 if self._headless:
                     options.add_argument('--headless')
+                self._driver = webdriver.Chrome(options=options)
+            elif self._browser_type.lower() == 'brave':
+                options = webdriver.ChromeOptions()
+                brave_path = self.config.get('brave_path', '/snap/bin/brave')
+                options.binary_location = brave_path
+                if self._headless:
+                    options.add_argument('--headless')
+                # Add unique user data dir in /tmp
+                user_data_dir = f"/tmp/labeeb_brave_profile_{os.getpid()}"
+                options.add_argument(f'--user-data-dir={user_data_dir}')
+                # Add flags for Snap/containers compatibility
+                options.add_argument('--no-sandbox')
+                options.add_argument('--disable-dev-shm-usage')
+                # Advise: User must close all Brave windows before running automation
                 self._driver = webdriver.Chrome(options=options)
             elif self._browser_type.lower() == 'firefox':
                 options = webdriver.FirefoxOptions()

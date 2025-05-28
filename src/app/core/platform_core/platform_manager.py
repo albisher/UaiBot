@@ -95,8 +95,8 @@ class PlatformManager:
                 # Windows handlers will be loaded here
                 pass
             elif self.platform.startswith('linux'):
-                # Linux handlers will be loaded here
-                pass
+                from .linux.clipboard_handler import LinuxClipboardHandler
+                self.handlers['clipboard'] = LinuxClipboardHandler()
         except Exception as e:
             logger.error(f"Error loading platform handlers: {str(e)}")
             raise
@@ -120,6 +120,14 @@ class PlatformManager:
             # Update RTL support based on current language
             self.current_language = get_current_language()
             self.rtl_support = is_rtl(self.current_language)
+            
+            # Linux clipboard handler
+            if self.platform.startswith('linux') and 'clipboard' in self.handlers:
+                handler = self.handlers['clipboard']
+                if handler.initialize():
+                    self.handlers['clipboard'] = handler
+                else:
+                    print(f"Warning: Failed to initialize clipboard handler")
             
             self._initialized = True
             return True

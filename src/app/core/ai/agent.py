@@ -61,6 +61,9 @@ from .base_agent import BaseAgent, Agent, AgentState, AgentResult
 from .a2a_protocol import A2AProtocol
 from .mcp_protocol import MCPProtocol
 from .smol_agent import SmolAgentProtocol
+from src.app.core.ai.tools.clipboard_tool import ClipboardTool
+from src.app.core.ai.tools.screen_control_tool import ScreenControlTool
+from src.app.core.ai.tools.tool_registry import ToolRegistry
 
 # Setup translation (i18n)
 _ = gettext.gettext
@@ -80,62 +83,6 @@ def safe_path(filename: str, category: str = "test") -> str:
         os.makedirs(base_dirs[category], exist_ok=True)
         return os.path.join(base_dirs[category], filename)
     return filename
-
-@dataclass
-class ToolRegistry:
-    """
-    Registry for agent tools. Allows agents to discover and invoke tools by name.
-    Implements A2A and MCP protocols for tool discovery and invocation.
-    """
-    def __init__(self):
-        self._tools: Dict[str, Tool] = {}
-        self._a2a_protocol = A2AProtocol()
-        self._mcp_protocol = MCPProtocol()
-
-    def register(self, tool: Tool):
-        """Register a tool with the registry."""
-        self._tools[tool.name] = tool
-        # Register tool with A2A and MCP protocols
-        self._a2a_protocol.register_tool(tool)
-        self._mcp_protocol.register_tool(tool)
-
-    def get(self, tool_name: str) -> Optional[Tool]:
-        """Get a tool by name."""
-        return self._tools.get(tool_name)
-
-    def list_tools(self) -> List[str]:
-        """List all registered tool names."""
-        return list(self._tools.keys())
-
-    async def execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
-        """Execute a tool with the given parameters."""
-        tool = self.get(tool_name)
-        if not tool:
-            print(f"[DEBUG] ToolRegistry: Tool '{tool_name}' not found.")
-            raise ValueError(f"Tool {tool_name} not found")
-        print(f"[DEBUG] ToolRegistry: Executing tool '{tool_name}' with params {params}")
-        # Use forward for smolagents.Tool, _execute_command for BaseTool
-        if hasattr(tool, 'forward') and callable(getattr(tool, 'forward')):
-            if 'text' in params:
-                result = await tool.forward(params['text'])
-            else:
-                # For app_control tool, ensure action is in params
-                if tool_name == 'app_control' and 'action' not in params:
-                    params['action'] = params.get('params', {}).get('action')
-                result = await tool.forward(**params)
-            print(f"[DEBUG] ToolRegistry: Result from '{tool_name}': {result}")
-            return result
-        elif hasattr(tool, '_execute_command') and callable(getattr(tool, '_execute_command')):
-            action = params.get('action', None)
-            args = params.copy()
-            if action:
-                args.pop('action')
-            result = await tool._execute_command(action, args)
-            print(f"[DEBUG] ToolRegistry: Result from '{tool_name}': {result}")
-            return result
-        else:
-            print(f"[DEBUG] ToolRegistry: Tool '{tool_name}' does not support execution interface.")
-            raise TypeError(f"Tool {tool_name} does not support execution interface")
 
 @dataclass
 class AgentMemory:
@@ -209,12 +156,12 @@ class LLMPlanner:
         # Existing logic for known tools
         known_tools = ["echo", "file"]
         if command in known_tools:
-            return {"tool": command, "action": "say" if command == "echo" else "create", "params": params}
+            return {"tool": command, "action": "say" if command == "echo" else "create_file", "params": params}
         # Example: if command is 'create and read file', decompose into two steps
         if command == "create and read file":
             return MultiStepPlan(steps=[
-                PlanStep(tool="file", action="create", params=params),
-                PlanStep(tool="file", action="read", params={"filename": params.get("filename")})
+                PlanStep(tool="file", action="create_file", params=params),
+                PlanStep(tool="file", action="read_file", params={"path": params.get("filename")})
             ])
         # Default: single-step echo
         return {"tool": "echo", "action": "say", "params": {"text": command}}
@@ -259,7 +206,7 @@ class OllamaLLMPlanner(LLMPlanner):
         if "system" in lc or "cpu" in lc or "memory" in lc:
             return {"tool": "system", "action": "info", "params": {}}
         if "file" in lc:
-            return {"tool": "file", "action": "list", "params": {"directory": "."}}
+            return {"tool": "file", "action": "list_files", "params": {"directory": "."}}
         if "date" in lc or "time" in lc:
             return {"tool": "datetime", "action": "now", "params": {}}
         if "weather" in lc:
@@ -296,7 +243,7 @@ class BaseAgent:
     def __init__(self):
         self.name = "Labeeb Agent"
         self.capabilities = []
-        self.tools = ToolRegistry()
+        self.tools = ToolRegistry
         self.memory = AgentMemory()
         self.logger = logging.getLogger(f"LabeebAgent.{self.name}")
         self._a2a_protocol = A2AProtocol()
@@ -423,6 +370,267 @@ class BaseAgent:
                         required_tools=[tool]
                     )
         
+        # --- Improved folder creation mapping ---
+        folder_patterns = [
+            r"create (a )?(folder|directory) called ([\w\-_]+)",
+            r"make (a )?(folder|directory) named ([\w\-_]+)",
+            r"أنشئ مجلد اسمه ([\w\-_]+)",
+            r"أنشئ مجلد باسم ([\w\-_]+)",
+            r"أنشئ مجلد ([\w\-_]+)",
+            r"إنشاء مجلد ([\w\-_]+)"
+        ]
+        for pattern in folder_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                folder_name = match.groups()[-1]
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="file_tool",
+                        params={"action": "create_directory", "path": folder_name},
+                        description=f"Create directory {folder_name}",
+                        required_tools=["file_tool"]
+                    )],
+                    description=f"Create directory {folder_name}",
+                    required_tools=["file_tool"]
+                )
+        # --- End improved folder creation mapping ---
+        # --- Improved file creation mapping ---
+        file_patterns = [
+            r"create (a )?file named ([\w\-_\.]+) and write: (.+)",
+            r"make (a )?file named ([\w\-_\.]+) and write: (.+)",
+            r"write (a )?file named ([\w\-_\.]+) with content: (.+)",
+            r"أنشئ ملف اسمه ([\w\-_\.]+) واكتب فيه: (.+)",
+            r"اكتب ملف اسمه ([\w\-_\.]+) وضع فيه: (.+)",
+            r"إنشاء ملف ([\w\-_\.]+) بمحتوى: (.+)"
+        ]
+        for pattern in file_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                file_name = match.groups()[-2]
+                content = match.groups()[-1]
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="file_tool",
+                        params={"action": "create_file", "path": f"labeeb_tool_tests/{file_name}", "content": content},
+                        description=f"Create file {file_name} with content",
+                        required_tools=["file_tool"]
+                    )],
+                    description=f"Create file {file_name} with content",
+                    required_tools=["file_tool"]
+                )
+        # --- End improved file creation mapping ---
+        # --- Improved file listing mapping ---
+        list_patterns = [
+            r"show me all the files in ([\w\-_]+)",
+            r"list all files in ([\w\-_]+)",
+            r"اعرض لي كل الملفات الموجودة في ([\w\-_]+)",
+            r"ما هي الملفات في ([\w\-_]+)",
+            r"عرض الملفات في ([\w\-_]+)"
+        ]
+        for pattern in list_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                dir_name = match.groups()[-1]
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="file_tool",
+                        params={"action": "list_files", "directory": dir_name},
+                        description=f"List files in {dir_name}",
+                        required_tools=["file_tool"]
+                    )],
+                    description=f"List files in {dir_name}",
+                    required_tools=["file_tool"]
+                )
+        # --- End improved file listing mapping ---
+        # --- Improved file reading mapping ---
+        read_patterns = [
+            r"read the contents of ([\w\-_/.]+)",
+            r"show me what's in ([\w\-_/.]+)",
+            r"اعرض محتوى ([\w\-_/.]+)",
+            r"اقرأ ملف ([\w\-_/.]+)"
+        ]
+        for pattern in read_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                file_path = match.groups()[-1]
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="file_tool",
+                        params={"action": "read_file", "path": file_path},
+                        description=f"Read file {file_path}",
+                        required_tools=["file_tool"]
+                    )],
+                    description=f"Read file {file_path}",
+                    required_tools=["file_tool"]
+                )
+        # --- End improved file reading mapping ---
+        # --- Improved file deletion mapping ---
+        delete_patterns = [
+            r"delete file ([\w\-_/.]+)",
+            r"remove file ([\w\-_/.]+)",
+            r"احذف ملف ([\w\-_/.]+)",
+            r"امسح ملف ([\w\-_/.]+)"
+        ]
+        for pattern in delete_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                file_path = match.groups()[-1]
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="file_tool",
+                        params={"action": "delete_file", "path": file_path},
+                        description=f"Delete file {file_path}",
+                        required_tools=["file_tool"]
+                    )],
+                    description=f"Delete file {file_path}",
+                    required_tools=["file_tool"]
+                )
+        # --- End improved file deletion mapping ---
+        # --- Improved system resource mapping ---
+        sys_patterns = [
+            r"cpu and memory usage",
+            r"system resources",
+            r"system info",
+            r"كم تبقى من مساحة القرص",
+            r"ما هي حالة النظام"
+        ]
+        for pattern in sys_patterns:
+            if re.search(pattern, command, re.IGNORECASE):
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="system_resource_tool",
+                        params={"action": "status"},
+                        description="Get system resource info",
+                        required_tools=["system_resource_tool"]
+                    )],
+                    description="Get system resource info",
+                    required_tools=["system_resource_tool"]
+                )
+        # --- End improved system resource mapping ---
+        # --- Improved translation mapping ---
+        translation_patterns = [
+            r"translate (.+) to english",
+            r"ترجم كلمة ([^ ]+) إلى الإنجليزية"
+        ]
+        for pattern in translation_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                text = match.groups()[-1]
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="translation",
+                        params={"command": "translate", "text": text, "target_language": "en"},
+                        description=f"Translate '{text}' to English",
+                        required_tools=["translation"]
+                    )],
+                    description=f"Translate '{text}' to English",
+                    required_tools=["translation"]
+                )
+        # --- End improved translation mapping ---
+        # --- Improved clipboard mapping (Kuwaiti, Moroccan, English) ---
+        clipboard_patterns = [
+            r"what is on my clipboard",
+            r"show clipboard",
+            r"ما الموجود في الحافظة",
+            r"شنو في الحافظة",  # Kuwaiti
+            r"شنو كاين فالكليپبورد",  # Moroccan
+            r"شنو نسخت",  # Moroccan
+            r"شنو نسخت آخر مرة",  # Moroccan
+            r"شنو آخر شي نسخته",  # Kuwaiti
+            r"شنو آخر شي نسخناه",  # Kuwaiti
+            r"copy (.+)",
+            r"انسخ (.+)",
+            r"نسخ (.+)",
+            r"حط (.+) في الحافظة",  # Kuwaiti/Moroccan
+            r"paste",
+            r"ألصق",
+            r"لسق",
+            r"لسّق"
+        ]
+        for pattern in clipboard_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                if 'copy' in pattern or 'انسخ' in pattern or 'نسخ' in pattern or 'حط' in pattern:
+                    text = match.groups()[-1] if match.groups() else ''
+                    return MultiStepPlan(
+                        steps=[PlanStep(
+                            action="clipboard_tool",
+                            params={"action": "copy", "text": text},
+                            description=f"Copy '{text}' to clipboard",
+                            required_tools=["clipboard_tool"]
+                        )],
+                        description=f"Copy '{text}' to clipboard",
+                        required_tools=["clipboard_tool"]
+                    )
+                elif 'paste' in pattern or 'ألصق' in pattern or 'لسق' in pattern or 'لسّق' in pattern:
+                    return MultiStepPlan(
+                        steps=[PlanStep(
+                            action="clipboard_tool",
+                            params={"action": "paste"},
+                            description="Paste clipboard content",
+                            required_tools=["clipboard_tool"]
+                        )],
+                        description="Paste clipboard content",
+                        required_tools=["clipboard_tool"]
+                    )
+                else:
+                    return MultiStepPlan(
+                        steps=[PlanStep(
+                            action="clipboard_tool",
+                            params={"action": "get_clipboard"},
+                            description="Get clipboard content",
+                            required_tools=["clipboard_tool"]
+                        )],
+                        description="Get clipboard content",
+                        required_tools=["clipboard_tool"]
+                    )
+        # --- End improved clipboard mapping ---
+        # --- Improved screenshot mapping (English/Arabic/Kuwaiti/Moroccan) ---
+        screenshot_patterns = [
+            r"take a screenshot",
+            r"screenshot",
+            r"لقط الشاشة",
+            r"خذ لقطة شاشة",
+            r"صور الشاشة",
+            r"صوّر الشاشة",  # Kuwaiti
+            r"دير سكرينشوت",  # Moroccan
+            r"دير لقطة شاشة"  # Moroccan
+        ]
+        for pattern in screenshot_patterns:
+            if re.search(pattern, command, re.IGNORECASE):
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="screen_control_tool",
+                        params={"action": "take_screenshot"},
+                        description="Take a screenshot",
+                        required_tools=["screen_control_tool"]
+                    )],
+                    description="Take a screenshot",
+                    required_tools=["screen_control_tool"]
+                )
+        # --- End improved screenshot mapping ---
+        # --- Improved clipboard clear mapping (English/Arabic) ---
+        clear_patterns = [
+            r"clear the clipboard",
+            r"empty the clipboard",
+            r"افرغ الحافظة",
+            r"امسح الحافظة",
+            r"صفر الحافظة",
+            r"نظف الحافظة"
+        ]
+        for pattern in clear_patterns:
+            if re.search(pattern, command, re.IGNORECASE):
+                return MultiStepPlan(
+                    steps=[PlanStep(
+                        action="clipboard_tool",
+                        params={"action": "clear"},
+                        description="Clear clipboard content",
+                        required_tools=["clipboard_tool"]
+                    )],
+                    description="Clear clipboard content",
+                    required_tools=["clipboard_tool"]
+                )
+        # --- End improved clipboard clear mapping ---
         # Defensive: check for valid tool/action
         if isinstance(plan_dict, dict) and "tool" in plan_dict and plan_dict["tool"] and "action" in plan_dict and plan_dict["action"]:
             params = plan_dict.get("params", {})
@@ -443,9 +651,34 @@ class BaseAgent:
             # Skip step if condition is not met
             if hasattr(step, 'condition') and step.condition and not step.condition(self.memory.context):
                 continue
-            result = await self.tools.execute_tool(step.action, step.params)
+            result = await self.execute_tool(step.action, step.params)
             results.append(result)
         return results[-1] if results else None
+
+    async def execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
+        """Execute a tool by name using the shared ToolRegistry."""
+        from src.app.core.ai.tools.tool_registry import ToolRegistry
+        tool_class = ToolRegistry.get_tool(tool_name)
+        if not tool_class:
+            raise ValueError(f"Tool {tool_name} not found in registry")
+        tool = tool_class()
+        # Prefer async forward or _execute_command if available
+        if hasattr(tool, 'forward') and callable(getattr(tool, 'forward')):
+            return await tool.forward(**params)
+        elif hasattr(tool, '_execute_command') and callable(getattr(tool, '_execute_command')):
+            action = params.get('action', None)
+            args = params.copy()
+            if action:
+                args.pop('action')
+            return await tool._execute_command(action, args)
+        elif hasattr(tool, 'execute') and callable(getattr(tool, 'execute')):
+            action = params.get('action', None)
+            args = params.copy()
+            if action:
+                args.pop('action')
+            return await tool.execute(action, **args)
+        else:
+            raise TypeError(f"Tool {tool_name} does not support execution interface")
 
     async def handle_a2a_message(self, message: Message) -> Message:
         """Handle an A2A message."""
@@ -479,18 +712,18 @@ class LabeebAgent(BaseAgent):
         self.name = "LabeebAgent"
         self.logger = logging.getLogger("LabeebAgent")
         # Register all tools
-        self.tools.register(FileTool())
-        self.tools.register(SystemResourceTool())
-        self.tools.register(DateTimeTool())
-        self.tools.register(WeatherTool())
-        self.tools.register(CalculatorTool())
-        self.tools.register(KeyboardInputTool())
-        self.tools.register(BrowserAutomationTool({"browser_type": "chrome", "headless": True}))
-        self.tools.register(WebSurfingTool({"browser_type": "chrome", "headless": True}))
-        self.tools.register(WebSearchingTool({"browser_type": "chrome", "headless": True}))
-        self.tools.register(FileAndDocumentOrganizerTool())
-        self.tools.register(CodePathUpdaterTool())
-        self.tools.register(AppControlTool())
+        self.tools.register(EchoTool)
+        self.tools.register(FileTool)
+        self.tools.register(SystemResourceTool)
+        self.tools.register(DateTimeTool)
+        self.tools.register(WeatherTool)
+        self.tools.register(CalculatorTool)
+        self.tools.register(KeyboardInputTool)
+        self.tools.register(FileAndDocumentOrganizerTool)
+        self.tools.register(CodePathUpdaterTool)
+        self.tools.register(AppControlTool)
+        self.tools.register(ClipboardTool)
+        self.tools.register(ScreenControlTool)
 
     async def plan(self, command: str) -> MultiStepPlan:
         self.logger.debug(f"Planning for command: {command}")

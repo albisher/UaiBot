@@ -135,4 +135,26 @@ class SystemResourceTool(BaseTool):
                     "create_time": process.create_time()
                 }
             except psutil.NoSuchProcess:
-                return self.handle_error(ValueError(f"Process {pid} not found")) 
+                return self.handle_error(ValueError(f"Process {pid} not found"))
+
+    async def forward(self, **kwargs):
+        action = kwargs.get('action', 'status')
+        return await self._execute_command(action, kwargs)
+
+    async def _execute_command(self, action: str, args: dict) -> dict:
+        if action == "status":
+            return {
+                "cpu": self._get_cpu_usage(),
+                "memory": self._get_memory_usage(),
+                "disk": self._get_disk_usage()
+            }
+        elif action == "get_cpu_usage":
+            return self._get_cpu_usage()
+        elif action == "get_memory_usage":
+            return self._get_memory_usage()
+        elif action == "get_disk_usage":
+            return self._get_disk_usage(**args)
+        elif action == "get_process_info":
+            return self._get_process_info(**args)
+        else:
+            return {"error": f"Unknown action: {action}"} 

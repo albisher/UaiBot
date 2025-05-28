@@ -2,12 +2,17 @@ import logging
 import pyautogui
 import gettext
 import locale
+import os
 from typing import Dict, Any, Tuple
-from labeeb.platform_core.platform_manager import PlatformManager
+from src.app.core.platform_core.platform_manager import PlatformManager
 from src.app.core.ai.tool_base import BaseTool
 from src.app.core.ai.a2a_protocol import A2AProtocol
 from src.app.core.ai.mcp_protocol import MCPProtocol
 from src.app.core.ai.smol_agent import SmolAgentProtocol
+from datetime import datetime
+import mss
+import mss.tools
+from PIL import Image
 
 """
 Screen Control Tool for Labeeb
@@ -33,7 +38,7 @@ See also:
 
 logger = logging.getLogger(__name__)
 
-class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
+class ScreenControlTool(BaseTool):
     name = "screen_control"
     description = "Tool for screen control and automation capabilities."
 
@@ -44,9 +49,10 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
         self.handlers = self.platform_manager.get_handlers()
         self._configure_platform()
         self._setup_translations(language_code)
-        self.a2a_protocol = A2AProtocol()
-        self.mcp_protocol = MCPProtocol()
-        self.smol_protocol = SmolAgentProtocol()
+
+    def _log_protocol_action(self, protocol_name, action, details=None):
+        # TODO: Implement real protocol integration for A2A, MCP, SmolAgents
+        logger.debug(f"[Protocol:{protocol_name}] Action: {action}, Details: {details}")
 
     def _setup_translations(self, language_code: str) -> None:
         """Setup translations and RTL support for the specified language"""
@@ -76,13 +82,14 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     def _configure_platform(self) -> None:
         """Configure platform-specific screen settings"""
         try:
-            if self.platform_info['name'] == 'mac':
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
+            if platform_name == 'mac':
                 pyautogui.FAILSAFE = True
                 pyautogui.PAUSE = 0.1
-            elif self.platform_info['name'] == 'windows':
+            elif platform_name == 'windows':
                 pyautogui.FAILSAFE = True
                 pyautogui.PAUSE = 0.1
-            elif self.platform_info['name'] == 'ubuntu':
+            elif platform_name == 'ubuntu':
                 pyautogui.FAILSAFE = True
                 pyautogui.PAUSE = 0.1
         except Exception as e:
@@ -91,29 +98,26 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     async def get_screen_size(self) -> Dict[str, Any]:
         """Get screen size"""
         try:
-            # Notify A2A protocol before action
-            await self.a2a_protocol.notify_action("get_screen_size", {})
-            # Use MCP for action execution
-            await self.mcp_protocol.execute_action("get_screen_size", {})
-            
+            self._log_protocol_action('A2A', 'get_screen_size')
+            self._log_protocol_action('MCP', 'get_screen_size')
             width, height = pyautogui.size()
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
             result = {
-                'platform': self.platform_info['name'],
+                'platform': platform_name,
                 'action': 'get_size',
                 'status': 'success',
                 'size': {'width': width, 'height': height},
                 'is_rtl': self.is_rtl
             }
-            
-            # Notify SmolAgent protocol after action
-            await self.smol_protocol.notify_completion("get_screen_size", result)
+            self._log_protocol_action('SmolAgents', 'get_screen_size', result)
             return result
         except Exception as e:
             error_msg = self._("Error getting screen size: {}").format(str(e))
-            await self.a2a_protocol.notify_error("get_screen_size", error_msg)
+            self._log_protocol_action('A2A', 'get_screen_size_error', error_msg)
             logger.error(error_msg)
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
             return {
-                'platform': self.platform_info['name'],
+                'platform': platform_name,
                 'action': 'get_size',
                 'status': 'error',
                 'error': error_msg,
@@ -121,35 +125,32 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
             }
 
     async def take_screenshot(self, region: Tuple[int, int, int, int] = None) -> Dict[str, Any]:
-        """Take a screenshot"""
+        """Take a screenshot using pyautogui for compatibility with Wayland and most Linux desktops."""
         try:
-            # Notify A2A protocol before action
-            await self.a2a_protocol.notify_action("take_screenshot", {"region": region})
-            # Use MCP for action execution
-            await self.mcp_protocol.execute_action("take_screenshot", {"region": region})
-            
+            self._log_protocol_action('A2A', 'take_screenshot', {'region': region})
+            self._log_protocol_action('MCP', 'take_screenshot', {'region': region})
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
             result = {
-                'platform': self.platform_info['name'],
+                'platform': platform_name,
                 'action': 'screenshot',
                 'status': 'success',
                 'image': None,
                 'is_rtl': self.is_rtl
             }
 
+            import pyautogui
             screenshot = pyautogui.screenshot(region=region)
             result['image'] = screenshot
-            result['message'] = self._("Screen capture successful")
-            
-            # Notify SmolAgent protocol after action
-            await self.smol_protocol.notify_completion("take_screenshot", result)
+            result['message'] = self._("Screen capture successful (pyautogui)")
+            self._log_protocol_action('SmolAgents', 'take_screenshot', result)
             return result
-
         except Exception as e:
-            error_msg = self._("Screen capture failed: {}").format(str(e))
-            await self.a2a_protocol.notify_error("take_screenshot", error_msg)
+            error_msg = self._("Screen capture failed: {} (pyautogui)").format(str(e))
+            self._log_protocol_action('A2A', 'take_screenshot_error', error_msg)
             logger.error(error_msg)
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
             return {
-                'platform': self.platform_info['name'],
+                'platform': platform_name,
                 'action': 'screenshot',
                 'status': 'error',
                 'error': error_msg,
@@ -159,13 +160,11 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     async def locate_on_screen(self, image_path: str, confidence: float = 0.9) -> Dict[str, Any]:
         """Locate an image on screen"""
         try:
-            # Notify A2A protocol before action
-            await self.a2a_protocol.notify_action("locate_on_screen", {"image_path": image_path, "confidence": confidence})
-            # Use MCP for action execution
-            await self.mcp_protocol.execute_action("locate_on_screen", {"image_path": image_path, "confidence": confidence})
-            
+            self._log_protocol_action('A2A', 'locate_on_screen', {'image_path': image_path, 'confidence': confidence})
+            self._log_protocol_action('MCP', 'locate_on_screen', {'image_path': image_path, 'confidence': confidence})
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
             result = {
-                'platform': self.platform_info['name'],
+                'platform': platform_name,
                 'action': 'locate',
                 'status': 'success',
                 'location': None,
@@ -183,17 +182,16 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
                 result['message'] = self._("Image found on screen")
             else:
                 result['message'] = self._("Image not found on screen")
-            
-            # Notify SmolAgent protocol after action
-            await self.smol_protocol.notify_completion("locate_on_screen", result)
+            self._log_protocol_action('SmolAgents', 'locate_on_screen', result)
             return result
 
         except Exception as e:
             error_msg = self._("Error locating image: {}").format(str(e))
-            await self.a2a_protocol.notify_error("locate_on_screen", error_msg)
+            self._log_protocol_action('A2A', 'locate_on_screen_error', error_msg)
             logger.error(error_msg)
+            platform_name = self.platform_info.get('name') or self.platform_info.get('platform') or 'unknown'
             return {
-                'platform': self.platform_info['name'],
+                'platform': platform_name,
                 'action': 'locate',
                 'status': 'error',
                 'error': error_msg,
@@ -203,20 +201,14 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     async def check_screen_availability(self) -> bool:
         """Check if screen control is available"""
         try:
-            # Notify A2A protocol before action
-            await self.a2a_protocol.notify_action("check_screen_availability", {})
-            # Use MCP for action execution
-            await self.mcp_protocol.execute_action("check_screen_availability", {})
-            
-            # Test screen control
+            self._log_protocol_action('A2A', 'check_screen_availability')
+            self._log_protocol_action('MCP', 'check_screen_availability')
             pyautogui.size()
-            
-            # Notify SmolAgent protocol after action
-            await self.smol_protocol.notify_completion("check_screen_availability", {"available": True})
+            self._log_protocol_action('SmolAgents', 'check_screen_availability', {'available': True})
             return True
         except Exception as e:
             error_msg = self._("Error checking screen availability: {}").format(str(e))
-            await self.a2a_protocol.notify_error("check_screen_availability", error_msg)
+            self._log_protocol_action('A2A', 'check_screen_availability_error', error_msg)
             logger.error(error_msg)
             return False
 
@@ -239,4 +231,29 @@ class ScreenControlTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
         await self.smol_protocol.register_capability(capability, handler)
 
     async def unregister_capability(self, capability: str) -> None:
-        await self.smol_protocol.unregister_capability(capability) 
+        await self.smol_protocol.unregister_capability(capability)
+
+    async def _execute_command(self, action: str, args: dict = None) -> dict:
+        args = args or {}
+        if action == 'take_screenshot':
+            filename = args.get('filename')
+            region = args.get('region')
+            if not filename:
+                # Default path and name
+                folder = 'labeeb_tool_tests/صور_الشاشة'
+                os.makedirs(folder, exist_ok=True)
+                dt = datetime.now().strftime('%Y%m%d-%H%M%S')
+                filename = os.path.join(folder, f'screenshot-{dt}.png')
+            result = await self.take_screenshot(region=region)
+            if result.get('image') is not None:
+                result['image'].save(filename)
+                result['saved_to'] = filename
+            return result
+        elif action == 'get_screen_size':
+            return await self.get_screen_size()
+        elif action == 'locate_on_screen':
+            image_path = args.get('image_path')
+            confidence = args.get('confidence', 0.9)
+            return await self.locate_on_screen(image_path, confidence)
+        else:
+            return {'error': f'Unknown action: {action}'} 

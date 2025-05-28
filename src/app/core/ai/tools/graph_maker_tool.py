@@ -30,7 +30,7 @@ class GraphMakerTool(BaseAgent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
         self.collector_agent = collector_agent  # Do not instantiate by default
         self.a2a_protocol = A2AProtocol()
         self.mcp_protocol = MCPProtocol()
-        self.smol_protocol = SmolAgentProtocol()
+        self.smol_protocol = None  # Do not instantiate Protocols
 
     async def execute(self, command: str, params: dict = None, action: str = None) -> any:
         """Execute the agent's main functionality."""

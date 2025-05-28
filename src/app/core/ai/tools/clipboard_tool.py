@@ -2,13 +2,10 @@ import logging
 from typing import Dict, Any, List, Optional, Union
 from src.app.core.ai.tools.base_tool import BaseTool
 from src.app.core.platform_core.platform_manager import PlatformManager
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
 
 logger = logging.getLogger(__name__)
 
-class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
+class ClipboardTool(BaseTool):
     """Tool for managing clipboard operations with platform-specific optimizations."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -17,7 +14,9 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
         Args:
             config: Optional configuration dictionary
         """
-        super().__init__(config)
+        super().__init__(name="clipboard_tool", description="Tool for managing clipboard operations with platform-specific optimizations.")
+        if config is None:
+            config = {}
         self._platform_manager = None
         self._platform_info = None
         self._handlers = None
@@ -25,9 +24,6 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
         self._max_text_length = config.get('max_text_length', 1000000)
         self._supported_formats = config.get('supported_formats', ['text', 'html', 'rtf'])
         self._clear_on_exit = config.get('clear_on_exit', False)
-        self.a2a_protocol = A2AProtocol()
-        self.mcp_protocol = MCPProtocol()
-        self.smol_protocol = SmolAgentProtocol()
     
     def initialize(self) -> bool:
         """Initialize the tool.
@@ -36,39 +32,24 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
             bool: True if initialization was successful, False otherwise
         """
         try:
-            # Notify A2A protocol before initialization
-            self.a2a_protocol.notify_action("initialize", {})
-            # Use MCP for initialization
-            self.mcp_protocol.execute_action("initialize", {})
-            
             self._platform_manager = PlatformManager()
             self._platform_info = self._platform_manager.get_platform_info()
             self._handlers = self._platform_manager.get_handlers()
             self._clipboard_handler = self._handlers.get('clipboard')
             if not self._clipboard_handler:
                 error_msg = "Clipboard handler not found"
-                self.a2a_protocol.notify_error("initialize", error_msg)
                 logger.error(error_msg)
                 return False
             self._initialized = True
-            
-            # Notify SmolAgent protocol after initialization
-            self.smol_protocol.notify_completion("initialize", {"status": "success"})
             return True
         except Exception as e:
             error_msg = f"Failed to initialize ClipboardTool: {e}"
-            self.a2a_protocol.notify_error("initialize", error_msg)
             logger.error(error_msg)
             return False
     
     def cleanup(self) -> None:
         """Clean up resources used by the tool."""
         try:
-            # Notify A2A protocol before cleanup
-            self.a2a_protocol.notify_action("cleanup", {})
-            # Use MCP for cleanup
-            self.mcp_protocol.execute_action("cleanup", {})
-            
             if self._clear_on_exit:
                 self._clipboard_handler.clear()
             self._platform_manager = None
@@ -76,12 +57,8 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
             self._handlers = None
             self._clipboard_handler = None
             self._initialized = False
-            
-            # Notify SmolAgent protocol after cleanup
-            self.smol_protocol.notify_completion("cleanup", {"status": "success"})
         except Exception as e:
             error_msg = f"Error cleaning up ClipboardTool: {e}"
-            self.a2a_protocol.notify_error("cleanup", error_msg)
             logger.error(error_msg)
     
     def get_capabilities(self) -> Dict[str, bool]:
@@ -129,11 +106,6 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
             return {'error': 'Tool not initialized'}
         
         try:
-            # Notify A2A protocol before command execution
-            await self.a2a_protocol.notify_action(command, args or {})
-            # Use MCP for command execution
-            await self.mcp_protocol.execute_action(command, args or {})
-            
             result = None
             if command == 'set_text':
                 result = self._set_text(args)
@@ -162,12 +134,9 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
             else:
                 result = {'error': f'Unknown command: {command}'}
             
-            # Notify SmolAgent protocol after command execution
-            await self.smol_protocol.notify_completion(command, result)
             return result
         except Exception as e:
             error_msg = f"Error executing command {command}: {e}"
-            await self.a2a_protocol.notify_error(command, error_msg)
             logger.error(error_msg)
             return {'error': str(e)}
     
@@ -535,23 +504,23 @@ class ClipboardTool(BaseTool, A2AProtocol, MCPProtocol, SmolAgentProtocol):
             logger.error(f"Error getting formats: {e}")
             return {'error': str(e)}
     
-    # A2A Protocol Methods
-    async def register_agent(self, agent_id: str, capabilities: Dict[str, Any]) -> None:
-        await self.a2a_protocol.register_agent(agent_id, capabilities)
-
-    async def unregister_agent(self, agent_id: str) -> None:
-        await self.a2a_protocol.unregister_agent(agent_id)
-
-    # MCP Protocol Methods
-    async def register_channel(self, channel_id: str, channel_type: str) -> None:
-        await self.mcp_protocol.register_channel(channel_id, channel_type)
-
-    async def unregister_channel(self, channel_id: str) -> None:
-        await self.mcp_protocol.unregister_channel(channel_id)
-
-    # SmolAgent Protocol Methods
-    async def register_capability(self, capability: str, handler: callable) -> None:
-        await self.smol_protocol.register_capability(capability, handler)
-
-    async def unregister_capability(self, capability: str) -> None:
-        await self.smol_protocol.unregister_capability(capability) 
+    def get_available_actions(self) -> list:
+        """Return a list of available clipboard actions."""
+        return [
+            'set_text', 'get_text', 'set_html', 'get_html', 'set_rtf', 'get_rtf',
+            'set_image', 'get_image', 'set_files', 'get_files', 'clear', 'get_formats'
+        ]
+    
+    async def forward(self, **kwargs):
+        action = kwargs.get('action', 'get_clipboard')
+        if action == 'get_clipboard':
+            return self._get_text()
+        elif action == 'copy':
+            text = kwargs.get('text', '')
+            return self._set_text({'text': text})
+        elif action == 'paste':
+            return self._get_text()
+        elif action == 'clear':
+            return self._clear()
+        else:
+            return {'error': f'Unknown action: {action}'} 

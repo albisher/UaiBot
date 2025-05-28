@@ -21,7 +21,7 @@ class PlatformFactory:
                 from ..windows.platform import WindowsPlatform
                 cls._instance = WindowsPlatform()
             elif platform_name.startswith("linux"):
-                from ..linux.platform import LinuxPlatform
+                from ..linux.linux_platform import LinuxPlatform
                 cls._instance = LinuxPlatform()
             else:
                 raise NotImplementedError(f"Platform {platform_name} is not supported")

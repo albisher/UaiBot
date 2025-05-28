@@ -136,3 +136,38 @@ Run the calculator automation tests:
 ```bash
 pytest tests/test_calculator_automation.py
 ```
+
+## Clipboard Tool (Linux)
+
+- Fully functional for copy, get, paste, and clear actions.
+- Supports English and Arabic (Kuwaiti, Moroccan, MSA, etc.) natural language requests.
+- Requires `pyperclip` for Linux clipboard support:
+
+```bash
+pip install pyperclip
+```
+
+## Multi-Language & Multi-Dialect Support
+
+- Clipboard actions can be requested in English and Arabic (Kuwaiti, Moroccan, Egyptian, Saudi, MSA, etc.).
+- All actions (copy, get, paste, clear) are mapped and tested.
+
+## Platform-Specific Requirements
+
+- Linux: `pyperclip` required for clipboard functionality.
+- Other platforms: Handlers may differ; see platform_core for details.
+
+## Tool Support Status
+
+- Clipboard tool: Robust, multi-lingual, and fully tested on Linux.
+- File/folder and screenshot tools: Next in focus for creative, multi-language testing.
+- All OS-specific changes are isolated and documented.
+- Project name: Labeeb (not uaibot, Uaibot, uAIbot, uaiagent, etc.).
+
+## Automation Technology Choice
+
+**PyAutoGUI is the official and default technology for all screenshots, mouse, and keyboard automation in Labeeb. All workflows, tools, and tests should use PyAutoGUI for these tasks to ensure cross-platform compatibility (Linux, macOS, Windows). Use of other libraries (MSS, gnome-screenshot, etc.) is only permitted for special cases or future enhancements.**
+
+## OCR Technology Choice
+
+**Tesseract OCR (via pytesseract) is the official and default technology for all OCR/text extraction from screenshots in Labeeb. All workflows, tools, and tests should use Tesseract OCR for these tasks to ensure cross-platform compatibility and robust text extraction. Use of other OCR libraries is only permitted for special cases or future enhancements.**

@@ -270,3 +270,20 @@
   - [ ] Improve docstring
   - [ ] Add main tool class
   - [ ] Fix: Import error: No module named 'labeeb'
+
+- [x] Human-like folder creation (English/Arabic) routed to file_tool
+- [x] Human-like file creation (English/Arabic) routed to file_tool
+- [x] Human-like file listing (English/Arabic) routed to file_tool
+- [x] Multi-language support for file/folder tool requests
+- [ ] Plan mapping for file reading, deletion (needs more patterns)
+- [ ] Plan mapping for system resource tool (currently not mapped)
+- [ ] Plan mapping for translation tool (currently not mapped)
+- [ ] Plan mapping for clipboard tool (currently not mapped)
+
+**Note:**
+- System, translation, and clipboard tool requests are still routed to echo or not mapped. Improve plan mapping for these tools.
+- File/folder creation and listing in both English and Arabic are now fully functional and tested.
+
+- [x] Clipboard tool: copy, get, paste, clear actions (English/Arabic, all dialects) fully functional on Linux
+- [x] Clipboard tool: pyperclip required for Linux support
+- [x] Clipboard tool: multi-language and multi-dialect mapping complete

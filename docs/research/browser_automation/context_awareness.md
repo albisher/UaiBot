@@ -1,3 +1,7 @@
+# Context Awareness in Browser Automation
+
+**PyAutoGUI is the official and default technology for all screenshots, mouse, and keyboard automation in Labeeb. All context-aware automation should use PyAutoGUI for these tasks to ensure cross-platform compatibility (Linux, macOS, Windows).**
+
 # Context Awareness Research
 
 ## Search Prompt

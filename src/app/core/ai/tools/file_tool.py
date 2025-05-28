@@ -16,7 +16,7 @@ class FileTool(BaseTool):
     
     def __init__(self):
         """Initialize the file tool."""
-        super().__init__(name="file_tool", description="Tool for file operations")
+        super().__init__(name="file", description="Tool for file operations")
     
     def create_file(self, path: str, content: str) -> bool:
         """Create a file with the given content.

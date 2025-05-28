@@ -1,5 +1,7 @@
 # Mouse and Keyboard Control in Labeeb
 
+**PyAutoGUI is the official and default technology for all screenshots, mouse, and keyboard automation in Labeeb. All workflows, tools, and tests should use PyAutoGUI for these tasks to ensure cross-platform compatibility (Linux, macOS, Windows).**
+
 This document provides comprehensive guidance on using Labeeb's mouse and keyboard control functionality in different environments, including those without a display server.
 
 ## Overview
