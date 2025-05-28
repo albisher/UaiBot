@@ -1,5 +1,8 @@
 # Labeeb Project Architecture Tree
 
+> **Compliance Note:**
+> All files and folders in the Labeeb project must comply with this architecture. Audit scripts and all contributors are required to enforce this structure for every commit. No files should be left in incorrect folders; move and organize as needed. See README and TODO for enforcement rules.
+
 ## Root Directory Structure
 
 ```

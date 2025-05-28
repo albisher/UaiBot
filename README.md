@@ -172,6 +172,17 @@ pip install pyperclip
 
 **Tesseract OCR (via pytesseract) is the official and default technology for all OCR/text extraction from screenshots in Labeeb. All workflows, tools, and tests should use Tesseract OCR for these tasks to ensure cross-platform compatibility and robust text extraction. Use of other OCR libraries is only permitted for special cases or future enhancements.**
 
+## File Organization & Architecture Compliance
+
+All files and directories in this project must comply with the architecture described in `todo/project_architecture_tree.md`. Key rules:
+- No files in incorrect folders; all files must be organized as per the architecture tree.
+- Platform-specific code must be in `src/app/core/platform_core/` and its OS subfolders.
+- AI tools and general utilities must be in `src/app/core/ai/tools/`.
+- No files should be deleted during organization; only moved and merged as needed.
+- All imports must be updated to reflect new file locations after reorganization.
+- The audit scripts and all contributors must enforce these rules for every commit.
+- See `todo/project_architecture_tree.md` for the canonical structure.
+
 # Labeeb Agent
 
 ## Overview

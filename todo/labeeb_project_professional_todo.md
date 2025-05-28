@@ -1,6 +1,15 @@
 # Labeeb Project TODO List
 
-Last updated: 2025-05-28 12:06:47
+Last updated: 2025-05-28 12:48:40
+
+## File Organization & Architecture Compliance (TODO)
+- Ensure all files and folders comply with the structure in `todo/project_architecture_tree.md`.
+- No files should be left in incorrect folders; move and organize as needed.
+- Platform-specific code must be in `src/app/core/platform_core/` and its OS subfolders.
+- AI tools and general utilities must be in `src/app/core/ai/tools/`.
+- Do not delete files during organization; only move and merge as needed.
+- Update all imports after moving files.
+- All contributors and audit scripts must enforce these rules for every commit.
 
 ## Project Audit Findings
 
@@ -136,6 +145,16 @@ Last updated: 2025-05-28 12:06:47
 
 ### PROJECT_NAMING
 - Found old project name reference (matching 'uai|Uai|UAIBOT|UaiBot') instead of 'Labeeb'.
+  - File: todo/TODO.md
+  - Suggestion: Replace old project names with 'Labeeb' in 'TODO.md'.
+
+### PROJECT_NAMING
+- Found old project name reference (matching 'uai|Uai|UAIBOT|UaiBot') instead of 'Labeeb'.
   - File: review/cli_sequence_audit.md
   - Suggestion: Replace old project names with 'Labeeb' in 'cli_sequence_audit.md'.
+
+### PROJECT_NAMING
+- Found old project name reference (matching 'uai|Uai|UAIBOT|UaiBot') instead of 'Labeeb'.
+  - File: docs/agents_tools/README.md
+  - Suggestion: Replace old project names with 'Labeeb' in 'README.md'.
 

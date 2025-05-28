@@ -15,7 +15,7 @@ from .code_path_updater_tool import CodePathUpdaterTool
 from .graph_maker_tool import GraphMakerTool
 from .clipboard_tool import ClipboardTool
 from .calculator_tools import CalculatorTool
-from src.app.core.tools.app_control_tool import AppControlTool
+from src.app.core.platform_core.app_control_tool import AppControlTool
 from .vision_tool import VisionTool
 from .screen_control_tool import ScreenControlTool
 

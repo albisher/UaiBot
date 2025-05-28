@@ -30,47 +30,74 @@ class CalculatorTool(BaseTool):
                 '0': (150, 550)
             }
         }
-
-    async def execute(self, action: str, **kwargs) -> Dict[str, Any]:
-        """Execute a calculator action.
-        
-        Args:
-            action (str): The action to execute
-            **kwargs: Additional arguments for the action
-            
-        Returns:
-            Dict[str, Any]: The result of the operation
-        """
-        return await self._execute_command(action, kwargs)
-
-    def get_available_actions(self) -> Dict[str, str]:
-        """Get available actions for this tool.
-        
-        Returns:
-            Dict[str, str]: Available actions and their descriptions
-        """
-        return {
-            'open': 'Open the calculator application',
-            'move_and_click': 'Move mouse to position and click',
-            'type_number': 'Type a number using keyboard',
-            'press_enter': 'Press enter key',
-            'get_result': 'Get the calculator result'
+        # Arabic translations for actions
+        self.arabic_actions = {
+            'open': 'فتح',
+            'clear': 'مسح',
+            'input_area': 'منطقة_الإدخال',
+            'plus': 'جمع',
+            'equals': 'يساوي',
+            'number': 'رقم',
+            'type': 'كتابة',
+            'enter': 'دخول',
+            'get_result': 'الحصول_على_النتيجة'
         }
 
-    async def _execute_command(self, action: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def execute(self, action: str, **kwargs) -> Dict[str, Any]:
         """Execute calculator automation actions."""
-        if action == 'open':
-            return self.open_calculator()
-        elif action == 'move_and_click':
-            return self.move_and_click(params.get('x'), params.get('y'))
-        elif action == 'type_number':
-            return self.type_number(params.get('number'))
-        elif action == 'press_enter':
-            return self.press_enter()
-        elif action == 'get_result':
-            return self.get_result()
-        else:
-            return {"success": False, "error": f"Unknown action: {action}"}
+        try:
+            # Handle Arabic action names
+            if action in self.arabic_actions.values():
+                # Convert Arabic action back to English
+                action = next(k for k, v in self.arabic_actions.items() if v == action)
+
+            if action == 'open':
+                return self.open_calculator()
+            elif action == 'clear':
+                return await self.move_and_click(*self.calculator_positions['clear'])
+            elif action == 'input_area':
+                return await self.move_and_click(*self.calculator_positions['input_area'])
+            elif action == 'plus':
+                return await self.move_and_click(*self.calculator_positions['plus'])
+            elif action == 'equals':
+                return await self.move_and_click(*self.calculator_positions['equals'])
+            elif action == 'number':
+                return await self.click_number(kwargs.get('value'))
+            elif action == 'type':
+                return await self.type_number(kwargs.get('value'))
+            elif action == 'enter':
+                return await self.press_enter()
+            elif action == 'get_result':
+                return await self.get_result()
+            elif action == 'move_and_click':
+                params = kwargs.get('params', kwargs)
+                return await self.move_and_click(params.get('x'), params.get('y'))
+            elif action == 'type_number':
+                params = kwargs.get('params', kwargs)
+                return await self.type_number(params.get('number'))
+            elif action == 'press_enter':
+                return await self.press_enter()
+            else:
+                return {"success": False, "error": f"Unknown action: {action}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def get_available_actions(self) -> Dict[str, str]:
+        """Get available actions for this tool."""
+        return {
+            'open': 'Open the calculator application',
+            'clear': 'Click the clear (C) button',
+            'input_area': 'Click the input/display area',
+            'plus': 'Click the plus (+) button',
+            'equals': 'Click the equals (=) button',
+            'number': 'Click a number button',
+            'type': 'Type a number using keyboard',
+            'enter': 'Press enter key',
+            'get_result': 'Get the calculator result',
+            'move_and_click': 'Move mouse to position and click',
+            'type_number': 'Type a number using keyboard',
+            'press_enter': 'Press enter key'
+        }
 
     def open_calculator(self) -> Dict[str, Any]:
         """Open the calculator application based on the OS."""
@@ -81,13 +108,12 @@ class CalculatorTool(BaseTool):
                 subprocess.run(['calc.exe'])
             else:
                 return {"success": False, "error": "Unsupported operating system"}
-            
             time.sleep(2)  # Wait for calculator to open
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def move_and_click(self, x: int, y: int) -> Dict[str, Any]:
+    async def move_and_click(self, x: int, y: int) -> Dict[str, Any]:
         """Move mouse to position and click."""
         try:
             pyautogui.moveTo(x, y, duration=0.5)
@@ -96,7 +122,13 @@ class CalculatorTool(BaseTool):
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def type_number(self, number: str) -> Dict[str, Any]:
+    async def click_number(self, number: str) -> Dict[str, Any]:
+        """Click a number button."""
+        if number in self.calculator_positions['numbers']:
+            return await self.move_and_click(*self.calculator_positions['numbers'][number])
+        return {"success": False, "error": f"Invalid number: {number}"}
+
+    async def type_number(self, number: str) -> Dict[str, Any]:
         """Type a number using keyboard."""
         try:
             pyautogui.write(number)
@@ -104,7 +136,7 @@ class CalculatorTool(BaseTool):
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def press_enter(self) -> Dict[str, Any]:
+    async def press_enter(self) -> Dict[str, Any]:
         """Press enter key."""
         try:
             pyautogui.press('enter')
@@ -112,7 +144,7 @@ class CalculatorTool(BaseTool):
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def get_result(self) -> Dict[str, Any]:
+    async def get_result(self) -> Dict[str, Any]:
         """Get the calculator result using OCR (to be implemented)."""
         # TODO: Implement OCR to read calculator result
         return {"success": True, "result": "Result will be implemented with OCR"} 

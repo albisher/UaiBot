@@ -44,7 +44,7 @@ from src.app.core.ai.tools.web_surfing_tool import WebSurfingTool
 from src.app.core.ai.tools.web_searching_tool import WebSearchingTool
 from src.app.core.ai.tools.file_and_document_organizer_tool import FileAndDocumentOrganizerTool
 from src.app.core.ai.tools.code_path_updater_tool import CodePathUpdaterTool
-from src.app.core.tools.app_control_tool import AppControlTool
+from src.app.core.platform_core.app_control_tool import AppControlTool
 from src.app.core.ai.tool_base import Tool, BaseTool
 import requests
 import json
