@@ -3,11 +3,11 @@
 # This file is distributed under the same license as the Labeeb package.
 msgid ""
 msgstr ""
-"Project-Id-Version: Labeeb\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:00+0000\n"
-"PO-Revision-Date: 2024-03-19 12:00+0000\n"
-"Last-Translator: \n"
+"Project-Id-Version: Labeeb 1.0\n"
+"Report-Msgid-Bugs-To: contact@labeeb.ai\n"
+"POT-Creation-Date: 2024-03-28 12:00+0000\n"
+"PO-Revision-Date: 2024-03-28 12:00+0000\n"
+"Last-Translator: Labeeb Team\n"
 "Language-Team: Arabic\n"
 "Language: ar\n"
 "MIME-Version: 1.0\n"
@@ -55,4 +55,22 @@ msgid "Image found on screen"
 msgstr "تم العثور على الصورة على الشاشة"
 
 msgid "Image not found on screen"
-msgstr "لم يتم العثور على الصورة على الشاشة" 
+msgstr "لم يتم العثور على الصورة على الشاشة"
+
+msgid "Labeeb AI Assistant"
+msgstr "مساعد لبيب الذكي"
+
+msgid "Welcome to Labeeb AI Assistant"
+msgstr "مرحباً بك في مساعد لبيب الذكي"
+
+msgid "Select Language / اختر اللغة"
+msgstr "اختر اللغة"
+
+msgid "Start Labeeb / ابدأ لبيب"
+msgstr "ابدأ لبيب"
+
+msgid "Settings / الإعدادات"
+msgstr "الإعدادات"
+
+msgid "Help / المساعدة"
+msgstr "المساعدة" 

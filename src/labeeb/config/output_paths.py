@@ -13,11 +13,11 @@ APP_CACHE_DIR = os.path.join(PROJECT_ROOT, 'cache')
 APP_CONFIG_DIR = os.path.join(PROJECT_ROOT, 'config')
 APP_DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 
-def get_log_file_path():
-    """Get the path to the main log file."""
+def get_log_file_path(component: str = "app"):
+    """Get the path to the log file for a specific component."""
     # Create logs directory if it doesn't exist
     os.makedirs(APP_LOGS_DIR, exist_ok=True)
-    return os.path.join(APP_LOGS_DIR, 'app.log')
+    return os.path.join(APP_LOGS_DIR, f"{component}.log")
 
 def get_cache_dir():
     """Get the path to the cache directory."""

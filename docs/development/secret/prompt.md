@@ -12,7 +12,7 @@ Run:
 @audit_project.py
 
 you may pass commands to main using --fast .. it will help you in checking details
-PYTHONPATH=srcpython3src/app/main.py
+PYTHONPATH=python3 src/labeeb/main.py
 
 tools sudit will test file itself and will test its usecase through passing the related human like request to main.py using --fast
 by checking the path where the communicaiton is happening you can also learn about what is being used for each call.

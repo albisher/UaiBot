@@ -5,9 +5,9 @@ from pathlib import Path
 import sys
 
 PROJECT_ROOT = Path(__file__).parent.parent
-TOOLS_DIR = PROJECT_ROOT / 'src/app/core/ai/tools'
-TODO_DIR = PROJECT_ROOT / 'todo'
-TODO_FILE = TODO_DIR / "tools_todo.md"
+TOOLS_DIR = PROJECT_ROOT / 'src/labeeb/agent_tools'
+TODO_DIR = PROJECT_ROOT / 'docs/development/todo'
+TODO_FILE = TODO_DIR / "TODO.md"
 
 results = []
 

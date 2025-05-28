@@ -13,10 +13,10 @@ Labeeb is an advanced AI agent system designed to provide intelligent assistance
 The project implements a robust platform isolation strategy through the following structure:
 
 ```
-src/app/core/platform_core/
+src/labeeb/platform_services/
 ├── common/
 │   └── platform_interface.py
-├── mac/
+├── macos/
 ├── windows/
 ├── linux/
 └── platform_factory.py
@@ -87,7 +87,7 @@ This structure ensures that platform-specific code is properly isolated and mana
 
 ### AI Structure
 - All core AI modules are under `src/labeeb/core/ai/` (agents, agent_tools, models, workflows, prompts, registry)
-- Platform/OS-specific code is isolated in `src/app/core/platform_core/`
+- Platform/OS-specific code is isolated in `src/labeeb/platform_services/`
 
 ### i18n/RTL/Arabic Support
 - All user-facing strings use translation functions (gettext)
@@ -176,8 +176,8 @@ pip install pyperclip
 
 All files and directories in this project must comply with the architecture described in `todo/project_architecture_tree.md`. Key rules:
 - No files in incorrect folders; all files must be organized as per the architecture tree.
-- Platform-specific code must be in `src/app/core/platform_core/` and its OS subfolders.
-- AI tools and general utilities must be in `src/app/core/ai/tools/`.
+- Platform-specific code must be in `src/labeeb/platform_services/` and its OS subfolders.
+- AI tools and general utilities must be in `src/labeeb/core/ai/tools/`.
 - No files should be deleted during organization; only moved and merged as needed.
 - All imports must be updated to reflect new file locations after reorganization.
 - The audit scripts and all contributors must enforce these rules for every commit.

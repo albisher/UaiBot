@@ -13,7 +13,7 @@ from .common.base_handler import BaseHandler
 from .mac.input_handler import MacInputHandler
 from .mac.audio_handler import MacAudioHandler
 from .mac.usb_handler import MacUSBHandler
-from .common.system_info import BaseSystemInfoGatherer
+from labeeb.platform_services.common.system_info import BaseSystemInfoGatherer
 from .shell_handler import BaseShellHandler
 from .browser_handler import BaseBrowserHandler
 from .i18n import gettext as _, is_rtl, get_current_language, setup_language
@@ -32,10 +32,25 @@ class PlatformManager:
     
     # Supported languages with RTL information
     SUPPORTED_LANGUAGES = {
+        # Primary Languages (Arabic and its variants)
         'ar': {'name': 'Arabic', 'rtl': True, 'variants': ['ar-SA', 'ar-KW', 'ar-MA', 'ar-EG']},
+        'ar-SA': {'name': 'Saudi Arabic', 'rtl': True},
+        'ar-KW': {'name': 'Kuwaiti Arabic', 'rtl': True},
+        'ar-MA': {'name': 'Moroccan Arabic', 'rtl': True},
+        'ar-EG': {'name': 'Egyptian Arabic', 'rtl': True},
+        'ar-AE': {'name': 'Emirati Arabic', 'rtl': True},
+        'ar-QA': {'name': 'Qatari Arabic', 'rtl': True},
+        'ar-BH': {'name': 'Bahraini Arabic', 'rtl': True},
+        'ar-OM': {'name': 'Omani Arabic', 'rtl': True},
+        'ar-YE': {'name': 'Yemeni Arabic', 'rtl': True},
+        'ar-SD': {'name': 'Sudanese Arabic', 'rtl': True},
+        'ar-LY': {'name': 'Libyan Arabic', 'rtl': True},
+        'ar-DZ': {'name': 'Algerian Arabic', 'rtl': True},
+        'ar-TN': {'name': 'Tunisian Arabic', 'rtl': True},
+        # Secondary Languages
         'en': {'name': 'English', 'rtl': False},
-        'fr': {'name': 'French', 'rtl': False},
-        'es': {'name': 'Spanish', 'rtl': False}
+        'fr': {'name': 'French', 'rtl': False, 'priority': 'secondary'},
+        'es': {'name': 'Spanish', 'rtl': False, 'priority': 'secondary'}
     }
     
     _system_info_gatherers: Dict[str, Type[BaseSystemInfoGatherer]] = {

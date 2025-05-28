@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 import psutil
 import platform
-from ..i18n import gettext as _
+from labeeb.utils.i18n import gettext as _
 
 class BaseSystemInfoGatherer(ABC):
     """Base class for gathering system information across platforms."""

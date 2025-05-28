@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, Optional
 import arabic_reshaper
 from bidi.algorithm import get_display
-from ..core.platform_core import get_platform_name, get_system_info
+from ..core.platform_core import get_platform_name
 
 class OutputStyleManager:
     """Manages output styling preferences for Labeeb."""
@@ -38,7 +38,6 @@ class OutputStyleManager:
         
         # Get platform information
         self.platform_name = get_platform_name()
-        self.system_info = get_system_info()
         
         # RTL support
         self.rtl_support = False

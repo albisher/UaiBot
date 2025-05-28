@@ -154,8 +154,14 @@ def load_settings():
     except FileNotFoundError:
         return {
             "use_regex": False,
-            "default_language": "en",
-            "supported_languages": ["en", "ar"],
+            "default_language": "ar",
+            "supported_languages": [
+                # Primary Languages
+                "ar", "ar-SA", "ar-KW", "ar-MA", "ar-EG", "ar-AE", "ar-QA", 
+                "ar-BH", "ar-OM", "ar-YE", "ar-SD", "ar-LY", "ar-DZ", "ar-TN",
+                # Secondary Languages
+                "en", "fr", "es"
+            ],
             "debug_mode": False,
             "log_level": "INFO"
         }

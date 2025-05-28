@@ -1,10 +1,10 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Labeeb 1.0\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-05-26 14:30+0000\n"
-"PO-Revision-Date: 2024-05-26 14:30+0000\n"
-"Last-Translator: \n"
+"Report-Msgid-Bugs-To: contact@labeeb.ai\n"
+"POT-Creation-Date: 2024-03-28 12:00+0000\n"
+"PO-Revision-Date: 2024-03-28 12:00+0000\n"
+"Last-Translator: Labeeb Team\n"
 "Language-Team: English\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -12,8 +12,23 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Welcome to Labeeb"
-msgstr "Welcome to Labeeb"
+msgid "Labeeb AI Assistant"
+msgstr "Labeeb AI Assistant"
+
+msgid "Welcome to Labeeb AI Assistant"
+msgstr "Welcome to Labeeb AI Assistant"
+
+msgid "Select Language / اختر اللغة"
+msgstr "Select Language"
+
+msgid "Start Labeeb / ابدأ لبيب"
+msgstr "Start Labeeb"
+
+msgid "Settings / الإعدادات"
+msgstr "Settings"
+
+msgid "Help / المساعدة"
+msgstr "Help"
 
 msgid "System Information"
 msgstr "System Information"
@@ -26,12 +41,6 @@ msgstr "Input Control"
 
 msgid "System Health"
 msgstr "System Health"
-
-msgid "Settings"
-msgstr "Settings"
-
-msgid "Help"
-msgstr "Help"
 
 msgid "Exit"
 msgstr "Exit" 

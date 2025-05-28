@@ -10,10 +10,10 @@ from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 
 # Default language
-DEFAULT_LANGUAGE = 'en'
+DEFAULT_LANGUAGE = 'ar'  # Changed to Arabic as default
 
 # RTL languages
-RTL_LANGUAGES = {'ar', 'he', 'fa', 'ur'}
+RTL_LANGUAGES = {'ar', 'ar-SA', 'ar-KW', 'ar-MA', 'ar-EG', 'ar-AE', 'ar-QA', 'ar-BH', 'ar-OM', 'ar-YE', 'ar-SD', 'ar-LY', 'ar-DZ', 'ar-TN'}
 
 # Arabic regional variants
 ARABIC_VARIANTS = {
@@ -35,14 +35,7 @@ ARABIC_VARIANTS = {
 
 # Supported languages with regional variants
 SUPPORTED_LANGUAGES = {
-    'en': 'English',
-    'es': 'Español',
-    'fr': 'Français',
-    'de': 'Deutsch',
-    'zh': '中文',
-    'ja': '日本語',
-    'ko': '한국어',
-    'ru': 'Русский',
+    # Primary Languages (Arabic and its variants)
     'ar': 'العربية',
     'ar-SA': 'العربية (السعودية)',
     'ar-EG': 'العربية (مصر)',
@@ -57,7 +50,10 @@ SUPPORTED_LANGUAGES = {
     'ar-LY': 'العربية (ليبيا)',
     'ar-DZ': 'العربية (الجزائر)',
     'ar-TN': 'العربية (تونس)',
-    'hi': 'हिन्दी'
+    # Secondary Languages
+    'en': 'English',
+    'fr': 'Français',
+    'es': 'Español'
 }
 
 # Translation cache

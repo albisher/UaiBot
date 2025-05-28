@@ -6,7 +6,7 @@ It uses various macOS-specific commands to gather detailed system information.
 """
 from typing import Dict, Any
 import subprocess
-from ..common.system_info import BaseSystemInfoGatherer
+from labeeb.platform_services.common.system_info import BaseSystemInfoGatherer
 
 class MacSystemInfoGatherer(BaseSystemInfoGatherer):
     """macOS-specific implementation of system information gatherer.

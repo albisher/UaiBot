@@ -119,3 +119,20 @@ This workflow tests Labeeb's ability to orchestrate multiple tools (browser auto
 - [ ] Create and populate doc file in `testing` folder
 - [ ] Log and verify all steps
 - [ ] Ensure no internet data transfer unless explicitly requested 
+
+
+## tool_manager.py
+- Docstring OK: False
+- Tool class: None
+- Test result: Import error: attempted relative import with no known parent package
+
+  - [ ] Improve docstring
+  - [ ] Add main tool class
+  - [ ] Fix: Import error: attempted relative import with no known parent package
+## base_tool.py
+- Docstring OK: False
+- Tool class: BaseAgentTool
+- Test result: Instantiation error: Can't instantiate abstract class BaseAgentTool with abstract methods cleanup, execute, get_available_commands, get_capabilities, get_command_help, get_status, initialize, validate_command
+
+  - [ ] Improve docstring
+  - [ ] Fix: Instantiation error: Can't instantiate abstract class BaseAgentTool with abstract methods cleanup, execute, get_available_commands, get_capabilities, get_command_help, get_status, initialize, validate_command

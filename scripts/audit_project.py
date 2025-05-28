@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 # pip install toml # for pyproject.toml parsing by this script
 
 # --- (START) User Configurable Variables ---
-PROJECT_ROOT = Path(__file__).resolve().parent.parent # Assuming this script is in a 'scripts' or 'tools' subdir
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG = {
     "project_name": "Labeeb",
     "old_project_names_regex": r'uai|Uai|UAIBOT|UaiBot',
@@ -30,27 +30,69 @@ CONFIG = {
     "cursor_rules_path": ".cursor/rules/project_rules.json",
     "readme_name": "README.md",
     "main_todo_filename": "labeeb_project_professional_todo.md",
-    "platform_core_dir_segment": "labeeb/platform_services", # Updated path
+    
+    # Updated directory structure
+    "required_dirs": {
+        "ai": {
+            "subdirs": ["agents", "models", "tools"],
+            "naming": {
+                "agents": r'^[A-Z][a-zA-Z]*Agent\.py$',
+                "models": r'^[A-Z][a-zA-Z]*Model\.py$',
+                "tools": r'^[A-Z][a-zA-Z]*Tool\.py$'
+            }
+        },
+        "core": {
+            "subdirs": ["capabilities", "workflows", "protocols"],
+            "naming": {
+                "capabilities": r'^[A-Z][a-zA-Z]*Capability\.py$',
+                "workflows": r'^[A-Z][a-zA-Z]*Workflow\.py$',
+                "protocols": r'^[A-Z][a-zA-Z]*Protocol\.py$'
+            }
+        },
+        "platform_services": {
+            "subdirs": ["common", "macos", "linux", "windows"],
+            "naming": {
+                "handlers": r'^[A-Z][a-zA-Z]*Handler\.py$'
+            }
+        },
+        "services": {
+            "naming": r'^[A-Z][a-zA-Z]*Service\.py$'
+        },
+        "tools": {
+            "naming": r'^[A-Z][a-zA-Z]*Tool\.py$'
+        },
+        "ui": {
+            "subdirs": ["cli", "gui", "web"]
+        }
+    },
+    
+    "platform_core_dir_segment": "labeeb/platform_services",
     "platform_dirs_keywords": ['ubuntu', 'windows', 'mac', 'linux'],
-    "tool_dirs": ['labeeb/ai/tools', 'labeeb/ai/agents'], # Updated paths
+    "tool_dirs": ['labeeb/ai/tools', 'labeeb/ai/agents'],
     "agent_docs_subdir": "agents_tools",
     "test_file_prefix": "test_",
     "unit_test_subdir": "unit",
-    "evaluation_keywords_regex": r'evaluat|feedback|metric',
-    "doc_link_keywords_regex": r'#.*docs|#.*example|\[.*\]\(.*docs\/.*\)|see also:',
+    
+    # Compliance checks
     "compliance_keywords": {
         "A2A": r'A2A|Agent2Agent|agent_to_agent',
         "MCP": r'MCP|ModelContextProtocol|multi_channel_protocol',
         "SmolAgents": r'SmolAgent|smol_agent|minimal_agent'
     },
+    
+    # Internationalization
     "i18n_keywords_regex": r'i18n|internationalization|translate|gettext|_\(|\b_l\(|\btranslate_text\(',
     "rtl_keywords_regex": r'rtl|arabic|bidi|right-to-left|direction:\s*rtl',
+    
+    # Audit settings
     "generate_stubs": True,
     "test_generated_stubs": True,
     "check_project_syntax": True,
     "update_todo_file": True,
     "update_readme_file": False,
     "readme_audit_section_placeholder": ("", ""),
+    
+    # Exclusions
     "excluded_dirs": ['.git', '__pycache__', '.venv', 'node_modules', '.vscode', '.idea', 'build', 'dist', '*.egg-info', '.cache', '.pytest_cache', '.cursor'],
     "text_file_extensions": ('.py', '.md', '.txt', '.json', '.yaml', '.yml', '.html', '.css', '.js', '.ts', '.rst', '.toml'),
     "python_file_extensions": ('.py',)
@@ -523,55 +565,86 @@ def check_missing_dependencies():
                 suggestion=f"If '{missing_mod}' is external, add it to your project's dependency file(s) (e.g., requirements.txt, pyproject.toml) and relevant docs. If it's a project module, ensure its path/naming is correct."
             )
 
+# New function to check directory structure and naming conventions
+def check_directory_structure_and_naming():
+    logger.info("Checking directory structure and naming conventions...")
+    labeeb_dir = SRC_DIR / "labeeb"
+    
+    if not labeeb_dir.exists():
+        add_violation(
+            "DIRECTORY_STRUCTURE",
+            f"Main package directory 'labeeb' not found in {SRC_DIR}",
+            suggestion="Create the 'labeeb' directory in src/"
+        )
+        return
+    
+    # Check required directories and their structure
+    for dir_name, dir_config in CONFIG["required_dirs"].items():
+        dir_path = labeeb_dir / dir_name
+        if not dir_path.exists():
+            add_violation(
+                "DIRECTORY_STRUCTURE",
+                f"Required directory '{dir_name}' not found in {labeeb_dir}",
+                suggestion=f"Create the '{dir_name}' directory in {labeeb_dir}"
+            )
+            continue
+            
+        # Check subdirectories if specified
+        if "subdirs" in dir_config:
+            for subdir in dir_config["subdirs"]:
+                subdir_path = dir_path / subdir
+                if not subdir_path.exists():
+                    add_violation(
+                        "DIRECTORY_STRUCTURE",
+                        f"Required subdirectory '{subdir}' not found in {dir_path}",
+                        suggestion=f"Create the '{subdir}' directory in {dir_path}"
+                    )
+        
+        # Check naming conventions if specified
+        if "naming" in dir_config:
+            for file_type, pattern in dir_config["naming"].items():
+                for py_file in get_all_project_files(dir_path, CONFIG["python_file_extensions"]):
+                    if not re.match(pattern, py_file.name):
+                        add_violation(
+                            "NAMING_CONVENTION",
+                            f"File '{py_file.name}' does not follow the {file_type} naming convention",
+                            py_file,
+                            suggestion=f"Rename file to follow the pattern: {pattern}"
+                        )
+
 # --- Main Execution ---
 def main():
-    logger.info(f"--- Starting {CONFIG['project_name']} Project Audit ---")
-    logger.info(f"Project Root: {PROJECT_ROOT}")
-    logger.info(f"Source Directory: {SRC_DIR}")
-    logger.info(f"Python Executable: {sys.executable}")
-    venv_path = os.getenv('VIRTUAL_ENV')
-    if venv_path:
-        logger.info(f"Running in Venv: {venv_path}")
-    else:
-        logger.warning("Not running in a detected virtual environment. This is highly discouraged.")
-    
+    logger.info("Starting project audit...")
     load_project_specific_rules()
-
-    check_platform_isolation_and_os_detection() 
-    if CONFIG["check_project_syntax"]: # Check project syntax early
-        check_project_wide_python_syntax()
-
+    
+    # Run all audit functions
+    check_platform_isolation_and_os_detection()
+    check_project_wide_python_syntax()
     check_agent_compliance()
     check_multi_language_and_system_support()
-    check_tests_and_validation() # This includes stub generation and validation
-    manage_docs_and_todos()    # This includes dependency checks and project name check
+    check_directory_structure_and_naming()  # Add new check
+    check_tests_and_validation()
+    manage_docs_and_todos()
     report_os_detection_isolation_status()
-
-    logger.info("--- Audit Complete ---")
-
+    check_missing_dependencies()
+    
+    # Report violations
     if VIOLATIONS:
-        logger.warning(f"\n--- {CONFIG['project_name']} PROJECT AUDIT FINDINGS ({len(VIOLATIONS)} total) ---")
-        violations_by_category = {}
-        for v in VIOLATIONS:
-            violations_by_category.setdefault(v["category"], []).append(v)
-
-        for category, v_list in sorted(violations_by_category.items()):
-            logger.warning(f"\nCategory: {category} ({len(v_list)} issues)")
-            for i, v_item in enumerate(v_list):
-                msg = f"  {i+1}. {v_item['message']}"
-                if 'file' in v_item:
-                    msg += f" (File: {v_item['file']}"
-                    if 'line' in v_item: msg += f", Line: {v_item['line']}"
-                    msg += ")"
-                if 'suggestion' in v_item: msg += f"\n     Suggestion: {v_item['suggestion']}"
-                logger.warning(msg)
-        
-        print(f"\nAUDIT SUMMARY: {len(VIOLATIONS)} violation(s) found. Check '{LOG_FILE.name}' and (if updated) '{TODO_FILE.name}' for details.")
-        sys.exit(1)
+        logger.warning(f"\nFound {len(VIOLATIONS)} violations:")
+        for violation in VIOLATIONS:
+            logger.warning(f"\nCategory: {violation['category']}")
+            logger.warning(f"Message: {violation['message']}")
+            if 'file' in violation:
+                logger.warning(f"File: {violation['file']}")
+            if 'line' in violation:
+                logger.warning(f"Line: {violation['line']}")
+            if 'suggestion' in violation:
+                logger.warning(f"Suggestion: {violation['suggestion']}")
     else:
-        logger.info(f"\n--- {CONFIG['project_name']} Project Audit Passed. No violations found. ---")
-        print(f"\nAUDIT SUMMARY: Project audit passed. No violations found. Log available at '{LOG_FILE.name}'.")
-        sys.exit(0)
+        logger.info("No violations found. Project structure is compliant.")
+    
+    return len(VIOLATIONS) == 0
 
 if __name__ == "__main__":
-    main() 
+    success = main()
+    sys.exit(0 if success else 1) 

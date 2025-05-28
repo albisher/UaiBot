@@ -6,7 +6,7 @@ This module provides a factory for creating platform-specific implementations.
 import sys
 import logging
 from typing import Optional
-from .common.platform_interface import PlatformInterface
+from .platform_interface import PlatformInterface
 
 logger = logging.getLogger(__name__)
 

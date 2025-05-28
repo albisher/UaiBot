@@ -93,24 +93,69 @@ Here's an analysis and a suggested revised structure:
 │   └── labeeb/                     # Your main application package (renamed from 'app')
 │       ├── __init__.py
 │       ├── __main__.py             # Entry point if run as a module
-│       ├── ai/                     # AI-related modules (agents, tools, models) 
-│       ├── awareness/              # Awareness modules and tools [cite: 26, 27, 28, 29]
-│       ├── command_processing/     # Command processing logic [cite: 30]
-│       ├── config_loader/          # For loading app-specific configurations
-│       ├── constants/              # Application-wide constants
-│       ├── core/                   # Other core business logic, if any
-│       ├── data_models/            # Pydantic models or data structures
-│       ├── exceptions/             # Custom exceptions
-│       ├── platform_services/      # Platform-specific abstractions
-│       │   ├── __init__.py
-│       │   ├── common_interface.py
-│       │   ├── linux/
-│       │   ├── macos/
-│       │   └── windows/
-│       ├── services/               # Higher-level services (e.g., caching, model management)
-│       ├── tools/                  # General application tools if not part of AI or awareness
-│       ├── ui/                     # User interface components [cite: 41]
-│       └── utils/                  # Utilities specific to the 'labeeb' package
+│       ├── ai/                     # AI and Agent Core
+│       │   ├── agents/            # Agent implementations
+│       │   │   ├── base_agent.py  # Base agent class
+│       │   │   ├── main_agent.py  # Main orchestrator
+│       │   │   └── workflow_agent.py # Workflow-specific agents
+│       │   ├── models/           # AI model integrations
+│       │   │   ├── base_model.py
+│       │   │   ├── gemini_model.py
+│       │   │   └── ollama_model.py
+│       │   └── tools/           # AI-specific tools
+│       │       ├── base_tool.py
+│       │       ├── translation_tool.py
+│       │       └── reasoning_tool.py
+│       ├── awareness/           # System awareness
+│       │   ├── base_awareness.py
+│       │   ├── system_awareness.py
+│       │   └── context_awareness.py
+│       ├── command_processing/  # Command handling
+│       │   ├── parser.py
+│       │   ├── validator.py
+│       │   └── executor.py
+│       ├── core/               # Core business logic
+│       │   ├── capabilities/  # Feature capabilities
+│       │   │   ├── base_capability.py
+│       │   │   ├── translation_capability.py
+│       │   │   └── file_capability.py
+│       │   ├── workflows/    # Process workflows
+│       │   │   ├── base_workflow.py
+│       │   │   ├── translation_workflow.py
+│       │   │   └── file_workflow.py
+│       │   └── protocols/   # Communication protocols
+│       │       ├── a2a_protocol.py
+│       │       └── mcp_protocol.py
+│       ├── data_models/     # Data structures
+│       │   ├── agent_models.py
+│       │   ├── tool_models.py
+│       │   └── workflow_models.py
+│       ├── exceptions/      # Custom exceptions
+│       ├── platform_services/ # Platform-specific code
+│       │   ├── common/     # Common interfaces
+│       │   │   ├── base_handler.py
+│       │   │   └── platform_interface.py
+│       │   ├── macos/     # macOS specific
+│       │   │   ├── fs_handler.py
+│       │   │   ├── net_handler.py
+│       │   │   └── ui_handler.py
+│       │   ├── linux/    # Linux specific
+│       │   └── windows/  # Windows specific
+│       ├── services/    # Higher-level services
+│       │   ├── cache_service.py
+│       │   ├── config_service.py
+│       │   └── state_service.py
+│       ├── tools/      # General tools
+│       │   ├── file_tool.py
+│       │   ├── system_tool.py
+│       │   └── network_tool.py
+│       ├── ui/        # User interface
+│       │   ├── cli/
+│       │   ├── gui/
+│       │   └── web/
+│       └── utils/    # Utilities
+│           ├── logging_utils.py
+│           └── validation_utils.py
 ├── tests/                          # All tests [cite: 49]
 │   ├── __init__.py
 │   ├── conftest.py                 # Pytest fixtures and hooks

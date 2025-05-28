@@ -1,7 +1,7 @@
 import os
 import sys
 from setuptools import setup, find_packages
-from labeeb.platform_core.platform_manager import PlatformManager
+from labeeb.platform_services.common.platform_manager import PlatformManager
 
 # Initialize platform manager
 platform_manager = PlatformManager()
@@ -42,7 +42,52 @@ base_requires = [
     'build>=1.0.3',
     'arabic-reshaper>=3.0.0',
     'python-bidi>=0.4.2',
-    'selenium>=4.18.1'
+    'selenium>=4.18.1',
+    'aiohttp>=3.12.0',
+    'websockets>=12.0',
+    'ollama>=0.1.7',
+    'transformers>=4.40.0',
+    'pyjwt>=2.8.0',
+    'bcrypt>=4.1.2',
+    'orjson>=3.9.10',
+    'cryptography>=41.0.0',
+    'toml>=0.10.2',
+    'colorama>=0.4.6',
+    'beautifulsoup4>=4.12.2',
+    'python-dateutil>=2.8.2',
+    'smolagents>=0.1.0',
+    'langchain>=0.1.0',
+    'langchain-core>=0.1.0',
+    'langchain-community>=0.1.0',
+    'sentence-transformers>=2.2.2',
+    'torch>=2.2.0',
+    'chromadb>=0.4.22',
+    'playwright>=1.42.0',
+    'gettext>=0.21.0',
+    'pyaudio>=0.2.13',
+    'opencv-python>=4.8.0',
+    'pytesseract>=0.3.10',
+    'asyncio>=3.4.3',
+    'typing-extensions>=4.8.0',
+    'pydantic>=2.5.0',
+    'fastapi>=0.104.0',
+    'uvicorn>=0.24.0',
+    'python-multipart>=0.0.6',
+    'jinja2>=3.1.2',
+    'markdown>=3.5.0',
+    'pygments>=2.16.0',
+    'watchdog>=3.0.0',
+    'ffmpeg-python>=0.2.0',
+    'soundfile>=0.12.1',
+    'sentencepiece>=0.1.99',
+    'protobuf>=4.24.0',
+    'networkx>=3.2.0',
+    'spacy>=3.7.0',
+    'langdetect>=1.0.9',
+    'aiomysql>=0.2.0',
+    'aioimaplib>=2.0.0',
+    'aiosmtplib>=3.0.0',
+    'dnspython>=2.6.0'
 ]
 
 # Platform-specific dependencies
@@ -51,20 +96,41 @@ if platform_info['name'] == 'ubuntu':
     platform_requires += [
         'python-xlib>=0.33',
         'python-evdev>=1.6.1',
-        'dbus-python>=1.3.2'
+        'dbus-python>=1.3.2',
+        'pyalsaaudio>=0.10.0',
+        'alsaaudio>=0.10.0',
+        'pyudev>=0.24.0',
+        'distro>=1.9.0',
+        'sounddevice>=0.4.6'
     ]
 elif platform_info['name'] == 'mac':
     platform_requires += [
         'pyobjc>=9.2',
         'pyobjc-framework-Quartz>=9.2',
         'pyobjc-framework-CoreServices>=9.2',
-        'pyobjc-framework-CoreWLAN>=9.2'
+        'pyobjc-framework-CoreWLAN>=9.2',
+        'pyobjc-framework-AVFoundation>=9.2',
+        'pyobjc-framework-AppKit>=9.2',
+        'pyobjc-framework-CoreAudio>=9.2',
+        'pyobjc-framework-Foundation>=9.2',
+        'pyobjc-framework-IOBluetooth>=9.2',
+        'pyobjc-framework-IOKit>=9.2',
+        'objc>=0.1.0'
     ]
 elif platform_info['name'] == 'windows':
     platform_requires += [
         'pywin32>=306',
         'wmi>=1.5.1',
-        'pywinauto>=0.6.8'
+        'pywinauto>=0.6.8',
+        'comtypes>=1.2.0',
+        'win32api',
+        'win32clipboard',
+        'win32com',
+        'win32con',
+        'win32file',
+        'win32gui',
+        'win32process',
+        'win32security'
     ]
 
 setup(
@@ -93,7 +159,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'labeeb=src.app.main:main',
+            'labeeb=labeeb.main:main',
         ],
     },
     classifiers=[

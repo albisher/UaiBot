@@ -1,5 +1,9 @@
-be creative in your human like tasks passed to main using --fast.
-you are focusing now on tools .. pass them human like variation of instructions in Arabic and English
+time to test .. human like
+
+you are focusing now on tools .. 
+pass them human like variation of instructions in Arabic and English
+
+be creative in your human like tasks passed to main using --fast to src/labeeb/main.py.
 
 always check the path where the communicaiton is happening, there you can learn about what is being used for each task you pass.
 
@@ -16,7 +20,7 @@ you should find and  solve
 issues, warnings, problems, and bugs right away.
 especially if they are blocking the progress or found in terminal problems.
 
-follow the /.cursor/rules  and updating the /todo files and /README.md as you go. Test the results to confirm files created are worrking and functional.
+follow the   and updating the  files and README.md as you go. Test the results to confirm files created are worrking and functional.
 
 you are developping proffitionally, you are developping for multi language and multi system
 

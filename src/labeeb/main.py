@@ -16,11 +16,12 @@ import urllib3
 import argparse
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 import asyncio
 import arabic_reshaper
 from bidi.algorithm import get_display
+import platform
 
 # Add src directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -57,6 +58,15 @@ urllib3.disable_warnings()
 class Labeeb:
     """Main Labeeb class that handles user interaction."""
     
+    SUPPORTED_LANGUAGES = {
+        'ar': 'العربية',
+        'ar-SA': 'العربية (السعودية)',
+        'ar-KW': 'العربية (الكويت)',
+        'ar-MA': 'العربية (المغرب)',
+        'ar-EG': 'العربية (مصر)',
+        'en': 'English'
+    }
+    
     def __init__(self, config: Optional[Dict[str, Any]] = None, debug: bool = False, mode: str = 'interactive', fast_mode: bool = False):
         """
         Initialize Labeeb with configuration.
@@ -76,7 +86,7 @@ class Labeeb:
             self.arabic_support = True
             self.rtl_support = True
             
-            # Initialize platform manager with mode awareness if needed
+            # Initialize platform manager with mode awareness
             self.platform_manager = PlatformManager()
             if not self.platform_manager.is_platform_supported():
                 raise ConfigurationError(f"Unsupported platform: {self.platform_manager.platform_name}")
@@ -145,14 +155,29 @@ class Labeeb:
             
             self.command_processor = CommandProcessor(self.ai_handler)
             
-            # Welcome message with platform info and RTL support
-            platform_info = self.platform_manager.get_platform_info()
-            welcome_text = f"""
+            # Set up language-specific welcome messages
+            self.welcome_messages = {
+                'ar': """
 🤖 مرحباً بك في لبيب!
 أنا مساعدك الذكي، جاهز لمساعدتك في مهامك.
-يعمل على: {platform_info['system']}
+يعمل على: {platform_info}
 اكتب 'help' للحصول على الأوامر المتاحة أو اسألني أي شيء!
+""",
+                'en': """
+🤖 Welcome to Labeeb!
+I'm your intelligent assistant, ready to help you with your tasks.
+Running on: {platform_info}
+Type 'help' for available commands or ask me anything!
 """
+            }
+            
+            # Get platform info
+            platform_info = self.platform_manager.get_platform_info()
+            
+            # Set default welcome message based on system locale
+            default_lang = 'ar' if self.rtl_support else 'en'
+            welcome_text = self.welcome_messages[default_lang].format(platform_info=platform_info['system'])
+            
             if self.rtl_support:
                 welcome_text = get_display(arabic_reshaper.reshape(welcome_text))
             self.welcome_message = welcome_text
@@ -162,7 +187,58 @@ class Labeeb:
         except Exception as e:
             logger.error(f"Failed to initialize Labeeb: {str(e)}")
             raise
-    
+
+    def _get_platform_specific_path(self) -> str:
+        """Get platform-specific directory path."""
+        system = platform.system().lower()
+        if system == 'darwin':
+            return 'macos'
+        elif system == 'windows':
+            return 'windows'
+        elif system == 'linux':
+            return 'linux'
+        else:
+            return 'generic'
+
+    def _handle_task(self, task: str) -> str:
+        """Handle a single task with human-like variations in Arabic and English."""
+        try:
+            # Process task in both languages
+            arabic_task = f"المهمة: {task}"
+            english_task = f"Task: {task}"
+            
+            # Get platform-specific path
+            platform_path = self._get_platform_specific_path()
+            
+            # Process task with platform awareness
+            response = self.command_processor.process_command(task)
+            
+            # Format response based on language
+            if self.rtl_support:
+                return f"{arabic_task}\n{response}"
+            else:
+                return f"{english_task}\n{response}"
+                
+        except Exception as e:
+            logger.error(f"Error processing task: {str(e)}")
+            return f"Error processing task: {str(e)}"
+
+    def _process_tasks_sequentially(self, tasks: List[str]) -> None:
+        """Process a list of tasks one by one."""
+        for task in tasks:
+            try:
+                response = self._handle_task(task)
+                if not self.fast_mode:
+                    output.info(response)
+                else:
+                    print(response)
+            except Exception as e:
+                logger.error(f"Error in task processing: {str(e)}")
+                if not self.fast_mode:
+                    output.error(f"Task failed: {str(e)}")
+                else:
+                    print(f"Error: {str(e)}")
+
     def start(self) -> None:
         """Start the Labeeb interactive session."""
         try:
@@ -425,74 +501,80 @@ class Labeeb:
             output.error("Invalid model selection.")
 
 async def main():
-    """Main CLI entry point."""
-    print("Labeeb CLI")
-    print("----------")
+    """Main entry point for Labeeb."""
+    parser = argparse.ArgumentParser(description='Labeeb - AI-powered shell assistant')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser.add_argument('--fast', action='store_true', help='Enable fast mode (minimal prompts, quick exit)')
+    parser.add_argument('--mode', choices=['interactive', 'command', 'file'], default='interactive',
+                      help='Operation mode: interactive, command, or file')
+    parser.add_argument('--command', help='Single command to execute')
+    parser.add_argument('--file', help='File containing commands to execute')
+    parser.add_argument('--tasks', nargs='+', help='List of tasks to execute')
+    parser.add_argument('--test-dir', help='Directory for test-related operations')
     
-    # Initialize agent
-    agent = LabeebAgent()
-    
-    # Main interaction loop
-    while True:
-        try:
-            # Get user input
-            command = input("\nEnter command (or 'exit' to quit): ").strip()
-            
-            if command.lower() in ['exit', 'quit']:
-                print("Goodbye!")
-                break
-            
-            # Plan and execute
-            plan = await agent.plan(command)
-            result = await agent.execute(plan)
-            print(f"[DEBUG] Result type: {type(result)}, value: {result}")
-            sequence.append("LabeebAgent.execute")
-            print(result)
-            
-        except KeyboardInterrupt:
-            print("\nGoodbye!")
-            break
-        except Exception as e:
-            print(f"Error: {e}")
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Labeeb CLI")
-    parser.add_argument('--fast', action='store_true', help='Enable fast mode (single input/output)')
-    parser.add_argument('command', nargs='*', help='Command to execute (in fast mode)')
     args = parser.parse_args()
+    
+    try:
+        # Set up logging
+        setup_logging('main')
+        
+        # Initialize Labeeb
+        labeeb = Labeeb(debug=args.debug, mode=args.mode, fast_mode=args.fast)
+        
+        if args.command:
+            # Process single command
+            response = labeeb.process_single_command(args.command)
+            print(response)
+        elif args.file:
+            # Process commands from file
+            with open(args.file, 'r', encoding='utf-8') as f:
+                commands = f.readlines()
+            for cmd in commands:
+                cmd = cmd.strip()
+                if cmd and not cmd.startswith('#'):
+                    response = labeeb.process_single_command(cmd)
+                    print(response)
+        elif args.tasks:
+            # Process list of tasks
+            labeeb._process_tasks_sequentially(args.tasks)
+        else:
+            # Start interactive session
+            labeeb.start()
+            
+    except KeyboardInterrupt:
+        print("\nOperation cancelled by user")
+    except Exception as e:
+        logger.error(f"Error in main: {str(e)}")
+        print(f"Error: {str(e)}")
+        sys.exit(1)
 
-    async def process_command_and_log(command: str):
-        agent = LabeebAgent()
-        sequence = [f"input: {command}"]
-        plan = await agent.plan(command)
-        sequence.append("LabeebAgent.plan")
-        result = await agent.execute(plan)
-        sequence.append("LabeebAgent.execute")
-        print(result)
-        os.makedirs("review", exist_ok=True)
-        with open("review/cli_sequence_audit.md", "a", encoding="utf-8") as f:
-            f.write(f"# CLI Sequence Audit\n\n")
-            f.write(f"Input: {command}\n")
-            f.write(f"Sequence: {' > '.join(sequence)}\n")
-            f.write(f"Result: {result}\n\n")
-        return result
+async def process_command_and_log(command: str):
+    """Process a command and log its execution."""
+    try:
+        start_time = datetime.now()
+        response = await process_command(command)
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        
+        log_entry = {
+            'timestamp': start_time.isoformat(),
+            'command': command,
+            'response': response,
+            'duration': duration
+        }
+        
+        # Log to file
+        log_file = os.path.join(project_root, 'logs', 'command_history.json')
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        
+        with open(log_file, 'a', encoding='utf-8') as f:
+            json.dump(log_entry, f, ensure_ascii=False)
+            f.write('\n')
+            
+        return response
+    except Exception as e:
+        logger.error(f"Error processing command: {str(e)}")
+        raise
 
-    if args.fast:
-        command = ' '.join(args.command) if args.command else input("Enter command: ")
-        asyncio.run(process_command_and_log(command))
-        sys.exit(0)
-    else:
-        print("Labeeb CLI\n----------")
-        agent = LabeebAgent()
-        while True:
-            try:
-                command = input("\nEnter command (or 'exit' to quit): ").strip()
-                if command.lower() in ['exit', 'quit']:
-                    print("Goodbye!")
-                    break
-                asyncio.run(process_command_and_log(command))
-            except KeyboardInterrupt:
-                print("\nGoodbye!")
-                break
-            except Exception as e:
-                print(f"Error: {e}")
+if __name__ == '__main__':
+    asyncio.run(main())
