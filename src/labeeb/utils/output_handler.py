@@ -24,8 +24,8 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 
 # Import the style manager
-from src.app.utils.output_style_manager import OutputStyleManager
-from src.app.logging_config import get_logger
+from labeeb.utils.output_style_manager import OutputStyleManager
+from labeeb.logging_config import get_logger
 
 logger = get_logger(__name__)
 

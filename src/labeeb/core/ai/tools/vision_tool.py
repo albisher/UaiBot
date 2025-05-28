@@ -2,7 +2,7 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, AutoModelForVision2Seq
 from typing import Optional
-from src.app.core.ai.tool_base import BaseTool
+from labeeb.core.ai.tool_base import BaseTool
 import logging
 import pyautogui
 import tempfile

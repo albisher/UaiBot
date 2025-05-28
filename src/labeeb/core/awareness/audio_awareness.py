@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-from src.app.core.platform_core.platform_utils import is_mac
+from labeeb.core.platform_core.platform_utils import is_mac
 
 logger = logging.getLogger(__name__)
 

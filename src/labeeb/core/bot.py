@@ -13,7 +13,7 @@ import os
 
 from .capabilities import CapabilitiesManager, Capability
 from .learning import LearningManager
-from src.app.core.platform_core.platform_utils import get_platform_name
+from labeeb.core.platform_core.platform_utils import get_platform_name
 
 logger = logging.getLogger(__name__)
 

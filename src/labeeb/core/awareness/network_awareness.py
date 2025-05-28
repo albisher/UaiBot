@@ -10,7 +10,7 @@ import platform
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
+from labeeb.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
 
 logger = logging.getLogger(__name__)
 

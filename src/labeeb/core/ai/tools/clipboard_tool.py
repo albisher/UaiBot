@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Any, List, Optional, Union
-from src.app.core.ai.tools.base_tool import BaseTool
-from src.app.core.platform_core.platform_manager import PlatformManager
+from labeeb.core.ai.tools.base_tool import BaseTool
+from labeeb.core.platform_core.platform_manager import PlatformManager
 
 logger = logging.getLogger(__name__)
 

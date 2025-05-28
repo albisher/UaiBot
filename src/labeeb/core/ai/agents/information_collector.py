@@ -1,10 +1,10 @@
-from src.app.core.ai.base_agent import BaseAgent
-from src.app.core.ai.tools.system_tool import SystemTool
-from src.app.core.ai.tools.web_searching_tool import WebSearchingTool
-from src.app.core.ai.tools.file_tool import FileTool
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
+from labeeb.core.ai.base_agent import BaseAgent
+from labeeb.core.ai.tools.system_tool import SystemTool
+from labeeb.core.ai.tools.web_searching_tool import WebSearchingTool
+from labeeb.core.ai.tools.file_tool import FileTool
+from labeeb.core.ai.a2a_protocol import A2AProtocol
+from labeeb.core.ai.mcp_protocol import MCPProtocol
+from labeeb.core.ai.smol_agent import SmolAgentProtocol
 from typing import Dict, Any
 
 class InformationCollectorAgent(BaseAgent, A2AProtocol, MCPProtocol, SmolAgentProtocol):

@@ -5,7 +5,7 @@ Handles sending commands to screen sessions and detecting active sessions.
 import subprocess
 import re
 import os
-from src.app.core.platform_core.platform_utils import get_platform_name
+from labeeb.core.platform_core.platform_utils import get_platform_name
 
 class ScreenManager:
     def __init__(self, quiet_mode=False):

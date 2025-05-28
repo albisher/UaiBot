@@ -5,7 +5,7 @@ Use PlatformManager for all app awareness logic.
 
 # Deprecated stub for backward compatibility
 from platform_core.platform_manager import PlatformManager
-from src.app.core.platform_core.platform_utils import get_platform_name
+from labeeb.core.platform_core.platform_utils import get_platform_name
 
 import logging
 from typing import List, Dict, Any, Optional

@@ -10,9 +10,9 @@ import logging
 from typing import Dict, Any, List
 from labeeb.platform_core.platform_manager import PlatformManager
 from labeeb.core.ai.agents.base_agent import BaseAgent
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
+from labeeb.core.ai.a2a_protocol import A2AProtocol
+from labeeb.core.ai.mcp_protocol import MCPProtocol
+from labeeb.core.ai.smol_agent import SmolAgentProtocol
 
 logger = logging.getLogger(__name__)
 

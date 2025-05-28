@@ -5,7 +5,7 @@ Use PlatformManager for all sensor awareness logic.
 
 # Deprecated stub for backward compatibility
 from platform_core.platform_manager import PlatformManager
-from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows
+from labeeb.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows
 
 import logging
 from typing import Dict, Any, Optional

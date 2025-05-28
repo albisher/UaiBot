@@ -10,9 +10,9 @@ from dataclasses import dataclass
 import sys
 import os
 from colorama import init, Fore, Back, Style
-from src.app.utils.output_style_manager import OutputStyleManager
+from labeeb.utils.output_style_manager import OutputStyleManager
+from labeeb.core.platform_core.terminal_utils import clear_terminal
 from pathlib import Path
-from src.app.core.platform_core.terminal_utils import clear_terminal
 
 # Initialize colorama
 init()

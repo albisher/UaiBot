@@ -1,7 +1,7 @@
 """
-Device manager module for Labeeb.
+Device manager package for Labeeb.
 Handles USB device detection and management.
 """
-from src.app.core.device_manager.usb_detector import USBDetector
+from labeeb.core.device_manager.usb_detector import USBDetector
 
 __all__ = ['USBDetector']

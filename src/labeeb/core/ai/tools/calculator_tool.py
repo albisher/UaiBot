@@ -10,7 +10,7 @@ This tool provides calculation functionality while following:
 import logging
 import math
 from typing import Dict, Any, List, Optional, Union
-from src.app.core.ai.tool_base import BaseTool
+from labeeb.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 

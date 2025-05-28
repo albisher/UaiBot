@@ -1,7 +1,7 @@
-from src.app.core.ai.tool_base import Tool
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
+from labeeb.core.ai.tool_base import Tool
+from labeeb.core.ai.a2a_protocol import A2AProtocol
+from labeeb.core.ai.mcp_protocol import MCPProtocol
+from labeeb.core.ai.smol_agent import SmolAgentProtocol
 from typing import Dict, Any
 
 """

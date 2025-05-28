@@ -7,7 +7,7 @@ import re
 import subprocess
 import os
 import tempfile
-from src.app.core.platform_core.platform_utils import is_mac
+from labeeb.core.platform_core.platform_utils import is_mac
 
 class ScreenSessionHandler:
     def __init__(self, quiet_mode=False):

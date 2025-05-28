@@ -15,7 +15,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from src.app.core.ai.tool_base import BaseTool
+from labeeb.core.ai.tool_base import BaseTool
 import tempfile
 import os
 import sys

@@ -18,7 +18,7 @@ from typing import Tuple, Optional, List, Dict, Any
 import logging
 from dataclasses import dataclass
 import math
-from src.app.core.platform_core.platform_utils import get_platform_name
+from labeeb.core.platform_core.platform_utils import get_platform_name
 
 # Platform-specific imports
 try:

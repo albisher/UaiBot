@@ -3,13 +3,13 @@ GraphMakerTool: Generates graphs from folder data using InformationCollectorAgen
 Outputs are saved in a dedicated work folder under Documents.
 """
 from typing import Dict, Any
-from src.app.core.ai.base_agent import BaseAgent, Agent
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
+from labeeb.core.ai.base_agent import BaseAgent, Agent
+from labeeb.core.ai.a2a_protocol import A2AProtocol
+from labeeb.core.ai.mcp_protocol import MCPProtocol
+from labeeb.core.ai.smol_agent import SmolAgentProtocol
 import os
 import matplotlib.pyplot as plt
-from src.app.core.ai.agents.information_collector import InformationCollectorAgent
+from labeeb.core.ai.agents.information_collector import InformationCollectorAgent
 
 class GraphMakerTool(BaseAgent, A2AProtocol, MCPProtocol, SmolAgentProtocol):
     """

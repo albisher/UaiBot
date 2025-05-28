@@ -15,7 +15,7 @@ import datetime
 import pyautogui
 import psutil
 from typing import List, Tuple, Dict, Optional, Any
-from src.app.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
+from labeeb.core.platform_core.platform_utils import get_platform_name, is_mac, is_windows, is_linux
 
 system = get_platform_name()
 if system in ("Windows", "Darwin"):

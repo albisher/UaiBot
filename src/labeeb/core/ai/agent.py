@@ -33,19 +33,19 @@ Workflow Orchestration:
 from typing import Any, Dict, List, Optional, Callable, Union, Protocol, TypeVar, Generic
 from dataclasses import dataclass, field
 from datetime import datetime
-from src.app.core.ai.tools.file_tool import FileTool
-from src.app.core.ai.tools.system_resource_tool import SystemResourceTool
-from src.app.core.ai.tools.datetime_tool import DateTimeTool
-from src.app.core.ai.tools.weather_tool import WeatherTool
-from src.app.core.ai.tools.calculator_tool import CalculatorTool
-from src.app.core.ai.tools.keyboard_input_tool import KeyboardInputTool
-from src.app.core.ai.tools.browser_automation_tool import BrowserAutomationTool
-from src.app.core.ai.tools.web_surfing_tool import WebSurfingTool
-from src.app.core.ai.tools.web_searching_tool import WebSearchingTool
-from src.app.core.ai.tools.file_and_document_organizer_tool import FileAndDocumentOrganizerTool
-from src.app.core.ai.tools.code_path_updater_tool import CodePathUpdaterTool
-from src.app.core.platform_core.app_control_tool import AppControlTool
-from src.app.core.ai.tool_base import Tool, BaseTool
+from labeeb.core.ai.tools.file_tool import FileTool
+from labeeb.core.ai.tools.system_resource_tool import SystemResourceTool
+from labeeb.core.ai.tools.datetime_tool import DateTimeTool
+from labeeb.core.ai.tools.weather_tool import WeatherTool
+from labeeb.core.ai.tools.calculator_tool import CalculatorTool
+from labeeb.core.ai.tools.keyboard_input_tool import KeyboardInputTool
+from labeeb.core.ai.tools.browser_automation_tool import BrowserAutomationTool
+from labeeb.core.ai.tools.web_surfing_tool import WebSurfingTool
+from labeeb.core.ai.tools.web_searching_tool import WebSearchingTool
+from labeeb.core.ai.tools.file_and_document_organizer_tool import FileAndDocumentOrganizerTool
+from labeeb.core.ai.tools.code_path_updater_tool import CodePathUpdaterTool
+from labeeb.core.platform_core.app_control_tool import AppControlTool
+from labeeb.core.ai.tool_base import Tool, BaseTool
 import requests
 import json
 from .a2a_protocol import A2AProtocol, Message, MessageRole
@@ -61,9 +61,9 @@ from .base_agent import BaseAgent, Agent, AgentState, AgentResult
 from .a2a_protocol import A2AProtocol
 from .mcp_protocol import MCPProtocol
 from .smol_agent import SmolAgentProtocol
-from src.app.core.ai.tools.clipboard_tool import ClipboardTool
-from src.app.core.ai.tools.screen_control_tool import ScreenControlTool
-from src.app.core.ai.tools.tool_registry import ToolRegistry
+from labeeb.core.ai.tools.clipboard_tool import ClipboardTool
+from labeeb.core.ai.tools.screen_control_tool import ScreenControlTool
+from labeeb.core.ai.tools.tool_registry import ToolRegistry
 import os
 
 # Setup translation (i18n)
@@ -582,7 +582,7 @@ class OllamaLLMPlanner(LLMPlanner):
 
     async def execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
         """Execute a tool by name using the shared ToolRegistry."""
-        from src.app.core.ai.tools.tool_registry import ToolRegistry
+        from labeeb.core.ai.tools.tool_registry import ToolRegistry
         tool_class = ToolRegistry.get_tool(tool_name)
         if not tool_class:
             raise ValueError(f"Tool {tool_name} not found in registry")
@@ -1025,7 +1025,7 @@ class LabeebAgent(BaseAgent):
 
     async def execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
         """Execute a tool by name using the shared ToolRegistry."""
-        from src.app.core.ai.tools.tool_registry import ToolRegistry
+        from labeeb.core.ai.tools.tool_registry import ToolRegistry
         tool_class = ToolRegistry.get_tool(tool_name)
         if not tool_class:
             raise ValueError(f"Tool {tool_name} not found in registry")

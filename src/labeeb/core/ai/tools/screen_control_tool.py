@@ -4,11 +4,11 @@ import gettext
 import locale
 import os
 from typing import Dict, Any, Tuple
-from src.app.core.platform_core.platform_manager import PlatformManager
-from src.app.core.ai.tool_base import BaseTool
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
+from labeeb.core.platform_core.platform_manager import PlatformManager
+from labeeb.core.ai.tool_base import BaseTool
+from labeeb.core.ai.a2a_protocol import A2AProtocol
+from labeeb.core.ai.mcp_protocol import MCPProtocol
+from labeeb.core.ai.smol_agent import SmolAgentProtocol
 from datetime import datetime
 import mss
 import mss.tools

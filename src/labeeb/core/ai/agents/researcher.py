@@ -1,8 +1,8 @@
 from labeeb.core.ai.agent import Agent
 from labeeb.core.ai.agents.information_collector import InformationCollectorAgent
-from src.app.core.ai.a2a_protocol import A2AProtocol
-from src.app.core.ai.mcp_protocol import MCPProtocol
-from src.app.core.ai.smol_agent import SmolAgentProtocol
+from labeeb.core.ai.a2a_protocol import A2AProtocol
+from labeeb.core.ai.mcp_protocol import MCPProtocol
+from labeeb.core.ai.smol_agent import SmolAgentProtocol
 from typing import Dict, Any
 
 class ResearcherAgent(Agent, A2AProtocol, MCPProtocol, SmolAgentProtocol):

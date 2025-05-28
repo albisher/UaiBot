@@ -10,7 +10,7 @@ This tool provides keyboard input functionality while following:
 import logging
 from typing import Dict, Any, List, Optional, Union
 import pyautogui
-from src.app.core.ai.tool_base import BaseTool
+from labeeb.core.ai.tool_base import BaseTool
 
 logger = logging.getLogger(__name__)
 

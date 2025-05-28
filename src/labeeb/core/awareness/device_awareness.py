@@ -13,7 +13,7 @@ import logging
 from typing import Dict, List, Any, Optional
 import psutil
 import pyautogui
-from src.app.core.platform_core.platform_utils import get_platform_name
+from labeeb.core.platform_core.platform_utils import get_platform_name
 
 class DeviceAwarenessTool:
     """
