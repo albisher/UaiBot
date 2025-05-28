@@ -1,1 +1,0 @@
-Main information/image cropped from screenshot-20250528-090753.png.\nVisionTool output: What is the main information or image shown in this browser screenshot? <image>\nWhat is the name of the website I can click on to get more information? ... (truncated)

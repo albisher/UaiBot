@@ -97,8 +97,7 @@ wheels/
 
 # Virtual Environment
 .env
-.venv
-env/
+.venv/
 venv/
 ENV/
 
@@ -108,13 +107,14 @@ ENV/
 *.swp
 *.swo
 .DS_Store
+Thumbs.db
 
 # Project specific
 logs/
 .cache/
 data/
 temp/
-tests/results/
+reports/
 *.log
 coverage.xml
 htmlcov/
@@ -134,25 +134,15 @@ htmlcov/
 config/keys/
 config/keys/*.json
 
-# Backup files
-*.bak
-*.backup
-*~
-
 # Test and output directories
 tests/results/
-logs/
+tests/outputs/
+tests/fixtures/
+test_files/
 .pytest_cache/
 .coverage
 coverage.xml
 htmlcov/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
 
 # Logs and databases
 *.log
@@ -161,8 +151,8 @@ htmlcov/
 
 # Cache
 .cache/
-labeeb/cache/
-labeeb/data/
+.pytest_cache/
+__pycache__/
 
 # Temporary files
 *.tmp
@@ -174,55 +164,35 @@ labeeb/data/
 .secret/
 .goose/
 
-# Test files
-test_files/
-test.txt
-test_output_ar.txt
-test_file.txt
-pyautogui_test.png
-websearch_kuwait.txt
-browse_kuwait.txt
-custom_note.txt
-inside
-
 # Documentation
 documentation/_build/
 documentation/_static/
 documentation/_templates/
 
 # Backup files
-backup/
+.backup/
 *.bak
 *.backup
 *.old
 
-# Python
-*.pyc
-*.pyo
-*.pyd
-*build/
-*dist/
-*egg-info/
-*.egg
-venv/
-env/
-.env
-*.env.*
+# Test outputs
+reports/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
 
-# IDE specific
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
+# Jupyter Notebook
+.ipynb_checkpoints
 
 # OS specific
 .DS_Store
 Thumbs.db
-
-# Log files
-*.log
 
 # Configuration - uncomment the line below if your settings.json contains sensitive information
 # or is intended to be user-specific and not versioned.

@@ -1,0 +1,766 @@
+.
+├── .DS_Store
+├── .github
+│   └── workflows
+│       └── ci.yml
+├── .gitignore
+├── .pre-commit-config.yaml
+├── .vscode
+│   ├── mcp.json
+│   └── settings.json
+├── COMMERCIAL_LICENSE
+├── config
+│   ├── command_patterns.json
+│   ├── keys
+│   │   └── encrypted_keys.json
+│   ├── output_styles.json
+│   └── settings.json
+├── current_arch.txt
+├── docs
+│   ├── agents_tools
+│   │   ├── agents_and_tools.md
+│   │   ├── audio_control_tool.md
+│   │   ├── browser_automation_tool.md
+│   │   ├── calculator_tool.md
+│   │   ├── code_path_updater_tool.md
+│   │   ├── datetime_tool.md
+│   │   ├── file_and_document_organizer_tool.md
+│   │   ├── file_tool.md
+│   │   ├── graph_maker_tool.md
+│   │   ├── information_collector.md
+│   │   ├── keyboard_control_tool.md
+│   │   ├── keyboard_input_tool.md
+│   │   ├── labeeb_agent.md
+│   │   ├── mouse_control_tool.md
+│   │   ├── planner.md
+│   │   ├── README.md
+│   │   ├── research_evaluator.md
+│   │   ├── researcher.md
+│   │   ├── screen_control_tool.md
+│   │   ├── shell_tool.md
+│   │   ├── system_awareness_tool.md
+│   │   ├── system_resource_tool.md
+│   │   ├── uaibot_agent.md
+│   │   ├── weather_tool.md
+│   │   ├── web_searching_tool.md
+│   │   └── web_surfing_tool.md
+│   ├── architecture
+│   │   └── agentic_architecture.md
+│   ├── architecture.md
+│   ├── configuration.md
+│   ├── features
+│   │   └── screen_control.md
+│   ├── file_operations_api.md
+│   ├── file_operations.md
+│   ├── folder_operations.md
+│   ├── human_instructions
+│   │   ├── command_processing
+│   │   │   └── commands.md
+│   │   ├── file_operations
+│   │   │   └── commands.md
+│   │   ├── multilingual
+│   │   │   ├── ar
+│   │   │   │   └── commands.md
+│   │   │   ├── commands.md
+│   │   │   └── en
+│   │   │       └── commands.md
+│   │   ├── system_info
+│   │   │   └── commands.md
+│   │   └── utils
+│   │       └── commands.md
+│   ├── i18n
+│   │   └── guide.md
+│   ├── i18n.md
+│   ├── input_control.md
+│   ├── json_format_examples.md
+│   ├── learning.md
+│   ├── mouse_keyboard_control.md
+│   ├── multilingual_coding_guide.md
+│   ├── multilingual_support.md
+│   ├── multilingual_testing.md
+│   ├── output_formatting_migration.md
+│   ├── output_system.md
+│   ├── platform_isolation.md
+│   ├── platform_support_architecture.md
+│   ├── project_structure.md
+│   ├── regex_to_ai_transition.md
+│   ├── research
+│   │   ├── automation
+│   │   │   └── research_workflow.md
+│   │   ├── browser_automation
+│   │   │   ├── browser_control.md
+│   │   │   ├── context_awareness.md
+│   │   │   ├── implementation_guide.md
+│   │   │   ├── input_handling.md
+│   │   │   ├── mouse_control.md
+│   │   │   └── screen_aware.md
+│   │   ├── context_management
+│   │   │   ├── context_persistence.md
+│   │   │   ├── context_validation.md
+│   │   │   ├── implementation_guide.md
+│   │   │   └── state_management.md
+│   │   ├── error_handling
+│   │   │   ├── error_recovery.md
+│   │   │   ├── implementation_guide.md
+│   │   │   ├── user_feedback.md
+│   │   │   └── validation_strategies.md
+│   │   ├── file_operations
+│   │   │   ├── directory_management.md
+│   │   │   ├── file_flags.md
+│   │   │   ├── implementation_guide.md
+│   │   │   └── pattern_search.md
+│   │   ├── human_interaction
+│   │   │   ├── implementation_guide.md
+│   │   │   ├── interactive_commands.md
+│   │   │   ├── preferences.md
+│   │   │   └── user_feedback.md
+│   │   ├── MCP_A2A
+│   │   │   ├── A2A.md
+│   │   │   └── mcp.md
+│   │   ├── multilingual
+│   │   │   ├── command_translation.md
+│   │   │   ├── implementation_guide.md
+│   │   │   ├── language_detection.md
+│   │   │   └── response_localization.md
+│   │   ├── not_orgnized
+│   │   │   ├── capabilities.md
+│   │   │   ├── control_browsers.md
+│   │   │   ├── cursor_enhancement.md
+│   │   │   ├── embed_vecDB.md
+│   │   │   ├── emoji_pyqt5.md
+│   │   │   ├── implementation.md
+│   │   │   ├── json.md
+│   │   │   ├── memory.md
+│   │   │   ├── my_name.md
+│   │   │   ├── prefix.md
+│   │   │   ├── project_enhancement.md
+│   │   │   ├── pyAware.md
+│   │   │   ├── research_automate.md
+│   │   │   ├── stt_tts_mac.md
+│   │   │   ├── vision_sound.md
+│   │   │   └── when_regex.md
+│   │   ├── platform_specific
+│   │   │   ├── cross_platform.md
+│   │   │   ├── implementation_guide.md
+│   │   │   ├── os_specific.md
+│   │   │   └── platform_detection.md
+│   │   ├── templates
+│   │   │   ├── documentation_templates.md
+│   │   │   ├── implementation_templates.md
+│   │   │   ├── search_prompts.md
+│   │   │   └── test_templates.md
+│   │   ├── test_infrastructure
+│   │   │   ├── implementation_guide.md
+│   │   │   ├── test_configuration.md
+│   │   │   ├── test_execution.md
+│   │   │   └── test_management.md
+│   │   └── vision_sound
+│   │       ├── smolvlm.md
+│   │       └── whisper.md
+│   ├── review
+│   │   └── cli_sequence_audit.md
+│   ├── rules
+│   │   └── technology_stack.mdc
+│   ├── secret
+│   │   ├── befor_commit.md
+│   │   ├── prompt.md
+│   │   └── tools_prompt.md
+│   ├── system_info
+│   │   ├── ollama_health_check.md
+│   │   └── system_health_checks.md
+│   ├── system_info_documentation.md
+│   └── todo
+│       ├── improvement_todo_2025-05-20.md
+│       ├── labeeb_project_professional_todo.md
+│       ├── project_architecture_tree.md
+│       ├── TODO.md
+│       ├── tools_todo.md
+│       └── vision_workflow_todo.md
+├── install.sh
+├── LICENSE
+├── locales
+│   ├── ar
+│   │   └── LC_MESSAGES
+│   │       ├── labeeb.mo
+│   │       └── labeeb.po
+│   ├── en
+│   │   └── LC_MESSAGES
+│   │       └── labeeb.po
+│   ├── es
+│   │   └── LC_MESSAGES
+│   │       └── labeeb.po
+│   └── fr
+│       └── LC_MESSAGES
+│           └── labeeb.po
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── scripts
+│   ├── audit_project.py
+│   ├── check_translations.py
+│   ├── compile_translations.py
+│   ├── extract_strings.py
+│   ├── install.sh
+│   ├── launch.py
+│   ├── manage_translations.py
+│   ├── reorganize_project.py
+│   ├── tools_audit.py
+│   ├── update_imports.py
+│   └── utils
+│       ├── output_facade.py
+│       ├── output_formatter.py
+│       ├── output_handler.py
+│       └── output_style_manager.py
+├── setup.py
+├── src
+│   ├── __init__.py
+│   ├── command_executor.py
+│   ├── labeeb
+│   │   ├── __init__.py
+│   │   ├── __main__.py
+│   │   ├── agent_tools
+│   │   │   ├── base_tool.py
+│   │   │   └── tool_manager.py
+│   │   ├── agents
+│   │   │   ├── base_agent.py
+│   │   │   └── uaibot_agent.py
+│   │   ├── cache
+│   │   │   └── __init__.py
+│   │   ├── config
+│   │   │   └── output_paths.py
+│   │   ├── core
+│   │   │   ├── __init__.py
+│   │   │   ├── agent.py
+│   │   │   ├── ai
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── a2a_protocol.py
+│   │   │   │   ├── agent.py
+│   │   │   │   ├── agents
+│   │   │   │   │   ├── information_collector.py
+│   │   │   │   │   ├── labeeb_agent.py
+│   │   │   │   │   ├── planner.py
+│   │   │   │   │   ├── research_evaluator.py
+│   │   │   │   │   └── researcher.py
+│   │   │   │   ├── base_agent.py
+│   │   │   │   ├── channels
+│   │   │   │   │   └── websocket_channel.py
+│   │   │   │   ├── mcp_protocol.py
+│   │   │   │   ├── models
+│   │   │   │   │   ├── audio
+│   │   │   │   │   │   ├── __init__.py
+│   │   │   │   │   │   └── processor.py
+│   │   │   │   │   └── vision
+│   │   │   │   │       ├── __init__.py
+│   │   │   │   │       └── processor.py
+│   │   │   │   ├── prompts
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   └── base_prompts.py
+│   │   │   │   ├── protocols
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── a2a_protocol.py
+│   │   │   │   │   ├── base_protocol.py
+│   │   │   │   │   ├── mcp_protocol.py
+│   │   │   │   │   └── smol_agent_protocol.py
+│   │   │   │   ├── registry.py
+│   │   │   │   ├── smol_agent.py
+│   │   │   │   ├── tool_base.py
+│   │   │   │   ├── tools
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── audio_control_tool.py
+│   │   │   │   │   ├── audio_tool.py
+│   │   │   │   │   ├── base_tool.py
+│   │   │   │   │   ├── browser_automation_tool.py
+│   │   │   │   │   ├── cache_tool.py
+│   │   │   │   │   ├── calculator_tool.py
+│   │   │   │   │   ├── calculator_tools.py
+│   │   │   │   │   ├── calendar_tool.py
+│   │   │   │   │   ├── clipboard_tool.py
+│   │   │   │   │   ├── code_path_updater_tool.py
+│   │   │   │   │   ├── config_tool.py
+│   │   │   │   │   ├── database_tool.py
+│   │   │   │   │   ├── datetime_tool.py
+│   │   │   │   │   ├── email_tool.py
+│   │   │   │   │   ├── file_and_document_organizer_tool.py
+│   │   │   │   │   ├── file_system_tool.py
+│   │   │   │   │   ├── file_tool.py
+│   │   │   │   │   ├── graph_maker_tool.py
+│   │   │   │   │   ├── image_tool.py
+│   │   │   │   │   ├── json_tool.py
+│   │   │   │   │   ├── keyboard_input_tool.py
+│   │   │   │   │   ├── log_tool.py
+│   │   │   │   │   ├── math_tool.py
+│   │   │   │   │   ├── mouse_tool.py
+│   │   │   │   │   ├── network_tool.py
+│   │   │   │   │   ├── process_tool.py
+│   │   │   │   │   ├── screen_control_tool.py
+│   │   │   │   │   ├── search_tool.py
+│   │   │   │   │   ├── security_tool.py
+│   │   │   │   │   ├── shell_tool.py
+│   │   │   │   │   ├── system_resource_tool.py
+│   │   │   │   │   ├── system_tool.py
+│   │   │   │   │   ├── text_tool.py
+│   │   │   │   │   ├── tool_registry.py
+│   │   │   │   │   ├── tools_todo.md
+│   │   │   │   │   ├── translation_tool.py
+│   │   │   │   │   ├── video_tool.py
+│   │   │   │   │   ├── vision_tool.py
+│   │   │   │   │   ├── weather_tool.py
+│   │   │   │   │   ├── web_searching_tool.py
+│   │   │   │   │   ├── web_surfing_tool.py
+│   │   │   │   │   └── web_tool.py
+│   │   │   │   └── workflows
+│   │   │   │       ├── __init__.py
+│   │   │   │       └── base_workflow.py
+│   │   │   ├── ai_command_interpreter.py
+│   │   │   ├── ai_handler.py
+│   │   │   ├── ai_performance_tracker.py
+│   │   │   ├── arg_parser.py
+│   │   │   ├── auth_manager.py
+│   │   │   ├── auth.py
+│   │   │   ├── awareness
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── app_awareness.py
+│   │   │   │   ├── audio_awareness.py
+│   │   │   │   ├── battery_awareness.py
+│   │   │   │   ├── bluetooth_awareness.py
+│   │   │   │   ├── device_awareness.py
+│   │   │   │   ├── display_tool.py
+│   │   │   │   ├── interaction_awareness.py
+│   │   │   │   ├── network_awareness.py
+│   │   │   │   ├── README.md
+│   │   │   │   ├── sensor_awareness.py
+│   │   │   │   ├── speech_tool.py
+│   │   │   │   ├── system_awareness.py
+│   │   │   │   ├── terminal_tool.py
+│   │   │   │   ├── time_awareness.py
+│   │   │   │   ├── tools
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── acceleration_awareness_tool.py
+│   │   │   │   │   ├── context_awareness_tool.py
+│   │   │   │   │   ├── cpu_awareness_tool.py
+│   │   │   │   │   ├── device_awareness_tool.py
+│   │   │   │   │   ├── disk_awareness_tool.py
+│   │   │   │   │   ├── display_tool.py
+│   │   │   │   │   ├── electric_awareness_tool.py
+│   │   │   │   │   ├── energy_awareness_tool.py
+│   │   │   │   │   ├── error_awareness_tool.py
+│   │   │   │   │   ├── event_awareness_tool.py
+│   │   │   │   │   ├── gravity_awareness_tool.py
+│   │   │   │   │   ├── humidity_awareness_tool.py
+│   │   │   │   │   ├── interaction_awareness_tool.py
+│   │   │   │   │   ├── light_awareness_tool.py
+│   │   │   │   │   ├── logging_awareness_tool.py
+│   │   │   │   │   ├── magnetic_awareness_tool.py
+│   │   │   │   │   ├── memory_awareness_tool.py
+│   │   │   │   │   ├── motion_awareness_tool.py
+│   │   │   │   │   ├── network_awareness_tool.py
+│   │   │   │   │   ├── orientation_awareness_tool.py
+│   │   │   │   │   ├── performance_awareness_tool.py
+│   │   │   │   │   ├── platform_awareness_tool.py
+│   │   │   │   │   ├── position_awareness_tool.py
+│   │   │   │   │   ├── pressure_awareness_tool.py
+│   │   │   │   │   ├── process_awareness_tool.py
+│   │   │   │   │   ├── rotation_awareness_tool.py
+│   │   │   │   │   ├── security_awareness_tool.py
+│   │   │   │   │   ├── sound_awareness_tool.py
+│   │   │   │   │   ├── space_awareness_tool.py
+│   │   │   │   │   ├── speech_tool.py
+│   │   │   │   │   ├── state_awareness_tool.py
+│   │   │   │   │   ├── system_awareness_tool.py
+│   │   │   │   │   ├── temperature_awareness_tool.py
+│   │   │   │   │   ├── terminal_tool.py
+│   │   │   │   │   ├── thread_awareness_tool.py
+│   │   │   │   │   ├── time_awareness_tool.py
+│   │   │   │   │   └── user_routine_tool.py
+│   │   │   │   ├── user_awareness.py
+│   │   │   │   └── user_routine_awareness.py
+│   │   │   ├── bot.py
+│   │   │   ├── browser_handler.py
+│   │   │   ├── browser_interaction.py
+│   │   │   ├── cache_manager.py
+│   │   │   ├── cache.py
+│   │   │   ├── capabilities_registry.json
+│   │   │   ├── capabilities.py
+│   │   │   ├── command_detector.py
+│   │   │   ├── command_help.py
+│   │   │   ├── command_processor
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── ai_command_extractor.py
+│   │   │   │   ├── ai_driven_processor.py
+│   │   │   │   ├── ai_response_cache.py
+│   │   │   │   ├── command_processor.py
+│   │   │   │   ├── error_handler.py
+│   │   │   │   └── user_interaction_history.py
+│   │   │   ├── commands.py
+│   │   │   ├── common
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── input_control
+│   │   │   │       ├── __init__.py
+│   │   │   │       └── base_handler.py
+│   │   │   ├── config_manager.py
+│   │   │   ├── controller
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── execution_controller.py
+│   │   │   ├── device_manager
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── usb_detector.py
+│   │   │   ├── exceptions.py
+│   │   │   ├── file_operations.py
+│   │   │   ├── file_search.py
+│   │   │   ├── file_utils.py -> ../utils/file_utils.py
+│   │   │   ├── input
+│   │   │   │   └── mouse.py
+│   │   │   ├── key_management.py
+│   │   │   ├── key_manager.py
+│   │   │   ├── learning.py
+│   │   │   ├── logging_config.py
+│   │   │   ├── logging_manager.py
+│   │   │   ├── main.py
+│   │   │   ├── memory_handler.py
+│   │   │   ├── model_config_manager.py
+│   │   │   ├── model_manager.py
+│   │   │   ├── multilingual_commands.py
+│   │   │   ├── output
+│   │   │   │   └── output_style_manager.py
+│   │   │   ├── parallel_utils.py
+│   │   │   ├── platform_core
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── app_control_tool.py
+│   │   │   │   ├── audio_interface.py
+│   │   │   │   ├── base_fs_handler.py
+│   │   │   │   ├── base_handler.py
+│   │   │   │   ├── base_net_handler.py
+│   │   │   │   ├── base_ui_handler.py
+│   │   │   │   ├── browser_controller.py
+│   │   │   │   ├── browser_handler.py
+│   │   │   │   ├── common
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   ├── awareness
+│   │   │   │   │   │   ├── __init__.py
+│   │   │   │   │   │   ├── awareness_factory.py
+│   │   │   │   │   │   └── base_awareness.py
+│   │   │   │   │   ├── base_handler.py
+│   │   │   │   │   ├── input_control
+│   │   │   │   │   │   └── __init__.py
+│   │   │   │   │   ├── input_handler.py
+│   │   │   │   │   ├── platform_factory.py
+│   │   │   │   │   ├── platform_interface.py
+│   │   │   │   │   ├── platform_utils.py
+│   │   │   │   │   ├── system_info.md
+│   │   │   │   │   ├── system_info.py
+│   │   │   │   │   └── usb_handler.py
+│   │   │   │   ├── fs_interface.py
+│   │   │   │   ├── i18n.md
+│   │   │   │   ├── i18n.py
+│   │   │   │   ├── jetson
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   ├── input_control.py
+│   │   │   │   │   └── usb_handler.py
+│   │   │   │   ├── keyboard_control_tool.py
+│   │   │   │   ├── linux
+│   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   ├── clipboard_handler.py
+│   │   │   │   │   ├── fs_handler.py
+│   │   │   │   │   ├── linux_platform.py
+│   │   │   │   │   ├── net_handler.py
+│   │   │   │   │   ├── platform.py
+│   │   │   │   │   └── ui_handler.py
+│   │   │   │   ├── mac
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── apple_silicon.py
+│   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   ├── browser_handler.py
+│   │   │   │   │   ├── calendar_controller.py
+│   │   │   │   │   ├── common
+│   │   │   │   │   │   ├── __init__.py
+│   │   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   │   └── usb_handler.py
+│   │   │   │   │   ├── config.json
+│   │   │   │   │   ├── display_handler.py
+│   │   │   │   │   ├── initialize_mac.py
+│   │   │   │   │   ├── input_control.py
+│   │   │   │   │   ├── input_handler.py
+│   │   │   │   │   ├── mac
+│   │   │   │   │   │   ├── __init__.py
+│   │   │   │   │   │   ├── apple_silicon.py
+│   │   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   │   └── usb_handler.py
+│   │   │   │   │   ├── platform_manager.py
+│   │   │   │   │   ├── platform_utils.py
+│   │   │   │   │   ├── setup_mac.py
+│   │   │   │   │   ├── shell_handler.py
+│   │   │   │   │   ├── system_info.py
+│   │   │   │   │   └── usb_handler.py
+│   │   │   │   ├── macos
+│   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   ├── awareness
+│   │   │   │   │   │   └── macos_awareness.py
+│   │   │   │   │   ├── darwin
+│   │   │   │   │   │   ├── macos_platform.py
+│   │   │   │   │   │   └── platform.py
+│   │   │   │   │   ├── fs_handler.py
+│   │   │   │   │   ├── macos_platform.py
+│   │   │   │   │   ├── net_handler.py
+│   │   │   │   │   └── ui_handler.py
+│   │   │   │   ├── mouse_control_tool.py
+│   │   │   │   ├── mouse.py
+│   │   │   │   ├── net_interface.py
+│   │   │   │   ├── network_tool.py
+│   │   │   │   ├── platform_commands.py
+│   │   │   │   ├── platform_factory.py
+│   │   │   │   ├── platform_manager.md
+│   │   │   │   ├── platform_manager.py
+│   │   │   │   ├── platform_utils.py
+│   │   │   │   ├── README.md
+│   │   │   │   ├── screen_manager.py
+│   │   │   │   ├── session_manager.py
+│   │   │   │   ├── shell_handler.py
+│   │   │   │   ├── system_awareness_tool.py
+│   │   │   │   ├── system_commands.py
+│   │   │   │   ├── system_info_gatherer.py
+│   │   │   │   ├── system_tools.py
+│   │   │   │   ├── terminal_utils.py
+│   │   │   │   ├── translations
+│   │   │   │   │   ├── ar.json
+│   │   │   │   │   └── en.json
+│   │   │   │   ├── ubuntu
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── audio_handler.py
+│   │   │   │   │   ├── awareness
+│   │   │   │   │   │   └── ubuntu_awareness.py
+│   │   │   │   │   ├── config.json
+│   │   │   │   │   ├── input_control
+│   │   │   │   │   │   └── __init__.py
+│   │   │   │   │   ├── input_control.py
+│   │   │   │   │   ├── system_info.py
+│   │   │   │   │   └── usb_handler.py
+│   │   │   │   ├── ui_interface.py
+│   │   │   │   ├── usb_detector.py
+│   │   │   │   ├── win32
+│   │   │   │   │   └── windows_platform.py
+│   │   │   │   ├── window_control_tool.py
+│   │   │   │   └── windows
+│   │   │   │       ├── __init__.py
+│   │   │   │       ├── audio_handler.py
+│   │   │   │       ├── awareness
+│   │   │   │       │   └── windows_awareness.py
+│   │   │   │       ├── config.json
+│   │   │   │       ├── fs_handler.py
+│   │   │   │       ├── input_control.py
+│   │   │   │       ├── net_handler.py
+│   │   │   │       ├── system_info.py
+│   │   │   │       └── ui_handler.py
+│   │   │   ├── plugin_manager.py
+│   │   │   ├── plugins.py
+│   │   │   ├── query_processor.py
+│   │   │   ├── research
+│   │   │   │   └── automation.py
+│   │   │   ├── screen_handler
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── screen_manager.py
+│   │   │   │   ├── session_manager.py
+│   │   │   │   └── session_manager.py.fixed
+│   │   │   ├── shell_handler.py
+│   │   │   ├── system
+│   │   │   │   └── system_info_gatherer.py
+│   │   │   ├── test_fixtures.py
+│   │   │   ├── tools
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── enhanced_output_processor.py
+│   │   │   ├── utils.py
+│   │   │   └── vision
+│   │   │       └── __init__.py
+│   │   ├── health_check
+│   │   │   ├── license_check.py
+│   │   │   ├── ollama_health_check.py
+│   │   │   ├── platform_health_check.py
+│   │   │   ├── system_info_health_check.py
+│   │   │   └── update_find_folders.py
+│   │   ├── io.py
+│   │   ├── license_check.py
+│   │   ├── logging_config.py
+│   │   ├── main.py
+│   │   ├── shell_handler.py
+│   │   ├── start_labeeb.py
+│   │   ├── state
+│   │   │   ├── context.json
+│   │   │   └── execution_state.json
+│   │   ├── system_types.py
+│   │   ├── test_system.py
+│   │   ├── tools
+│   │   │   └── weather
+│   │   │       └── weather.py
+│   │   ├── ui
+│   │   │   ├── basic_interface.py
+│   │   │   └── gui_launcher.py
+│   │   └── utils
+│   │       ├── __init__.py
+│   │       ├── ai_json_tools.py
+│   │       ├── basic_output_formatter.py
+│   │       ├── file_utils.py
+│   │       ├── i18n.py
+│   │       ├── output_facade.py
+│   │       ├── output_formatter.py
+│   │       ├── output_handler.py
+│   │       ├── output_style_manager.py
+│   │       ├── parallel_utils.py
+│   │       ├── platform_utils.py
+│   │       ├── system_health_check.py
+│   │       ├── template_prompt.md
+│   │       ├── update_command_patterns.py
+│   │       ├── update_find_files.py
+│   │       └── update_find_folders.py
+│   └── tests
+├── tests
+│   ├── صور_الشاشة
+│   │   ├── cropped-info.png
+│   │   ├── screenshot-20250528-075437.png
+│   │   ├── screenshot-20250528-081246.png
+│   │   ├── screenshot-20250528-082602.png
+│   │   ├── screenshot-20250528-084552.png
+│   │   ├── screenshot-20250528-090228.png
+│   │   ├── screenshot-20250528-090753.png
+│   │   ├── screenshot-20250528-094430.png
+│   │   ├── screenshot-20250528-104613.png
+│   │   ├── screenshot-20250528-104716.png
+│   │   ├── screenshot-20250528-104740.png
+│   │   ├── screenshot-20250528-104803.png
+│   │   ├── screenshot-20250528-104844.png
+│   │   └── screenshot-20250528-124024.png
+│   ├── .coverage
+│   ├── تجربة.md
+│   ├── arabic_test.txt
+│   ├── command_processing
+│   ├── conftest.py
+│   ├── core
+│   │   ├── ai
+│   │   ├── command_processor
+│   │   ├── controller
+│   │   └── file_operations
+│   ├── english_test.txt
+│   ├── file_operations
+│   ├── files_and_folders_tests
+│   │   ├── arabic_test_file.md
+│   │   ├── creative_test_ar.md
+│   │   └── creative_test_en.md
+│   ├── fixtures
+│   │   └── cli_graph_test_output.md
+│   ├── input_control
+│   ├── integration
+│   │   ├── test_cross_agent_tool_usage.py
+│   │   ├── test_end_to_end_task_completion.py
+│   │   ├── test_multi_pc_synchronization.py
+│   │   └── test_protocol_switching.py
+│   ├── multilingual
+│   ├── platform_core
+│   │   ├── test_awareness.py
+│   │   └── test_platform_handlers.py
+│   ├── platform_tests
+│   ├── results
+│   │   ├── all_test_results.md
+│   │   ├── coverage
+│   │   │   ├── .coverage
+│   │   │   └── coverage.xml
+│   │   ├── multilingual_test_report_20250520_093123.md
+│   │   ├── multilingual_test_report_20250520_105915.md
+│   │   ├── multilingual_test_report_20250520_111932.md
+│   │   ├── multilingual_test_report_20250520_113405.md
+│   │   ├── multilingual_test_results_20250520_093123.json
+│   │   ├── multilingual_test_results_20250520_105915.json
+│   │   ├── multilingual_test_results_20250520_111932.json
+│   │   ├── multilingual_test_results_20250520_113405.json
+│   │   ├── multilingual_test_results_20250523_214334.json
+│   │   ├── multilingual_test_results_20250523_214427.json
+│   │   ├── multilingual_test_results_20250523_214656.json
+│   │   ├── multilingual_test_results_20250523_220528.json
+│   │   ├── multilingual_test_results_20250523_220556.json
+│   │   ├── multilingual_test_results_20250523_220635.json
+│   │   ├── multilingual_test_results_20250523_220727.json
+│   │   ├── outputs
+│   │   │   ├── browse_kuwait.md
+│   │   │   ├── custom_note.md
+│   │   │   ├── inside
+│   │   │   ├── pyautogui_test.png
+│   │   │   └── websearch_kuwait.md
+│   │   ├── sample.md
+│   │   ├── sample1.md
+│   │   ├── sample2.md
+│   │   ├── t250521
+│   │   │   ├── test_file.md
+│   │   │   ├── test_output_ar.md
+│   │   │   └── test.md
+│   │   └── test_requests.md
+│   ├── scripts
+│   ├── src
+│   │   └── uaibot
+│   │       └── core
+│   │           └── ai
+│   ├── system
+│   ├── system_info
+│   ├── test_ai_response_cache.py
+│   ├── test_calculator_automation.py
+│   ├── test_files
+│   │   ├── ai_human_requests.md
+│   │   ├── commands.md
+│   │   ├── custom_note.md
+│   │   ├── notes.md
+│   │   ├── README.md
+│   │   ├── run_pytest.bat
+│   │   ├── run_pytest.sh
+│   │   ├── system_info_improvements.md
+│   │   ├── test_file.md
+│   │   └── utils
+│   │       ├── __init__.py
+│   │       └── test_helper.py
+│   ├── test_launchers.py
+│   ├── test_platform_support.py
+│   ├── test_plugins.py
+│   ├── test_protocols.py
+│   ├── test_weather_agent_integration.py
+│   ├── test_weather_plugin.py
+│   ├── test.md
+│   ├── tests
+│   │   └── results
+│   │       ├── multilingual_test_results_20250523_214054.json
+│   │       └── multilingual_test_results_20250523_214138.json
+│   └── unit
+│       ├── ai
+│       ├── awareness_env_test.py
+│       ├── command_processing
+│       │   └── test_command_processor.py
+│       ├── core
+│       │   ├── test_ai_handler.py
+│       │   └── test_file_operations.py
+│       ├── platform_core
+│       │   ├── test_i18n.py
+│       │   ├── test_platform_manager.py
+│       │   └── test_system_info.py
+│       ├── test_audio_control_tool.py
+│       ├── test_browser_automation_tool.py
+│       ├── test_calculator_tool.py
+│       ├── test_code_path_updater_tool.py
+│       ├── test_datetime_tool.py
+│       ├── test_file_and_document_organizer_tool.py
+│       ├── test_file_tool.py
+│       ├── test_graph_maker_tool.py
+│       ├── test_information_collector.py
+│       ├── test_keyboard_control_tool.py
+│       ├── test_keyboard_input_tool.py
+│       ├── test_labeeb_agent.py
+│       ├── test_mouse_control_tool.py
+│       ├── test_planner.py
+│       ├── test_research_evaluator.py
+│       ├── test_researcher.py
+│       ├── test_screen_control_tool.py
+│       ├── test_shell_tool.py
+│       ├── test_system_awareness_tool.py
+│       ├── test_system_resource_tool.py
+│       ├── test_uaibot_agent.py
+│       ├── test_weather_tool.py
+│       ├── test_web_searching_tool.py
+│       └── test_web_surfing_tool.py
+└── tox.ini
+
+142 directories, 622 files
