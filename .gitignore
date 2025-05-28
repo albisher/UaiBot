@@ -78,46 +78,39 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
+dist/
+build/
 *.egg
 
 # Virtual Environment
-.env
 .venv/
 venv/
-ENV/
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# Project specific
-logs/
+# Cache files
 .cache/
-data/
-temp/
-reports/
-*.log
+.pytest_cache/
+
+# Coverage reports
+.coverage
 coverage.xml
 htmlcov/
+reports/
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# IDE specific
+.vscode/
+.idea/
+
+# Other
+*.bak
+*.pyd
+*.pyc
+*.pyo
 
 # Sensitive files
 *.pem
@@ -148,11 +141,6 @@ htmlcov/
 *.log
 *.sqlite
 *.db
-
-# Cache
-.cache/
-.pytest_cache/
-__pycache__/
 
 # Temporary files
 *.tmp

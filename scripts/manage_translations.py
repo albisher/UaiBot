@@ -20,7 +20,7 @@ def add_language(language: str) -> None:
     """Add a new language.
     
     Args:
-        language: Language code (e.g., 'en', 'es', 'fr')
+        language: Language code ('ar', 'en', 'es')
     """
     locales_dir = Path("locales")
     if not locales_dir.exists():

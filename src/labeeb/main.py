@@ -41,7 +41,7 @@ from labeeb.core.model_manager import ModelManager
 from labeeb.core.config_manager import ConfigManager
 from labeeb.core.ai.agent import LabeebAgent
 from labeeb.core.ai.workflows.base_workflow import LabeebWorkflow
-from labeeb.core.ai.tools.base_tool import BaseAgentTool
+from labeeb.agent_tools.base_tool import BaseAgentTool
 
 # Set up logging
 logger = get_logger(__name__)
