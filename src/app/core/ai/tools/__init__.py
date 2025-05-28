@@ -17,6 +17,7 @@ from .clipboard_tool import ClipboardTool
 from .calculator_tools import CalculatorTool
 from src.app.core.tools.app_control_tool import AppControlTool
 from .vision_tool import VisionTool
+from .screen_control_tool import ScreenControlTool
 
 # Re-register all tools to ensure correct .name registration after registry fix
 ToolRegistry.register(FileTool)
@@ -30,3 +31,4 @@ ToolRegistry.register(ClipboardTool)
 ToolRegistry.register(CalculatorTool)
 ToolRegistry.register(AppControlTool)
 ToolRegistry.register(VisionTool)
+ToolRegistry.register(ScreenControlTool)

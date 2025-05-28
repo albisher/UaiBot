@@ -4,6 +4,8 @@ from transformers import AutoProcessor, AutoModelForVision2Seq
 from typing import Optional
 from src.app.core.ai.tool_base import BaseTool
 import logging
+import pyautogui
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -56,4 +58,28 @@ class VisionTool(BaseTool):
             return self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         except Exception as e:
             logger.error(f"VisionTool failed to analyze image: {e}")
-            return f"[VisionTool error: {e}]" 
+            return f"[VisionTool error: {e}]"
+
+    async def _execute_command(self, action: str, args: dict) -> dict:
+        if action == "analyze_image":
+            image_path = args.get("image_path")
+            prompt = args.get("prompt")
+            filename = args.get("filename")
+            if not image_path:
+                # Take screenshot using pyautogui
+                if filename:
+                    screenshot = pyautogui.screenshot()
+                    screenshot.save(filename)
+                    image_path = filename
+                else:
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                        screenshot = pyautogui.screenshot()
+                        screenshot.save(tmp.name)
+                        image_path = tmp.name
+            try:
+                result = self.analyze_image(image_path, prompt)
+                return {"result": result, "image_path": image_path}
+            except Exception as e:
+                return {"error": str(e), "image_path": image_path}
+        else:
+            return {"error": f"Unknown action: {action}"} 

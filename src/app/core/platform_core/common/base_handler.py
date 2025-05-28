@@ -74,6 +74,7 @@ class BaseHandler(Generic[T]):
             bool: True if the platform is valid, False otherwise.
         """
         try:
+            # Move import here to avoid circular import
             from ..platform_manager import platform_manager
             
             # Get current platform
@@ -105,6 +106,7 @@ class BaseHandler(Generic[T]):
     def _initialize_rtl_support(self) -> None:
         """Initialize RTL language support."""
         try:
+            # Move import here to avoid circular import
             from ..platform_manager import platform_manager
             self._rtl_support = platform_manager.rtl_support
         except Exception as e:

@@ -171,3 +171,41 @@ pip install pyperclip
 ## OCR Technology Choice
 
 **Tesseract OCR (via pytesseract) is the official and default technology for all OCR/text extraction from screenshots in Labeeb. All workflows, tools, and tests should use Tesseract OCR for these tasks to ensure cross-platform compatibility and robust text extraction. Use of other OCR libraries is only permitted for special cases or future enhancements.**
+
+# Labeeb Agent
+
+## Overview
+Labeeb is a cross-platform, multi-language AI agent system supporting English and Arabic (including dialects) for robust, human-like automation. All OS-specific logic is isolated. The agent uses a unified tool registry and robust plan decomposition logic to match creative, natural language instructions to the correct tool.
+
+## Tool Plan Logic
+- Pattern-matching for each tool (vision, screenshot, mouse, keyboard, clipboard, calculator, file/folder, LLM fallback)
+- Supports English and Arabic (Kuwaiti, Moroccan, MSA, etc.)
+- All tool names must match the canonical registry name
+- All tool actions are tested via `main.py --fast` with both English and Arabic instructions
+- All test artifacts are saved in `labeeb_tool_tests/files_and_folders_tests/` for audit
+
+## Communication Path
+- Always check the communication path for each task to confirm the correct tool is being used
+
+## Naming Conventions
+- Project name: Labeeb (not uaibot, Uaibot, etc.)
+- All documentation, code, and artifacts must use the correct name
+
+## Internet Policy
+- Labeeb must not pass anything to the internet unless the user explicitly requests it
+
+## Testing Workflow
+- Use creative, human-like instructions in both English and Arabic
+- All file/folder tests are performed in a dedicated test folder
+- All issues, warnings, and bugs must be addressed immediately
+
+## OS Support
+- All OS-specific changes must be isolated
+- macOS-specific logic is in the `macos` directory
+
+## Professional Practices
+- All changes are documented in real time
+- Project structure, naming, and file organization are strictly enforced
+- All issues, warnings, and bugs are addressed immediately
+- Compliance with A2A, MCP, and SmolAgents protocols
+- All test artifacts are saved in the correct folders for auditability
